@@ -1,65 +1,25 @@
 "Test some examples."
-
+import os
 import socket
 import os.path
 import unittest
 import sys
-import time
 from io import StringIO
-
-import twill.commands
-import twill.parse
-import twill.unit
 
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_1_TYPE
 from openid.consumer.consumer import AuthRequest
 
-
-class TwillTest(twill.unit.TestInfo):
-    """Variant of twill.unit.TestInfo that runs a function as a test script,
-    not twill script from a file.
-    """
-
-    # twill.unit is pretty small to start with, we're overriding
-    # run_script and bypassing twill.parse, so it may make sense to
-    # rewrite twill.unit altogether.
-
-    # Desirable features:
-    #  * better unittest.TestCase integration.
-    #     - handle logs on setup and teardown.
-    #     - treat TwillAssertionError as failed test assertion, make twill
-    #       assertions more consistant with TestCase.failUnless idioms.
-    #     - better error reporting on failed assertions.
-    #     - The amount of functions passed back and forth between TestInfo
-    #       and TestCase is currently pretty silly.
-    #  * access to child process's logs.
-    #       TestInfo.start_server redirects stdout/stderr to StringIO
-    #       objects which are, afaict, inaccessible to the caller of
-    #       test.unit.run_child_process.
-    #  * notice when the child process dies, i.e. if you muck up and
-    #       your runExampleServer function throws an exception.
-
-    def run_script(self):
-        time.sleep(self.sleep)
-        # twill.commands.go(self.get_url())
-        self.script(self)
-
-
-def splitDir(d, count):
-    # in python2.4 and above, it's easier to spell this as
-    # d.rsplit(os.sep, count)
-    for i in range(count):
-        d = os.path.dirname(d)
-    return d
+from selenium import webdriver
 
 
 def runExampleServer(host, port, data_path):
     thisfile = os.path.abspath(sys.modules[__name__].__file__)
-    topDir = splitDir(thisfile, 3)
+    topDir = thisfile.rsplit(os.sep, 3)
     exampleDir = os.path.join(topDir, 'examples')
     serverExample = os.path.join(exampleDir, 'server.py')
     serverModule = {}
-    exec(compile(open(serverExample).read(), serverExample, 'exec'), serverModule)
+    exec(compile(open(serverExample).read(), serverExample, 'exec'),
+         serverModule)
     serverMain = serverModule['main']
 
     serverMain(host, port, data_path)
@@ -74,10 +34,7 @@ class TestServer(unittest.TestCase):
     """
 
     def setUp(self):
-        self.twillOutput = StringIO()
-        self.twillErr = StringIO()
-        twill.set_output(self.twillOutput)
-        twill.set_errout(self.twillErr)
+        self.browser = webdriver.PhantomJS()
         # FIXME: make sure we pick an available port.
         self.server_port = 8080
 
@@ -86,7 +43,9 @@ class TestServer(unittest.TestCase):
         self.realm = 'http://127.0.0.1/%s' % (self.id(),)
         self.return_to = self.realm + '/return_to'
 
-        twill.commands.reset_browser()
+        # Now run the server, to make sure there's something for the tests
+        # to hit
+        self.runExampleServer()
 
     def runExampleServer(self):
         """Zero-arg run-the-server function to be passed to TestInfo."""
@@ -102,16 +61,7 @@ class TestServer(unittest.TestCase):
         ep.type_uris = [OPENID_1_1_TYPE]
         return ep
 
-
     # TODO: test discovery
-    def test_checkidv1(self):
-        """OpenID 1.1 checkid_setup request."""
-        ti = TwillTest(self.twill_checkidv1, self.runExampleServer,
-                       self.server_port, sleep=0.2)
-        twill.unit.run_test(ti)
-
-        if self.twillErr.getvalue():
-            self.fail(self.twillErr.getvalue())
 
     def test_allowed(self):
         """OpenID 1.1 checkid_setup request."""
@@ -122,12 +72,10 @@ class TestServer(unittest.TestCase):
         if self.twillErr.getvalue():
             self.fail(self.twillErr.getvalue())
 
-    def twill_checkidv1(self, twillInfo):
+    def test_checkidv1(self):
         endpoint = self.v1endpoint(self.server_port)
         authreq = AuthRequest(endpoint, assoc=None)
         url = authreq.redirectURL(self.realm, self.return_to)
-
-        c = twill.commands
 
         try:
             c.go(url)
