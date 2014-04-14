@@ -1,20 +1,20 @@
 #-*-coding: utf-8-*-
 """
-This package is an implementation of the OpenID specification in
-Python.  It contains code for both server and consumer
-implementations.  For information on implementing an OpenID consumer,
-see the C{L{openid.consumer.consumer}} module.  For information on
-implementing an OpenID server, see the C{L{openid.server.server}}
-module.
+This is an implementation of the OpenID specification in Python.  It contains
+code for both server and consumer implementations.
 
-@contact: U{http://github.com/necaris/python3-openid/}
+See the :ref:`openid.consumer.consumer` module for consumer implementations,
+and the :ref:`openid.server.server` module for server implementations.
 
-@copyright: (C) 2005-2008 JanRain, Inc., 2012-2013 Rami Chowdhury
+Source code is on GitHub at http://github.com/necaris/python3-openid/
 
-@license: Licensed under the Apache License, Version 2.0 (the "License");
+(C) 2005-2008 JanRain, Inc., 2012-2014 Rami Chowdhury, and contributors
+
+.. code-block:: none
+
+    Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-    U{http://www.apache.org/licenses/LICENSE-2.0}
+    You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,

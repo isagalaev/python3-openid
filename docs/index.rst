@@ -3,14 +3,33 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Python3-OpenID's documentation!
-==========================================
+Python(3)-OpenID
+----------------
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   association
+   consumer
+   cryptutil
+   dh
+   extension
+   extensions
+   fetchers
+   kvform
+   message
+   oidutil
+   server
+   sreg
+   store
+   urinorm
+   yadis
+
+
+.. automodule:: openid
+   :members:
 
 
 Indices and tables
@@ -19,4 +38,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
