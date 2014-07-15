@@ -79,11 +79,6 @@ def test_fetcher(fetcher, should_raise_exc, server):
             result = fetcher.fetch(err_url)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except fetchers.HTTPError:
-            # This is raised by the Curl fetcher for bad cases
-            # detected by the fetchers module, but it's a subclass of
-            # HTTPFetchingError, so we have to catch it explicitly.
-            assert should_raise_exc
         except fetchers.HTTPFetchingError:
             assert not should_raise_exc, (fetcher, should_raise_exc, server)
         except Exception as e:
@@ -97,7 +92,6 @@ def run_fetcher_tests(server):
     exc_fetchers = []
     for klass, library_name in [
         (fetchers.Urllib2Fetcher, 'urllib2'),
-        (fetchers.HTTPLib2Fetcher, 'httplib2'),
         ]:
         try:
             exc_fetchers.append(klass())
