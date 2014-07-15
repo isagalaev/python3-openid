@@ -4,7 +4,7 @@ This module contains the HTTP fetcher interface and several implementations.
 """
 
 __all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
-           'HTTPFetcher', 'createHTTPFetcher', 'HTTPFetchingError']
+           'createHTTPFetcher']
 
 import urllib.request
 import urllib.error
@@ -56,25 +56,14 @@ def getDefaultFetcher():
     return _default_fetcher
 
 
-def setDefaultFetcher(fetcher, wrap_exceptions=True):
+def setDefaultFetcher(fetcher):
     """Set the default fetcher
 
     @param fetcher: The fetcher to use as the default HTTP fetcher
     @type fetcher: HTTPFetcher
-
-    @param wrap_exceptions: Whether to wrap exceptions thrown by the
-        fetcher wil HTTPFetchingError so that they may be caught
-        easier. By default, exceptions will be wrapped. In general,
-        unwrapped fetchers are useful for debugging of fetching errors
-        or if your fetcher raises well-known exceptions that you would
-        like to catch.
-    @type wrap_exceptions: bool
     """
     global _default_fetcher
-    if fetcher is None or not wrap_exceptions:
-        _default_fetcher = fetcher
-    else:
-        _default_fetcher = ExceptionWrappingFetcher(fetcher)
+    _default_fetcher = fetcher
 
 
 class HTTPResponse(object):
@@ -102,43 +91,6 @@ def _allowedURL(url):
     return parsed[0] in ('http', 'https')
 
 
-class HTTPFetchingError(Exception):
-    """Exception that is wrapped around all exceptions that are raised
-    by the underlying fetcher when using the ExceptionWrappingFetcher
-
-    @ivar why: The exception that caused this exception
-    """
-    def __init__(self, why=None):
-        Exception.__init__(self, why)
-        self.why = why
-
-
-class ExceptionWrappingFetcher:
-    """Fetcher that wraps another fetcher, causing all exceptions
-
-    @cvar uncaught_exceptions: Exceptions that should be exposed to the
-        user if they are raised by the fetch call
-    """
-
-    uncaught_exceptions = (SystemExit, KeyboardInterrupt, MemoryError)
-
-    def __init__(self, fetcher):
-        self.fetcher = fetcher
-
-    def fetch(self, *args, **kwargs):
-        try:
-            return self.fetcher.fetch(*args, **kwargs)
-        except self.uncaught_exceptions:
-            raise
-        except:
-            exc_cls, exc_inst = sys.exc_info()[:2]
-            if exc_inst is None:
-                # string exceptions
-                exc_inst = exc_cls
-
-            raise HTTPFetchingError(why=exc_inst)
-
-
 class Urllib2Fetcher:
     """An C{L{HTTPFetcher}} that uses urllib2.
     """
@@ -149,7 +101,7 @@ class Urllib2Fetcher:
 
     def fetch(self, url, body=None, headers=None):
         if not _allowedURL(url):
-            raise ValueError('Bad URL scheme: %r' % (url,))
+            raise urllib.error.URLError('Bad URL scheme: %r' % url)
 
         if headers is None:
             headers = {}

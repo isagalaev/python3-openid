@@ -717,7 +717,7 @@ class CheckIDRequest(OpenIDRequest):
             URL does not support Yadis discovery (and so does not
             support the verification process).
 
-        @raises openid.fetchers.HTTPFetchingError: if the realm URL
+        @raises urllib.error.URLError: if the realm URL
             is not reachable.  When this is the case, the RP may be hosted
             on the user's intranet.
 

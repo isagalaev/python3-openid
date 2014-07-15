@@ -29,7 +29,7 @@ def failUnlessResponseExpected(expected, actual, extra):
         assert got_headers[k] == v, (k, v, got_headers[k], extra)
 
 
-def test_fetcher(fetcher, should_raise_exc, server):
+def test_fetcher(fetcher, server):
 
     def geturl(path):
         host, port = server.server_address
@@ -70,19 +70,14 @@ def test_fetcher(fetcher, should_raise_exc, server):
             failUnlessResponseExpected(expected, actual, extra=locals())
 
     for err_url in [
-            geturl('/closed'),
             'http://invalid.janrain.com/',
             'not:a/url',
             'ftp://janrain.com/pub/',
             ]:
         try:
             result = fetcher.fetch(err_url)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except fetchers.HTTPFetchingError:
-            assert not should_raise_exc, (fetcher, should_raise_exc, server)
-        except Exception as e:
-            assert should_raise_exc
+        except urllib.error.URLError:
+            pass
         else:
             assert False, 'An exception was expected for %r (%r)' % (
                 fetcher, result)
@@ -110,15 +105,8 @@ def run_fetcher_tests(server):
             else:
                 raise
 
-    non_exc_fetchers = []
     for f in exc_fetchers:
-        non_exc_fetchers.append(fetchers.ExceptionWrappingFetcher(f))
-
-    for f in exc_fetchers:
-        test_fetcher(f, True, server)
-
-    for f in non_exc_fetchers:
-        test_fetcher(f, False, server)
+        test_fetcher(f, server)
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -141,24 +129,18 @@ class FetcherTestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path == '/closed':
-            # *somehow* a ResourceWarning gets raised with an unclosed socket
-            # when this is hit. It's virtually impossible to find out where.
-            # Since ResourceWarnings are just warnings, ignore for now.
-            pass
+        try:
+            http_code, location = self.cases[self.path]
+        except KeyError:
+            self.errorResponse('Bad path')
         else:
-            try:
-                http_code, location = self.cases[self.path]
-            except KeyError:
-                self.errorResponse('Bad path')
-            else:
-                extra_headers = [('Content-type', 'text/plain')]
-                if location is not None:
-                    host, port = self.server.server_address
-                    base = ('http://%s:%s' % (host, port,))
-                    location = base + location
-                    extra_headers.append(('Location', location))
-                self._respond(http_code, extra_headers, self.path)
+            extra_headers = [('Content-type', 'text/plain')]
+            if location is not None:
+                host, port = self.server.server_address
+                base = ('http://%s:%s' % (host, port,))
+                location = base + location
+                extra_headers.append(('Location', location))
+            self._respond(http_code, extra_headers, self.path)
 
     def do_POST(self):
         try:
@@ -249,7 +231,7 @@ class DefaultFetcherTest(unittest.TestCase):
         """Make sure the getDefaultFetcher returns the object set for
         setDefaultFetcher"""
         sentinel = object()
-        fetchers.setDefaultFetcher(sentinel, wrap_exceptions=False)
+        fetchers.setDefaultFetcher(sentinel)
         self.assertTrue(fetchers.getDefaultFetcher() is sentinel)
 
     def test_callFetch(self):
@@ -259,31 +241,15 @@ class DefaultFetcherTest(unittest.TestCase):
         actual = fetchers.fetch('bad://url')
         self.assertTrue(actual is FakeFetcher.sentinel)
 
-    def test_wrappedByDefault(self):
-        """Make sure that the default fetcher instance wraps
-        exceptions by default"""
-        default_fetcher = fetchers.getDefaultFetcher()
-        self.assertIsInstance(
-            default_fetcher, fetchers.ExceptionWrappingFetcher)
-
-        self.assertRaises(fetchers.HTTPFetchingError,
-                          fetchers.fetch, 'http://invalid.janrain.com/')
-
     def test_notWrapped(self):
         """Make sure that if we set a non-wrapped fetcher as default,
         it will not wrap exceptions."""
         # A fetcher that will raise an exception when it encounters a
         # host that will not resolve
         fetcher = fetchers.Urllib2Fetcher()
-        fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
-
-        self.assertFalse(isinstance(fetchers.getDefaultFetcher(),
-                               fetchers.ExceptionWrappingFetcher))
-
+        fetchers.setDefaultFetcher(fetcher)
         try:
             fetchers.fetch('http://invalid.janrain.com/')
-        except fetchers.HTTPFetchingError:
-            self.fail('Should not be wrapping exception')
         except Exception as exc:
             self.assertIsInstance(exc, urllib.error.URLError)
             pass

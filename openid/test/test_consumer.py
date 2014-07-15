@@ -1,4 +1,5 @@
 import urllib.parse
+import urllib.error
 import time
 import warnings
 import pprint
@@ -22,7 +23,7 @@ from openid.yadis.manager import Discovery
 from openid.yadis.discover import DiscoveryFailure
 from openid.dh import DiffieHellman
 
-from openid.fetchers import HTTPResponse, HTTPFetchingError
+from openid.fetchers import HTTPResponse
 from openid import fetchers
 from openid.store import memstore
 
@@ -158,7 +159,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint.type_uris = [OPENID_1_1_TYPE]
 
     fetcher = TestFetcher(None, None, assocs[0])
-    fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
+    fetchers.setDefaultFetcher(fetcher)
 
     def run():
         trust_root = str(consumer_url, encoding="utf-8")
@@ -1250,7 +1251,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
     def tearDown(self):
         CatchLogs.tearDown(self)
-        fetchers.setDefaultFetcher(self._orig_fetcher, wrap_exceptions=False)
+        fetchers.setDefaultFetcher(self._orig_fetcher)
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -1329,11 +1330,11 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.consumer = self.consumer_class(self.store)
 
     def test_error_404(self):
-        """404 from a kv post raises HTTPFetchingError"""
+        """404 from a kv post raises urllib.error.URLError"""
         self.fetcher.response = HTTPResponse(
             "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
         self.assertRaises(
-            fetchers.HTTPFetchingError,
+            urllib.error.URLError,
             self.consumer._makeKVPost,
             Message.fromPostArgs({'mode': 'associate'}),
             "http://server_url")
@@ -1343,7 +1344,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         when making associations
         """
         self.fetcher = ExceptionRaisingMockFetcher()
-        fetchers.setDefaultFetcher(self.fetcher, wrap_exceptions=False)
+        fetchers.setDefaultFetcher(self.fetcher)
         self.assertRaises(self.fetcher.MyException,
                               self.consumer._makeKVPost,
                               Message.fromPostArgs({'mode': 'associate'}),
@@ -1359,26 +1360,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                               self.consumer._checkAuth,
                               Message.fromPostArgs({'openid.signed': ''}),
                               'some://url')
-
-    def test_error_exception_wrapped(self):
-        """Ensure that openid.fetchers.HTTPFetchingError is caught by
-        the association creation stuff.
-        """
-        self.fetcher = ExceptionRaisingMockFetcher()
-        # This will wrap exceptions!
-        fetchers.setDefaultFetcher(self.fetcher)
-        self.assertRaises(fetchers.HTTPFetchingError,
-                              self.consumer._makeKVPost,
-                              Message.fromOpenIDArgs({'mode': 'associate'}),
-                              "http://server_url")
-
-        # exception fetching returns no association
-        e = OpenIDServiceEndpoint()
-        e.server_url = 'some://url'
-        self.assertTrue(self.consumer._getAssociation(e) is None)
-
-        msg = Message.fromPostArgs({'openid.signed': ''})
-        self.assertFalse(self.consumer._checkAuth(msg, 'some://url'))
 
 
 class TestSuccessResponse(unittest.TestCase):
@@ -1514,7 +1495,7 @@ class ConsumerTest(unittest.TestCase):
         """Make sure that the discovery HTTP failure case behaves properly
         """
         def getNextService(self, ignored):
-            raise HTTPFetchingError("Unit test")
+            raise urllib.error.URLError("Unit test")
 
         def test():
             try:
@@ -2142,7 +2123,7 @@ class TestKVPost(unittest.TestCase):
         response = HTTPResponse()
         response.status = 500
         response.body = "foo:bar\nbaz:quux\n"
-        self.assertRaises(fetchers.HTTPFetchingError,
+        self.assertRaises(urllib.error.URLError,
                               _httpResponseToMessage, response,
                               self.server_url)
 

@@ -109,8 +109,7 @@ class _TestCase(unittest.TestCase):
         unittest.TestCase.__init__(self, methodName='runCustomTest')
 
     def setUp(self):
-        fetchers.setDefaultFetcher(TestFetcher(self.base_url),
-                                   wrap_exceptions=False)
+        fetchers.setDefaultFetcher(TestFetcher(self.base_url))
 
         self.input_url, self.expected = discoverdata.generateResult(
             self.base_url,

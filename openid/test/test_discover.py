@@ -108,7 +108,7 @@ class TestFetchException(datadriven.DataDrivenTestCase):
 
     def setUp(self):
         fetcher = ErrorRaisingFetcher(self.exc)
-        fetchers.setDefaultFetcher(fetcher, wrap_exceptions=False)
+        fetchers.setDefaultFetcher(fetcher)
 
     def tearDown(self):
         fetchers.setDefaultFetcher(None)
@@ -132,7 +132,7 @@ class TestFetchException(datadriven.DataDrivenTestCase):
 class TestNormalization(unittest.TestCase):
     def testAddingProtocol(self):
         f = ErrorRaisingFetcher(RuntimeError())
-        fetchers.setDefaultFetcher(f, wrap_exceptions=False)
+        fetchers.setDefaultFetcher(f)
 
         try:
             discover.discover('users.stompy.janrain.com:8000/x')

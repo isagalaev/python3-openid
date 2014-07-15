@@ -190,6 +190,7 @@ USING THIS LIBRARY
 import copy
 import logging
 from urllib.parse import urlparse, urldefrag, parse_qsl
+import urllib.error
 
 from openid import fetchers
 
@@ -217,7 +218,7 @@ def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
     result as a Message object.
 
-    @raises openid.fetchers.HTTPFetchingError: if an error is
+    @raises urllib.error.URLError: if an error is
         encountered in making the HTTP post.
 
     @rtype: L{openid.message.Message}
@@ -237,7 +238,7 @@ def _httpResponseToMessage(response, server_url):
 
     @rtype: L{openid.message.Message}
 
-    @raises openid.fetchers.HTTPFetchingError: if the server returned a
+    @raises urllib.error.URLError: if the server returned a
         status of other than 200 or 400.
 
     @raises ServerError: if the server returned an OpenID error.
@@ -250,7 +251,7 @@ def _httpResponseToMessage(response, server_url):
     elif response.status not in (200, 206):
         fmt = 'bad status code from server %s: %s'
         error_message = fmt % (server_url, response.status)
-        raise fetchers.HTTPFetchingError(error_message)
+        raise urllib.error.URLError(error_message)
 
     return response_message
 
@@ -341,9 +342,9 @@ class Consumer(object):
         disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
             service = disco.getNextService(self._discover)
-        except fetchers.HTTPFetchingError as why:
+        except urllib.error.URLError as why:
             raise DiscoveryFailure(
-                'Error fetching XRDS document: %s' % (why.why,), None)
+                'Error fetching XRDS document: %s' % why, None)
 
         if service is None:
             raise DiscoveryFailure(
@@ -1105,7 +1106,7 @@ class GenericConsumer(object):
             return False
         try:
             response = self._makeKVPost(request, server_url)
-        except (fetchers.HTTPFetchingError, ServerError) as e:
+        except (urllib.error.URLError, ServerError) as e:
             e0 = e.args[0]
             logging.exception('check_authentication failed: %s' % e0)
             return False
@@ -1272,8 +1273,8 @@ class GenericConsumer(object):
 
         try:
             response = self._makeKVPost(args, endpoint.server_url)
-        except fetchers.HTTPFetchingError as why:
-            logging.exception('openid.associate request failed: %s' % (why,))
+        except urllib.error.URLError as why:
+            logging.exception('openid.associate request failed: %s' % why)
             return None
 
         try:

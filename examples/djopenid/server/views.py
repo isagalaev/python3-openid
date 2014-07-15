@@ -16,6 +16,7 @@ Some code conventions used here:
 """
 
 import cgi
+import urllib.error
 
 from djopenid import util
 from djopenid.util import getViewURL
@@ -31,7 +32,6 @@ from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.discover import OPENID_IDP_2_0_TYPE
 from openid.extensions import sreg
 from openid.extensions import pape
-from openid.fetchers import HTTPFetchingError
 
 def getOpenIDStore():
     """
@@ -192,7 +192,7 @@ def showDecidePage(request, openid_request):
                            and "Valid" or "Invalid"
     except DiscoveryFailure as err:
         trust_root_valid = "DISCOVERY_FAILED"
-    except HTTPFetchingError as err:
+    except urllib.error.URLError as err:
         trust_root_valid = "Unreachable"
 
     pape_request = pape.Request.fromOpenIDRequest(openid_request)
