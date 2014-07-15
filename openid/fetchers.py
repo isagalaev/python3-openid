@@ -11,13 +11,10 @@ import urllib.error
 import urllib.parse
 import http.client
 
-import time
-import io
 import sys
 import contextlib
 
 import openid
-import openid.urinorm
 
 
 USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
