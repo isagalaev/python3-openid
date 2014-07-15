@@ -99,36 +99,6 @@ class HTTPResponse(object):
                                           self.final_url)
 
 
-class HTTPFetcher(object):
-    """
-    This class is the interface for openid HTTP fetchers.  This
-    interface is only important if you need to write a new fetcher for
-    some reason.
-    """
-
-    def fetch(self, url, body=None, headers=None):
-        """
-        This performs an HTTP POST or GET, following redirects along
-        the way. If a body is specified, then the request will be a
-        POST. Otherwise, it will be a GET.
-
-
-        @param headers: HTTP headers to include with the request
-        @type headers: {str:str}
-
-        @return: An object representing the server's HTTP response. If
-            there are network or protocol errors, an exception will be
-            raised. HTTP error responses, like 404 or 500, do not
-            cause exceptions.
-
-        @rtype: L{HTTPResponse}
-
-        @raise Exception: Different implementations will raise
-            different errors based on the underlying HTTP library.
-        """
-        raise NotImplementedError
-
-
 def _allowedURL(url):
     parsed = urllib.parse.urlparse(url)
     # scheme is the first item in the tuple
@@ -146,7 +116,7 @@ class HTTPFetchingError(Exception):
         self.why = why
 
 
-class ExceptionWrappingFetcher(HTTPFetcher):
+class ExceptionWrappingFetcher:
     """Fetcher that wraps another fetcher, causing all exceptions
 
     @cvar uncaught_exceptions: Exceptions that should be exposed to the
@@ -172,7 +142,7 @@ class ExceptionWrappingFetcher(HTTPFetcher):
             raise HTTPFetchingError(why=exc_inst)
 
 
-class Urllib2Fetcher(HTTPFetcher):
+class Urllib2Fetcher:
     """An C{L{HTTPFetcher}} that uses urllib2.
     """
 
