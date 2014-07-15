@@ -6,7 +6,6 @@ from openid.yadis.services import applyFilter
 
 
 XRDS_BOILERPLATE = '''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            xmlns:openid="http://openid.net/xmlns/1.0">

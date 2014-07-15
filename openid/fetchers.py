@@ -49,15 +49,8 @@ def fetch(url, body=None, headers=None):
 
 
 def createHTTPFetcher():
-    """Create a default HTTP fetcher instance
-
-    prefers Curl to urllib2."""
-    if pycurl is None:
-        fetcher = Urllib2Fetcher()
-    else:
-        fetcher = CurlHTTPFetcher()
-
-    return fetcher
+    """Create a default HTTP fetcher instance."""
+    return Urllib2Fetcher()
 
 # Contains the currently set HTTP fetcher. If it is set to None, the
 # library will call createHTTPFetcher() to set it. Do not access this
@@ -255,17 +248,6 @@ class Urllib2Fetcher(HTTPFetcher):
             resp.status = urllib2_response.code
         else:
             resp.status = 200
-
-        _, extra_dict = self._parseHeaderValue(
-            resp.headers.get("content-type", ""))
-        # Try to decode the response body to a string, if there's a
-        # charset known; fall back to ISO-8859-1 otherwise, since that's
-        # what's suggested in HTTP/1.1
-        charset = extra_dict.get('charset', 'latin1')
-        try:
-            resp.body = resp.body.decode(charset)
-        except Exception:
-            pass
 
         return resp
 

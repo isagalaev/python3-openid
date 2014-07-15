@@ -77,7 +77,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def test_noEntries(self):
         self.failUnlessXRDSHasReturnURLs('''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            >
@@ -88,7 +87,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def test_noReturnToEntries(self):
         self.failUnlessXRDSHasReturnURLs('''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            >
@@ -103,7 +101,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def test_oneEntry(self):
         self.failUnlessXRDSHasReturnURLs('''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            >
@@ -118,7 +115,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def test_twoEntries(self):
         self.failUnlessXRDSHasReturnURLs('''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            >
@@ -138,7 +134,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
     def test_twoEntries_withOther(self):
         self.failUnlessXRDSHasReturnURLs('''\
-<?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds"
            xmlns="xri://$xrd*($v*2.0)"
            >
@@ -202,7 +197,7 @@ class TestVerifyReturnTo(unittest.TestCase, CatchLogs):
 
     def tearDown(self):
         CatchLogs.tearDown(self)
-    
+
     def test_bogusRealm(self):
         self.assertFalse(trustroot.verifyReturnTo('', 'http://example.com/'))
 

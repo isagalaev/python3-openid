@@ -40,11 +40,11 @@ def test_fetcher(fetcher, should_raise_exc, server):
     def plain(path, code):
         path = '/' + path
         expected = fetchers.HTTPResponse(
-            geturl(path), code, expected_headers, path)
+            geturl(path), code, expected_headers, path.encode('utf-8'))
         return (path, expected)
 
     expect_success = fetchers.HTTPResponse(
-        geturl('/success'), 200, expected_headers, '/success')
+        geturl('/success'), 200, expected_headers, b'/success')
     cases = [
         ('/success', expect_success),
         ('/301redirect', expect_success),
@@ -97,7 +97,6 @@ def run_fetcher_tests(server):
     exc_fetchers = []
     for klass, library_name in [
         (fetchers.Urllib2Fetcher, 'urllib2'),
-        (fetchers.CurlHTTPFetcher, 'pycurl'),
         (fetchers.HTTPLib2Fetcher, 'httplib2'),
         ]:
         try:
