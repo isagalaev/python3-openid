@@ -3,6 +3,7 @@ import unittest
 import urllib.request
 import urllib.error
 import urllib.parse
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from openid import fetchers
 
@@ -84,12 +85,6 @@ def test_fetcher(server):
             pass
         else:
             assert False, 'An exception was expected, got result %r' % result
-
-
-def run_fetcher_tests(server):
-    test_fetcher(server)
-
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 class FetcherTestHandler(BaseHTTPRequestHandler):
@@ -181,7 +176,7 @@ def test():
     server_thread.setDaemon(True)
     server_thread.start()
 
-    run_fetcher_tests(server)
+    test_fetcher(server)
 
     server.shutdown()
 
