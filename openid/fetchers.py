@@ -39,11 +39,6 @@ class HTTPResponse(object):
                                           self.final_url)
 
 
-def _allowedURL(url):
-    parsed = urllib.parse.urlparse(url)
-    # scheme is the first item in the tuple
-    return parsed[0] in ('http', 'https')
-
 def _makeResponse(urllib2_response):
     '''
     Construct an HTTPResponse from the the urllib response. Attempt to
@@ -63,7 +58,7 @@ def _makeResponse(urllib2_response):
     return resp
 
 def fetch(url, body=None, headers=None):
-    if not _allowedURL(url):
+    if urllib.parse.urlparse(url).scheme not in ('http', 'https'):
         raise urllib.error.URLError('Bad URL scheme: %r' % url)
 
     if headers is None:
