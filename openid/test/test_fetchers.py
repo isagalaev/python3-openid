@@ -73,6 +73,10 @@ def test_fetcher(server):
             'http://invalid.janrain.com/',
             'not:a/url',
             'ftp://janrain.com/pub/',
+            'file://localhost/thing.txt',
+            'ftp://server/path',
+            'sftp://server/path',
+            'ssh://server/path',
             ]:
         try:
             result = fetchers.fetch(err_url)
@@ -182,18 +186,7 @@ def test():
     server.shutdown()
 
 
-class Urllib2FetcherTests(unittest.TestCase):
-    '''Make sure a few of the utility methods are also covered by tests.'''
-    def test_disallowed(self):
-        '''
-        Test that the _allowedURL function only lets through the right things.
-        '''
-        for url in ["file://localhost/thing.txt", "ftp://server/path",
-                    "sftp://server/path", "ssh://server/path"]:
-            self.assertEqual(fetchers._allowedURL(url), False)
-
-
 def pyUnitTests():
-    case1 = unittest.FunctionTestCase(test)
-    case2 = unittest.defaultTestLoader.loadTestsFromTestCase(Urllib2FetcherTests)
-    return unittest.TestSuite([case1, case2])
+    return unittest.TestSuite([
+        unittest.FunctionTestCase(test),
+    ])
