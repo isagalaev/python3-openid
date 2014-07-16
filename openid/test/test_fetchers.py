@@ -270,17 +270,6 @@ class Urllib2FetcherTests(unittest.TestCase):
                     "sftp://server/path", "ssh://server/path"]:
             self.assertEqual(fetchers._allowedURL(url), False)
 
-    def test_parseHeaderValue(self):
-        headers_parsed = [
-            ("text/html; charset=latin-1",
-             ("text/html", {"charset": "latin-1"})),
-            ("1; mode=block", ("1", {"mode": "block"})),
-            ("foo; bar=baz; thing=quux",
-             ("foo", {"bar": "baz", "thing": "quux"})),
-        ]
-        for s, p in headers_parsed:
-            self.assertEqual(self.fetcher._parseHeaderValue(s), p)
-
 
 def pyUnitTests():
     case1 = unittest.FunctionTestCase(test)
