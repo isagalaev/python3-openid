@@ -270,11 +270,6 @@ class Urllib2FetcherTests(unittest.TestCase):
                     "sftp://server/path", "ssh://server/path"]:
             self.assertEqual(fetchers._allowedURL(url), False)
 
-    def test_lowerCaseKeys(self):
-        uppercased = {'Content-Type': None, 'HiPPyHiPPyShAKe': None}
-        lowercased = {'content-type': None, 'hippyhippyshake': None}
-        self.assertEqual(self.fetcher._lowerCaseKeys(uppercased), lowercased)
-
     def test_parseHeaderValue(self):
         headers_parsed = [
             ("text/html; charset=latin-1",

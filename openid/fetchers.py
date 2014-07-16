@@ -133,8 +133,7 @@ class Urllib2Fetcher:
         resp = HTTPResponse()
         resp.body = urllib2_response.read(MAX_RESPONSE_KB * 1024)
         resp.final_url = urllib2_response.geturl()
-        resp.headers = self._lowerCaseKeys(
-            dict(list(urllib2_response.info().items())))
+        resp.headers = {k.lower(): v for k, v in urllib2_response.info().items()}
 
         if hasattr(urllib2_response, 'code'):
             resp.status = urllib2_response.code
@@ -142,12 +141,6 @@ class Urllib2Fetcher:
             resp.status = 200
 
         return resp
-
-    def _lowerCaseKeys(self, headers_dict):
-        new_dict = {}
-        for k, v in headers_dict.items():
-            new_dict[k.lower()] = v
-        return new_dict
 
     def _parseHeaderValue(self, header_value):
         """
