@@ -85,6 +85,23 @@ def _allowedURL(url):
     # scheme is the first item in the tuple
     return parsed[0] in ('http', 'https')
 
+def _makeResponse(urllib2_response):
+    '''
+    Construct an HTTPResponse from the the urllib response. Attempt to
+    decode the response body from bytes to str if the necessary information
+    is available.
+    '''
+    resp = HTTPResponse()
+    resp.body = urllib2_response.read(MAX_RESPONSE_KB * 1024)
+    resp.final_url = urllib2_response.geturl()
+    resp.headers = {k.lower(): v for k, v in urllib2_response.info().items()}
+
+    if hasattr(urllib2_response, 'code'):
+        resp.status = urllib2_response.code
+    else:
+        resp.status = 200
+
+    return resp
 
 class Urllib2Fetcher:
     """An C{L{HTTPFetcher}} that uses urllib2.
@@ -114,30 +131,13 @@ class Urllib2Fetcher:
         try:
             url_resource = self.urlopen(req)
             with contextlib.closing(url_resource):
-                return self._makeResponse(url_resource)
+                return _makeResponse(url_resource)
         except urllib.error.HTTPError as why:
             with contextlib.closing(why):
-                resp = self._makeResponse(why)
+                resp = _makeResponse(why)
                 return resp
         except (urllib.error.URLError, http.client.BadStatusLine) as why:
             raise
         except Exception as why:
             raise AssertionError(why)
 
-    def _makeResponse(self, urllib2_response):
-        '''
-        Construct an HTTPResponse from the the urllib response. Attempt to
-        decode the response body from bytes to str if the necessary information
-        is available.
-        '''
-        resp = HTTPResponse()
-        resp.body = urllib2_response.read(MAX_RESPONSE_KB * 1024)
-        resp.final_url = urllib2_response.geturl()
-        resp.headers = {k.lower(): v for k, v in urllib2_response.info().items()}
-
-        if hasattr(urllib2_response, 'code'):
-            resp.status = urllib2_response.code
-        else:
-            resp.status = 200
-
-        return resp
