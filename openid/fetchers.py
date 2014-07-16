@@ -3,8 +3,7 @@
 This module contains the HTTP fetcher interface and several implementations.
 """
 
-__all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse',
-           'createHTTPFetcher']
+__all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse']
 
 import urllib.request
 import urllib.error
@@ -31,12 +30,8 @@ def fetch(url, body=None, headers=None):
     return fetcher.fetch(url, body, headers)
 
 
-def createHTTPFetcher():
-    """Create a default HTTP fetcher instance."""
-    return Urllib2Fetcher()
-
 # Contains the currently set HTTP fetcher. If it is set to None, the
-# library will call createHTTPFetcher() to set it. Do not access this
+# library will call Urllib2Fetcher() to set it. Do not access this
 # variable outside of this module.
 _default_fetcher = None
 
@@ -51,7 +46,7 @@ def getDefaultFetcher():
     global _default_fetcher
 
     if _default_fetcher is None:
-        setDefaultFetcher(createHTTPFetcher())
+        setDefaultFetcher(Urllib2Fetcher())
 
     return _default_fetcher
 
