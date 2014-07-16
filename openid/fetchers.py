@@ -107,10 +107,6 @@ class Urllib2Fetcher:
     """An C{L{HTTPFetcher}} that uses urllib2.
     """
 
-    # Parameterized for the benefit of testing frameworks, see
-    # http://trac.openidenabled.com/trac/ticket/85
-    urlopen = staticmethod(urllib.request.urlopen)
-
     def fetch(self, url, body=None, headers=None):
         if not _allowedURL(url):
             raise urllib.error.URLError('Bad URL scheme: %r' % url)
@@ -129,7 +125,7 @@ class Urllib2Fetcher:
 
         url_resource = None
         try:
-            url_resource = self.urlopen(req)
+            url_resource = urllib.request.urlopen(req)
             with contextlib.closing(url_resource):
                 return _makeResponse(url_resource)
         except urllib.error.HTTPError as why:
