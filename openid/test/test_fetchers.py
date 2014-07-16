@@ -29,7 +29,7 @@ def failUnlessResponseExpected(expected, actual, extra):
         assert got_headers[k] == v, (k, v, got_headers[k], extra)
 
 
-def test_fetcher(fetcher, server):
+def test_fetcher(server):
 
     def geturl(path):
         host, port = server.server_address
@@ -61,11 +61,11 @@ def test_fetcher(fetcher, server):
     for path, expected in cases:
         fetch_url = geturl(path)
         try:
-            actual = fetcher.fetch(fetch_url)
+            actual = fetchers.fetch(fetch_url)
         except (SystemExit, KeyboardInterrupt):
             pass
         except Exception as e:
-            raise AssertionError((fetcher, fetch_url, e))
+            raise AssertionError((fetch_url, e))
         else:
             failUnlessResponseExpected(expected, actual, extra=locals())
 
@@ -75,38 +75,15 @@ def test_fetcher(fetcher, server):
             'ftp://janrain.com/pub/',
             ]:
         try:
-            result = fetcher.fetch(err_url)
+            result = fetchers.fetch(err_url)
         except urllib.error.URLError:
             pass
         else:
-            assert False, 'An exception was expected for %r (%r)' % (
-                fetcher, result)
+            assert False, 'An exception was expected, got result %r' % result
 
 
 def run_fetcher_tests(server):
-    exc_fetchers = []
-    for klass, library_name in [
-        (fetchers.Urllib2Fetcher, 'urllib2'),
-        ]:
-        try:
-            exc_fetchers.append(klass())
-        except RuntimeError as why:
-            if str(why).startswith('Cannot find %s library' % (library_name,)):
-                try:
-                    __import__(library_name)
-                except ImportError:
-                    warnings.warn(
-                        'Skipping tests for %r fetcher because '
-                        'the library did not import.' % (library_name,))
-                    pass
-                else:
-                    assert False, ('%s present but not detected' % (
-                        library_name,))
-            else:
-                raise
-
-    for f in exc_fetchers:
-        test_fetcher(f, server)
+    test_fetcher(server)
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -205,63 +182,8 @@ def test():
     server.shutdown()
 
 
-class FakeFetcher(object):
-    sentinel = object()
-
-    def fetch(self, *args, **kwargs):
-        return self.sentinel
-
-
-class DefaultFetcherTest(unittest.TestCase):
-    def setUp(self):
-        """reset the default fetcher to None"""
-        fetchers.setDefaultFetcher(None)
-
-    def tearDown(self):
-        """reset the default fetcher to None"""
-        fetchers.setDefaultFetcher(None)
-
-    def test_getDefaultNotNone(self):
-        """Make sure that None is never returned as a default fetcher"""
-        self.assertTrue(fetchers.getDefaultFetcher() is not None)
-        fetchers.setDefaultFetcher(None)
-        self.assertTrue(fetchers.getDefaultFetcher() is not None)
-
-    def test_setDefault(self):
-        """Make sure the getDefaultFetcher returns the object set for
-        setDefaultFetcher"""
-        sentinel = object()
-        fetchers.setDefaultFetcher(sentinel)
-        self.assertTrue(fetchers.getDefaultFetcher() is sentinel)
-
-    def test_callFetch(self):
-        """Make sure that fetchers.fetch() uses the default fetcher
-        instance that was set."""
-        fetchers.setDefaultFetcher(FakeFetcher())
-        actual = fetchers.fetch('bad://url')
-        self.assertTrue(actual is FakeFetcher.sentinel)
-
-    def test_notWrapped(self):
-        """Make sure that if we set a non-wrapped fetcher as default,
-        it will not wrap exceptions."""
-        # A fetcher that will raise an exception when it encounters a
-        # host that will not resolve
-        fetcher = fetchers.Urllib2Fetcher()
-        fetchers.setDefaultFetcher(fetcher)
-        try:
-            fetchers.fetch('http://invalid.janrain.com/')
-        except Exception as exc:
-            self.assertIsInstance(exc, urllib.error.URLError)
-            pass
-        else:
-            self.fail('Should have raised an exception')
-
-
 class Urllib2FetcherTests(unittest.TestCase):
     '''Make sure a few of the utility methods are also covered by tests.'''
-    def setUp(self):
-        self.fetcher = fetchers.Urllib2Fetcher()
-
     def test_disallowed(self):
         '''
         Test that the _allowedURL function only lets through the right things.
@@ -273,7 +195,5 @@ class Urllib2FetcherTests(unittest.TestCase):
 
 def pyUnitTests():
     case1 = unittest.FunctionTestCase(test)
-    loadTests = unittest.defaultTestLoader.loadTestsFromTestCase
-    case2 = loadTests(DefaultFetcherTest)
-    case3 = loadTests(Urllib2FetcherTests)
-    return unittest.TestSuite([case1, case2, case3])
+    case2 = unittest.defaultTestLoader.loadTestsFromTestCase(Urllib2FetcherTests)
+    return unittest.TestSuite([case1, case2])

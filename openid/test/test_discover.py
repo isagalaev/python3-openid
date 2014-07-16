@@ -45,11 +45,12 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
         self.responses = responses
 
     def setUp(self):
-        fetcher = SimpleMockFetcher(self.responses)
-        fetchers.setDefaultFetcher(fetcher)
+        self._original = fetchers.fetch
+        self.fetcher = SimpleMockFetcher(self.responses)
+        fetchers.fetch = self.fetcher.fetch
 
     def tearDown(self):
-        fetchers.setDefaultFetcher(None)
+        fetchers.fetch = self._original
 
     def runOneTest(self):
         expected_status = self.responses[-1].status
@@ -108,10 +109,11 @@ class TestFetchException(datadriven.DataDrivenTestCase):
 
     def setUp(self):
         fetcher = ErrorRaisingFetcher(self.exc)
-        fetchers.setDefaultFetcher(fetcher)
+        self._original = fetchers.fetch
+        fetchers.fetch = fetcher.fetch
 
     def tearDown(self):
-        fetchers.setDefaultFetcher(None)
+        fetchers.fetch = self._original
 
     def runOneTest(self):
         try:
@@ -130,18 +132,20 @@ class TestFetchException(datadriven.DataDrivenTestCase):
 ### Tests for openid.consumer.discover.discover
 
 class TestNormalization(unittest.TestCase):
-    def testAddingProtocol(self):
-        f = ErrorRaisingFetcher(RuntimeError())
-        fetchers.setDefaultFetcher(f)
+    def setUp(self):
+        self._original = fetchers.fetch
+        fetchers.fetch = ErrorRaisingFetcher(RuntimeError()).fetch
 
+    def tearDown(self):
+        fetchers.fetch = self._original
+
+    def testAddingProtocol(self):
         try:
             discover.discover('users.stompy.janrain.com:8000/x')
         except DiscoveryFailure:
             self.fail('failed to parse url with port correctly')
         except RuntimeError:
             pass  # expected
-
-        fetchers.setDefaultFetcher(None)
 
 
 class DiscoveryMockFetcher(object):
@@ -231,10 +235,11 @@ class BaseTestDiscovery(unittest.TestCase):
     def setUp(self):
         self.documents = self.documents.copy()
         self.fetcher = self.fetcherClass(self.documents)
-        fetchers.setDefaultFetcher(self.fetcher)
+        self._original = fetchers.fetch
+        fetchers.fetch = self.fetcher.fetch
 
     def tearDown(self):
-        fetchers.setDefaultFetcher(None)
+        fetchers.fetch = self._original
 
 
 def readDataFile(filename):

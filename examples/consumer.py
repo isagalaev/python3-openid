@@ -38,7 +38,7 @@ from openid.store import filestore
 from openid.consumer import consumer
 from openid.oidutil import appendArgs
 from openid.cryptutil import randomString
-from openid.fetchers import setDefaultFetcher, Urllib2Fetcher
+from openid import fetchers
 from openid.extensions import pape, sreg
 
 # Used with an OpenID provider affiliate program.
@@ -449,9 +449,6 @@ def main(host, port, data_path, weak_ssl=False):
         store = filestore.FileOpenIDStore(data_path)
     else:
         store = memstore.MemoryStore()
-
-    if weak_ssl:
-        setDefaultFetcher(Urllib2Fetcher())
 
     addr = (host, port)
     server = OpenIDHTTPServer(store, addr, OpenIDRequestHandler)

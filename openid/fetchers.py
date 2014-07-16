@@ -3,7 +3,7 @@
 This module contains the HTTP fetcher interface and several implementations.
 """
 
-__all__ = ['fetch', 'getDefaultFetcher', 'setDefaultFetcher', 'HTTPResponse']
+__all__ = ['fetch', 'HTTPResponse']
 
 import urllib.request
 import urllib.error
@@ -18,47 +18,6 @@ import openid
 
 USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
 MAX_RESPONSE_KB = 1024
-
-
-def fetch(url, body=None, headers=None):
-    """Invoke the fetch method on the default fetcher. Most users
-    should need only this method.
-
-    @raises Exception: any exceptions that may be raised by the default fetcher
-    """
-    fetcher = getDefaultFetcher()
-    return fetcher.fetch(url, body, headers)
-
-
-# Contains the currently set HTTP fetcher. If it is set to None, the
-# library will call Urllib2Fetcher() to set it. Do not access this
-# variable outside of this module.
-_default_fetcher = None
-
-
-def getDefaultFetcher():
-    """Return the default fetcher instance
-    if no fetcher has been set, it will create a default fetcher.
-
-    @return: the default fetcher
-    @rtype: HTTPFetcher
-    """
-    global _default_fetcher
-
-    if _default_fetcher is None:
-        setDefaultFetcher(Urllib2Fetcher())
-
-    return _default_fetcher
-
-
-def setDefaultFetcher(fetcher):
-    """Set the default fetcher
-
-    @param fetcher: The fetcher to use as the default HTTP fetcher
-    @type fetcher: HTTPFetcher
-    """
-    global _default_fetcher
-    _default_fetcher = fetcher
 
 
 class HTTPResponse(object):
@@ -103,37 +62,33 @@ def _makeResponse(urllib2_response):
 
     return resp
 
-class Urllib2Fetcher:
-    """An C{L{HTTPFetcher}} that uses urllib2.
-    """
+def fetch(url, body=None, headers=None):
+    if not _allowedURL(url):
+        raise urllib.error.URLError('Bad URL scheme: %r' % url)
 
-    def fetch(self, url, body=None, headers=None):
-        if not _allowedURL(url):
-            raise urllib.error.URLError('Bad URL scheme: %r' % url)
+    if headers is None:
+        headers = {}
 
-        if headers is None:
-            headers = {}
+    headers.setdefault(
+        'User-Agent',
+        "%s Python-urllib/%s" % (USER_AGENT, urllib.request.__version__))
 
-        headers.setdefault(
-            'User-Agent',
-            "%s Python-urllib/%s" % (USER_AGENT, urllib.request.__version__))
+    if isinstance(body, str):
+        body = bytes(body, encoding="utf-8")
 
-        if isinstance(body, str):
-            body = bytes(body, encoding="utf-8")
+    req = urllib.request.Request(url, data=body, headers=headers)
 
-        req = urllib.request.Request(url, data=body, headers=headers)
-
-        url_resource = None
-        try:
-            url_resource = urllib.request.urlopen(req)
-            with contextlib.closing(url_resource):
-                return _makeResponse(url_resource)
-        except urllib.error.HTTPError as why:
-            with contextlib.closing(why):
-                resp = _makeResponse(why)
-                return resp
-        except (urllib.error.URLError, http.client.BadStatusLine) as why:
-            raise
-        except Exception as why:
-            raise AssertionError(why)
+    url_resource = None
+    try:
+        url_resource = urllib.request.urlopen(req)
+        with contextlib.closing(url_resource):
+            return _makeResponse(url_resource)
+    except urllib.error.HTTPError as why:
+        with contextlib.closing(why):
+            resp = _makeResponse(why)
+            return resp
+    except (urllib.error.URLError, http.client.BadStatusLine) as why:
+        raise
+    except Exception as why:
+        raise AssertionError(why)
 

@@ -47,7 +47,7 @@ class TestFetcher(object):
     def __init__(self, base_url):
         self.base_url = base_url
 
-    def fetch(self, url, headers, body):
+    def fetch(self, url, body=None, headers=None):
         current_url = url
         while True:
             parsed = urllib.parse.urlparse(current_url)
@@ -82,11 +82,11 @@ class TestSecondGet(unittest.TestCase):
                 return fetchers.HTTPResponse(uri, 404)
 
     def setUp(self):
-        self.oldfetcher = fetchers.getDefaultFetcher()
-        fetchers.setDefaultFetcher(self.MockFetcher())
+        self._original = fetchers.fetch
+        fetchers.fetch = self.MockFetcher().fetch
 
     def tearDown(self):
-        fetchers.setDefaultFetcher(self.oldfetcher)
+        fetchers.fetch = self._original
 
     def test_404(self):
         uri = "http://something.unittest/"
@@ -109,7 +109,8 @@ class _TestCase(unittest.TestCase):
         unittest.TestCase.__init__(self, methodName='runCustomTest')
 
     def setUp(self):
-        fetchers.setDefaultFetcher(TestFetcher(self.base_url))
+        self._original = fetchers.fetch
+        fetchers.fetch = TestFetcher(self.base_url).fetch
 
         self.input_url, self.expected = discoverdata.generateResult(
             self.base_url,
@@ -119,7 +120,7 @@ class _TestCase(unittest.TestCase):
             self.success)
 
     def tearDown(self):
-        fetchers.setDefaultFetcher(None)
+        fetchers.fetch = self._original
 
     def runCustomTest(self):
         if self.expected is DiscoveryFailure:

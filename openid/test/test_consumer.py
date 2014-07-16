@@ -3,6 +3,7 @@ import urllib.error
 import time
 import warnings
 import pprint
+import contextlib
 
 from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
      OPENID1_NS, BARE_NS
@@ -28,6 +29,17 @@ from openid import fetchers
 from openid.store import memstore
 
 from .support import CatchLogs
+
+
+@contextlib.contextmanager
+def custom_fetch(fetch):
+    _original = fetchers.fetch
+    fetchers.fetch = fetch
+    try:
+        yield
+    finally:
+        fetchers.fetch = _original
+
 
 assocs = [
     ('another 20-byte key.', 'Snarky'),
@@ -159,7 +171,6 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint.type_uris = [OPENID_1_1_TYPE]
 
     fetcher = TestFetcher(None, None, assocs[0])
-    fetchers.setDefaultFetcher(fetcher)
 
     def run():
         trust_root = str(consumer_url, encoding="utf-8")
@@ -211,22 +222,23 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assert info.status == SUCCESS, info.message
         assert info.identity_url == user_url
 
-    assert fetcher.num_assocs == 0
-    run()
-    assert fetcher.num_assocs == 1
+    with custom_fetch(fetcher.fetch):
+        assert fetcher.num_assocs == 0
+        run()
+        assert fetcher.num_assocs == 1
 
-    # Test that doing it again uses the existing association
-    run()
-    assert fetcher.num_assocs == 1
+        # Test that doing it again uses the existing association
+        run()
+        assert fetcher.num_assocs == 1
 
-    # Another association is created if we remove the existing one
-    store.removeAssociation(server_url, fetcher.assoc_handle)
-    run()
-    assert fetcher.num_assocs == 2
+        # Another association is created if we remove the existing one
+        store.removeAssociation(server_url, fetcher.assoc_handle)
+        run()
+        assert fetcher.num_assocs == 2
 
-    # Test that doing it again uses the existing association
-    run()
-    assert fetcher.num_assocs == 2
+        # Test that doing it again uses the existing association
+        run()
+        assert fetcher.num_assocs == 2
 
 import unittest
 
@@ -1245,13 +1257,13 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
         self.consumer = self.consumer_class(self.store)
 
-        self._orig_fetcher = fetchers.getDefaultFetcher()
+        self._original = fetchers.fetch
         self.fetcher = MockFetcher()
-        fetchers.setDefaultFetcher(self.fetcher)
+        fetchers.fetch = self.fetcher.fetch
 
     def tearDown(self):
         CatchLogs.tearDown(self)
-        fetchers.setDefaultFetcher(self._orig_fetcher)
+        fetchers.fetch = self._original
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
@@ -1325,9 +1337,13 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
+        self._original = fetchers.fetch
         self.fetcher = MockFetcher()
-        fetchers.setDefaultFetcher(self.fetcher)
+        fetchers.fetch = self.fetcher.fetch
         self.consumer = self.consumer_class(self.store)
+
+    def tearDown(self):
+        fetchers.fetch = self._original
 
     def test_error_404(self):
         """404 from a kv post raises urllib.error.URLError"""
@@ -1344,22 +1360,22 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         when making associations
         """
         self.fetcher = ExceptionRaisingMockFetcher()
-        fetchers.setDefaultFetcher(self.fetcher)
-        self.assertRaises(self.fetcher.MyException,
-                              self.consumer._makeKVPost,
-                              Message.fromPostArgs({'mode': 'associate'}),
-                              "http://server_url")
+        with custom_fetch(self.fetcher.fetch):
+            self.assertRaises(self.fetcher.MyException,
+                                  self.consumer._makeKVPost,
+                                  Message.fromPostArgs({'mode': 'associate'}),
+                                  "http://server_url")
 
-        # exception fetching returns no association
-        e = OpenIDServiceEndpoint()
-        e.server_url = 'some://url'
-        self.assertRaises(self.fetcher.MyException,
-                              self.consumer._getAssociation, e)
+            # exception fetching returns no association
+            e = OpenIDServiceEndpoint()
+            e.server_url = 'some://url'
+            self.assertRaises(self.fetcher.MyException,
+                                  self.consumer._getAssociation, e)
 
-        self.assertRaises(self.fetcher.MyException,
-                              self.consumer._checkAuth,
-                              Message.fromPostArgs({'openid.signed': ''}),
-                              'some://url')
+            self.assertRaises(self.fetcher.MyException,
+                                  self.consumer._checkAuth,
+                                  Message.fromPostArgs({'openid.signed': ''}),
+                                  'some://url')
 
 
 class TestSuccessResponse(unittest.TestCase):
