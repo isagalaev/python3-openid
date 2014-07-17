@@ -82,8 +82,3 @@ def fetch(url, body=None, headers=None):
         with contextlib.closing(why):
             resp = _makeResponse(why)
             return resp
-    except (urllib.error.URLError, http.client.BadStatusLine) as why:
-        raise
-    except Exception as why:
-        raise AssertionError(why)
-
