@@ -20,17 +20,8 @@ from openid import fetchers
 from . import discoverdata
 from .support import HTTPResponse
 
+
 status_header_re = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
-
-four04_pat = """\
-Content-Type: text/plain
-
-No such file %s
-"""
-
-
-class QuitServer(Exception):
-    pass
 
 
 def mkResponse(data):
