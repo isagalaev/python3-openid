@@ -43,9 +43,6 @@ def fetch(url, body=None, headers=None):
         'User-Agent',
         "%s Python-urllib/%s" % (USER_AGENT, urllib.request.__version__))
 
-    if isinstance(body, str):
-        body = bytes(body, encoding="utf-8")
-
     request = urllib.request.Request(url, data=body, headers=headers)
     f = urllib.request.urlopen(request)
     with contextlib.closing(f):
