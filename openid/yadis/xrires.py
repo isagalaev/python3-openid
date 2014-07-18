@@ -3,10 +3,12 @@
 """
 
 from urllib.parse import urlencode
+import urllib.error
 from openid import fetchers
 from openid.yadis import etxrd
 from openid.yadis.xri import toURINormal
 from openid.yadis.services import iterServices
+import logging
 
 DEFAULT_PROXY = 'http://proxy.xri.net/'
 
@@ -81,11 +83,10 @@ class ProxyResolver(object):
 
         for service_type in service_types:
             url = self.queryURL(xri, service_type)
-            response = fetchers.fetch(url)
-            if response.status not in (200, 206):
-                # XXX: sucks to fail silently.
-                # print "response not OK:", response
-                continue
+            try:
+                response = fetchers.fetch(url)
+            except urllib.error.HTTPError as e:
+                logging.warning(str(e))
             et = etxrd.parseXRDS(response.body)
             canonicalID = etxrd.getCanonicalID(xri, et)
             some_services = list(iterServices(et))

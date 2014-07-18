@@ -8,8 +8,10 @@
 
 import unittest
 import urllib.parse
+import urllib.error
 import re
 import types
+import io
 
 from openid.yadis.discover import discover, DiscoveryFailure
 
@@ -55,10 +57,11 @@ class TestFetcher(object):
             try:
                 data = discoverdata.generateSample(path, self.base_url)
             except KeyError:
-                return fetchers.HTTPResponse(status=404, final_url=current_url,
-                                             headers={}, body='')
+                data = '404 Not found\n\nNot found'
 
             response = mkResponse(data)
+            if response.status >= 400:
+                raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
             if response.status in [301, 302, 303, 307]:
                 current_url = response.headers['location']
             else:
@@ -79,7 +82,7 @@ class TestSecondGet(unittest.TestCase):
                     }
                 return fetchers.HTTPResponse(uri, 200, headers, '')
             else:
-                return fetchers.HTTPResponse(uri, 404)
+                raise urllib.error.HTTPError(uri, 404, 'Test request failed', {}, io.BytesIO(b''))
 
     def setUp(self):
         self._original = fetchers.fetch
@@ -123,8 +126,8 @@ class _TestCase(unittest.TestCase):
         fetchers.fetch = self._original
 
     def runCustomTest(self):
-        if self.expected is DiscoveryFailure:
-            self.assertRaises(DiscoveryFailure,
+        if self.expected is urllib.error.HTTPError:
+            self.assertRaises(urllib.error.HTTPError,
                                   discover, self.input_url)
         else:
             result = discover(self.input_url)

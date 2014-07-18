@@ -380,13 +380,7 @@ def discoverYadis(uri):
 
     @return: (claimed_id, services)
     @rtype: (str, list(OpenIDServiceEndpoint))
-
-    @raises DiscoveryFailure: when discovery fails.
     """
-    # Might raise a yadis.discover.DiscoveryFailure if no document
-    # came back for that URI at all.  I don't think falling back
-    # to OpenID 1.0 discovery on the same URL will help, so don't
-    # bother to catch it.
     response = yadisDiscover(uri)
 
     yadis_url = response.normalized_uri
@@ -441,11 +435,6 @@ def discoverXRI(iname):
 
 def discoverNoYadis(uri):
     http_resp = fetchers.fetch(uri)
-    if http_resp.status not in (200, 206):
-        raise DiscoveryFailure(
-            'HTTP Response status from identity URL host is not 200. '
-            'Got status %r' % (http_resp.status,), http_resp)
-
     claimed_id = http_resp.final_url
     openid_services = OpenIDServiceEndpoint.fromHTML(
         claimed_id, http_resp.body)

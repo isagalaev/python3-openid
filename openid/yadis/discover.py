@@ -2,6 +2,7 @@
 __all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 
 from io import StringIO
+import urllib.error
 
 from openid import fetchers
 
@@ -63,17 +64,9 @@ def discover(uri):
         do not hold.
 
     @return: DiscoveryResult object
-
-    @raises Exception: Any exception that can be raised by fetching a URL with
-        the given fetcher.
-    @raises DiscoveryFailure: When the HTTP response does not have a 200 code.
     """
     result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
-    if resp.status not in (200, 206):
-        raise DiscoveryFailure(
-            'HTTP Response status from identity URL host is not 200. '
-            'Got status %r' % (resp.status,), resp)
 
     # Note the URL after following redirects
     result.normalized_uri = resp.final_url
@@ -85,13 +78,11 @@ def discover(uri):
     result.xrds_uri = whereIsYadis(resp)
 
     if result.xrds_uri and result.usedYadisLocation():
-        resp = fetchers.fetch(result.xrds_uri)
-        if resp.status not in (200, 206):
-            exc = DiscoveryFailure(
-                'HTTP Response status from Yadis host is not 200. '
-                'Got status %r' % (resp.status,), resp)
-            exc.identity_url = result.normalized_uri
-            raise exc
+        try:
+            resp = fetchers.fetch(result.xrds_uri)
+        except urllib.error.URLError as e:
+            e.identity_url = result.normalized_uri
+            raise e
         result.content_type = resp.headers.get('content-type')
 
     result.response_text = resp.body

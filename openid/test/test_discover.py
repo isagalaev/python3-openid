@@ -267,10 +267,6 @@ class TestDiscovery(BaseTestDiscovery):
         self.assertEqual(expected_id, id_url)
         return services
 
-    def test_404(self):
-        self.assertRaises(
-            DiscoveryFailure, discover.discover, self.id_url + '/404')
-
     def test_unicode(self):
         """
         Check page with unicode and HTML entities

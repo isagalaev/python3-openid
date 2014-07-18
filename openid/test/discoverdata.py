@@ -1,5 +1,6 @@
 """Module to make discovery data test cases available"""
 import urllib.parse
+import urllib.error
 import os.path
 
 from openid.yadis.discover import DiscoveryResult, DiscoveryFailure
@@ -25,7 +26,6 @@ testlist = [
     (False, "404_server_response", None,             None),
     (False, "404_with_header",     None,             None),
     (False, "404_with_meta",       None,             None),
-    (False, "201_server_response", None,             None),
     (False, "500_server_response", None,             None),
     ]
 
@@ -110,7 +110,7 @@ def generateResult(base_url, input_name, id_name, result_name, success):
     # we represent by None
     if id_name is None:
         assert result_name is None
-        return input_url, DiscoveryFailure
+        return input_url, urllib.error.HTTPError
 
     result = generateSample(result_name, base_url)
     headers, content = result.split('\n\n', 1)

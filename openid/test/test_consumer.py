@@ -4,6 +4,8 @@ import time
 import warnings
 import pprint
 import contextlib
+from unittest import mock
+import io
 
 from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
      OPENID1_NS, BARE_NS
@@ -16,7 +18,7 @@ from openid.consumer.consumer import \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, _httpResponseToMessage
+     ProtocolError, makeKVPost
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -107,15 +109,11 @@ class TestFetcher(object):
     def __init__(self, user_url, user_page, xxx_todo_changeme):
         (assoc_secret, assoc_handle) = xxx_todo_changeme
         self.get_responses = {
-            user_url: self.response(user_url, 200, user_page)
+            user_url: HTTPResponse(user_url, 200, body=user_page)
         }
         self.assoc_secret = assoc_secret
         self.assoc_handle = assoc_handle
         self.num_assocs = 0
-
-    def response(self, url, status, body):
-        return HTTPResponse(
-            final_url=url, status=status, headers={}, body=body)
 
     def fetch(self, url, body=None, headers=None):
         if body is None:
@@ -131,9 +129,9 @@ class TestFetcher(object):
                 response = associate(
                     body, self.assoc_secret, self.assoc_handle)
                 self.num_assocs += 1
-                return self.response(url, 200, response)
+                return HTTPResponse(url, 200, body=response)
 
-        return self.response(url, 404, 'Not found')
+        raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
 
 
 def makeFastConsumerSession():
@@ -1345,16 +1343,6 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
     def tearDown(self):
         fetchers.fetch = self._original
 
-    def test_error_404(self):
-        """404 from a kv post raises urllib.error.URLError"""
-        self.fetcher.response = HTTPResponse(
-            "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
-        self.assertRaises(
-            urllib.error.URLError,
-            self.consumer._makeKVPost,
-            Message.fromPostArgs({'mode': 'associate'}),
-            "http://server_url")
-
     def test_error_exception_unwrapped(self):
         """Ensure that exceptions are bubbled through from fetchers
         when making associations
@@ -2108,26 +2096,25 @@ class TestAddExtension(unittest.TestCase):
         ext_args = ar.message.getArgs(ext.ns_uri)
         self.assertEqual(ext.getExtensionArgs(), ext_args)
 
+def kvpost_fetch(url, body=None, headers=None):
+    status = int(url.rsplit('/', 1)[1])
+    if 200 <= status < 300:
+        return HTTPResponse(final_url=url, status=status, body='foo:bar\nbaz:quux\n')
+    if 400 <= status < 500:
+        raise urllib.error.HTTPError(url, status, 'Test request failed', {}, io.BytesIO(b'error:bonk\nerror_code:7\n'))
+    if 500 <= status:
+        raise urllib.error.URLError('%s: 500' % url)
 
+@mock.patch('openid.fetchers.fetch', kvpost_fetch)
 class TestKVPost(unittest.TestCase):
-    def setUp(self):
-        self.server_url = 'http://unittest/%s' % (self.id(),)
-
     def test_200(self):
-        from openid.fetchers import HTTPResponse
-        response = HTTPResponse()
-        response.status = 200
-        response.body = "foo:bar\nbaz:quux\n"
-        r = _httpResponseToMessage(response, self.server_url)
+        r = makeKVPost(Message(), 'http://test-kv-post/200')
         expected_msg = Message.fromOpenIDArgs({'foo': 'bar', 'baz': 'quux'})
         self.assertEqual(expected_msg, r)
 
     def test_400(self):
-        response = HTTPResponse()
-        response.status = 400
-        response.body = "error:bonk\nerror_code:7\n"
         try:
-            r = _httpResponseToMessage(response, self.server_url)
+            r = makeKVPost(Message(), 'http://test-kv-post/400')
         except ServerError as e:
             self.assertEqual(e.error_text, 'bonk')
             self.assertEqual(e.error_code, '7')
@@ -2135,13 +2122,8 @@ class TestKVPost(unittest.TestCase):
             self.fail("Expected ServerError, got return %r" % (r,))
 
     def test_500(self):
-        # 500 as an example of any non-200, non-400 code.
-        response = HTTPResponse()
-        response.status = 500
-        response.body = "foo:bar\nbaz:quux\n"
-        self.assertRaises(urllib.error.URLError,
-                              _httpResponseToMessage, response,
-                              self.server_url)
+        with self.assertRaises(urllib.error.URLError):
+            makeKVPost(Message(), 'http://test-kv-post/500')
 
 
 if __name__ == '__main__':

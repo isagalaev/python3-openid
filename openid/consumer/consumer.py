@@ -223,37 +223,13 @@ def makeKVPost(request_message, server_url):
 
     @rtype: L{openid.message.Message}
     """
-    # XXX: TESTME
-    resp = fetchers.fetch(server_url, body=request_message.toURLEncoded())
-
-    # Process response in separate function that can be shared by async code.
-    return _httpResponseToMessage(resp, server_url)
-
-
-def _httpResponseToMessage(response, server_url):
-    """Adapt a POST response to a Message.
-
-    @type response: L{openid.fetchers.HTTPResponse}
-    @param response: Result of a POST to an OpenID endpoint.
-
-    @rtype: L{openid.message.Message}
-
-    @raises urllib.error.URLError: if the server returned a
-        status of other than 200 or 400.
-
-    @raises ServerError: if the server returned an OpenID error.
-    """
-    # Should this function be named Message.fromHTTPResponse instead?
-    response_message = Message.fromKVForm(response.body)
-    if response.status == 400:
-        raise ServerError.fromMessage(response_message)
-
-    elif response.status not in (200, 206):
-        fmt = 'bad status code from server %s: %s'
-        error_message = fmt % (server_url, response.status)
-        raise urllib.error.URLError(error_message)
-
-    return response_message
+    try:
+        response = fetchers.fetch(server_url, body=request_message.toURLEncoded())
+        return Message.fromKVForm(response.body)
+    except urllib.error.HTTPError as e:
+        if e.code == 400:
+            raise ServerError.fromMessage(Message.fromKVForm(e.read()))
+        raise
 
 
 class Consumer(object):

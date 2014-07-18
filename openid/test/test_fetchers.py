@@ -38,12 +38,6 @@ def test_fetcher(server):
 
     expected_headers = {'content-type': 'text/plain'}
 
-    def plain(path, code):
-        path = '/' + path
-        expected = fetchers.HTTPResponse(
-            geturl(path), code, expected_headers, path.encode('utf-8'))
-        return (path, expected)
-
     expect_success = fetchers.HTTPResponse(
         geturl('/success'), 200, expected_headers, b'/success')
     cases = [
@@ -52,11 +46,6 @@ def test_fetcher(server):
         ('/302redirect', expect_success),
         ('/303redirect', expect_success),
         ('/307redirect', expect_success),
-        plain('notfound', 404),
-        plain('badreq', 400),
-        plain('forbidden', 403),
-        plain('error', 500),
-        plain('server_error', 503),
         ]
 
     for path, expected in cases:
@@ -78,7 +67,12 @@ def test_fetcher(server):
             'ftp://server/path',
             'sftp://server/path',
             'ssh://server/path',
-            ]:
+            geturl('/notfound'),
+            geturl('/badreq'),
+            geturl('/forbidden'),
+            geturl('/error'),
+            geturl('/server_error'),
+        ]:
         try:
             result = fetchers.fetch(err_url)
         except urllib.error.URLError:

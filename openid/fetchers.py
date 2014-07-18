@@ -73,12 +73,6 @@ def fetch(url, body=None, headers=None):
 
     req = urllib.request.Request(url, data=body, headers=headers)
 
-    url_resource = None
-    try:
-        url_resource = urllib.request.urlopen(req)
-        with contextlib.closing(url_resource):
-            return _makeResponse(url_resource)
-    except urllib.error.HTTPError as why:
-        with contextlib.closing(why):
-            resp = _makeResponse(why)
-            return resp
+    url_resource = urllib.request.urlopen(req)
+    with contextlib.closing(url_resource):
+        return _makeResponse(url_resource)
