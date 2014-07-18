@@ -39,24 +39,6 @@ class HTTPResponse(object):
                                           self.final_url)
 
 
-def _makeResponse(urllib2_response):
-    '''
-    Construct an HTTPResponse from the the urllib response. Attempt to
-    decode the response body from bytes to str if the necessary information
-    is available.
-    '''
-    resp = HTTPResponse()
-    resp.body = urllib2_response.read(MAX_RESPONSE_KB * 1024)
-    resp.final_url = urllib2_response.geturl()
-    resp.headers = {k.lower(): v for k, v in urllib2_response.info().items()}
-
-    if hasattr(urllib2_response, 'code'):
-        resp.status = urllib2_response.code
-    else:
-        resp.status = 200
-
-    return resp
-
 def fetch(url, body=None, headers=None):
     if urllib.parse.urlparse(url).scheme not in ('http', 'https'):
         raise urllib.error.URLError('Bad URL scheme: %r' % url)
@@ -71,8 +53,13 @@ def fetch(url, body=None, headers=None):
     if isinstance(body, str):
         body = bytes(body, encoding="utf-8")
 
-    req = urllib.request.Request(url, data=body, headers=headers)
+    request = urllib.request.Request(url, data=body, headers=headers)
+    f = urllib.request.urlopen(request)
+    with contextlib.closing(f):
+        return HTTPResponse(
+            final_url=f.geturl(),
+            status=f.status,
+            headers={k.lower(): v for k, v in f.info().items()},
+            body=f.read(MAX_RESPONSE_KB * 1024),
+        )
 
-    url_resource = urllib.request.urlopen(req)
-    with contextlib.closing(url_resource):
-        return _makeResponse(url_resource)
