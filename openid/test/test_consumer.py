@@ -1220,7 +1220,7 @@ class TestReturnToArgs(unittest.TestCase):
 
 class MockFetcher(object):
     def __init__(self, response=None):
-        self.response = response or HTTPResponse()
+        self.response = response
         self.fetches = []
 
     def fetch(self, url, body=None, headers=None):

@@ -21,13 +21,7 @@ MAX_RESPONSE_KB = 1024
 
 
 class HTTPResponse(object):
-    """XXX document attributes"""
-    headers = None
-    status = None
-    body = None
-    final_url = None
-
-    def __init__(self, final_url=None, status=None, headers=None, body=None):
+    def __init__(self, final_url, status, headers=None, body=None):
         self.final_url = final_url
         self.status = status
         self.headers = headers

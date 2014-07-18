@@ -42,7 +42,7 @@ def mkResponse(data):
         v = v.strip()
         headers[k] = v
     status = int(status_mo.group(1))
-    return fetchers.HTTPResponse(status=status, headers=headers, body=body)
+    return fetchers.HTTPResponse('<test>', status, headers=headers, body=body)
 
 
 class TestFetcher(object):
