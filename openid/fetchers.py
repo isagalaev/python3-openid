@@ -15,7 +15,11 @@ import contextlib
 import openid
 
 
-USER_AGENT = "python-openid/%s (%s)" % (openid.__version__, sys.platform)
+USER_AGENT = 'python-openid/%s (%s) Python-urllib/%s' % (
+    openid.__version__,
+    sys.platform,
+    urllib.request.__version__,
+)
 MAX_RESPONSE_KB = 1024
 
 
@@ -38,10 +42,7 @@ def fetch(url, body=None, headers=None):
 
     if headers is None:
         headers = {}
-
-    headers.setdefault(
-        'User-Agent',
-        "%s Python-urllib/%s" % (USER_AGENT, urllib.request.__version__))
+    headers.setdefault('User-Agent', USER_AGENT)
 
     request = urllib.request.Request(url, data=body, headers=headers)
     f = urllib.request.urlopen(request)
