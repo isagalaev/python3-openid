@@ -19,13 +19,12 @@ from . import discoverdata
 from .support import HTTPResponse
 
 
-STATUS_RE = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
+STATUS_RE = re.compile(r'^Status: (\d+) .+\n')
 BASE_URL = 'http://invalid.unittest/'
 
 
 def mkResponse(data):
-    match = STATUS_RE.match(data)
-    status = int(match.group(1))
+    status = int(STATUS_RE.search(data).group(1))
     headers_str, body = data.split('\n\n', 1)
     headers = dict(l.split(': ') for l in headers_str.split('\n'))
     return HTTPResponse('<test>', status, headers=headers, body=body.encode('utf-8'))
