@@ -7,6 +7,7 @@
 """
 
 import unittest
+from unittest import mock
 import urllib.parse
 import urllib.error
 import re
@@ -33,25 +34,24 @@ def mkResponse(data):
     return HTTPResponse('<test>', status, headers=headers, body=body.encode('utf-8'))
 
 
-class TestFetcher(object):
-    def fetch(self, url, body=None, headers=None):
-        current_url = url
-        while True:
-            parsed = urllib.parse.urlparse(current_url)
-            path = parsed[2][1:]
-            try:
-                data = discoverdata.generateSample(path, BASE_URL)
-            except KeyError:
-                data = '404 Not found\n\nNot found'
+def fetch(url, body=None, headers=None):
+    current_url = url
+    while True:
+        parsed = urllib.parse.urlparse(current_url)
+        path = parsed[2][1:]
+        try:
+            data = discoverdata.generateSample(path, BASE_URL)
+        except KeyError:
+            data = '404 Not found\n\nNot found'
 
-            response = mkResponse(data)
-            if response.status >= 400:
-                raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
-            if response.status in [301, 302, 303, 307]:
-                current_url = response.getheader('location')
-            else:
-                response.url = current_url
-                return response
+        response = mkResponse(data)
+        if response.status >= 400:
+            raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
+        if response.status in [301, 302, 303, 307]:
+            current_url = response.getheader('location')
+        else:
+            response.url = current_url
+            return response
 
 
 class TestSecondGet(unittest.TestCase):
@@ -95,9 +95,6 @@ class _TestCase(unittest.TestCase):
         unittest.TestCase.__init__(self, methodName='runCustomTest')
 
     def setUp(self):
-        self._original = fetchers.fetch
-        fetchers.fetch = TestFetcher().fetch
-
         self.input_url, self.expected = discoverdata.generateResult(
             BASE_URL,
             self.input_name,
@@ -105,9 +102,7 @@ class _TestCase(unittest.TestCase):
             self.result_name,
             self.success)
 
-    def tearDown(self):
-        fetchers.fetch = self._original
-
+    @mock.patch('openid.fetchers.fetch', fetch)
     def runCustomTest(self):
         if self.expected is urllib.error.HTTPError:
             self.assertRaises(urllib.error.HTTPError,
