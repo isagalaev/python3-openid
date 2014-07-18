@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """Tests for yadis.discover.
 
 @todo: Now that yadis.discover uses urljr.fetchers, we should be able to do
@@ -15,8 +14,6 @@ import types
 import io
 
 from openid.yadis.discover import discover, DiscoveryFailure
-
-from openid import fetchers
 
 from . import discoverdata
 from .support import HTTPResponse
@@ -55,30 +52,13 @@ def fetch(url, body=None, headers=None):
 
 
 class TestSecondGet(unittest.TestCase):
-    class MockFetcher(object):
-        def __init__(self):
-            self.count = 0
-
-        def fetch(self, uri, headers=None, body=None):
-            self.count += 1
-            if self.count == 1:
-                headers = {
-                    'X-XRDS-Location'.lower(): 'http://unittest/404',
-                    }
-                return HTTPResponse(uri, 200, headers, b'')
-            else:
-                raise urllib.error.HTTPError(uri, 404, 'Test request failed', {}, io.BytesIO(b''))
-
-    def setUp(self):
-        self._original = fetchers.fetch
-        fetchers.fetch = self.MockFetcher().fetch
-
-    def tearDown(self):
-        fetchers.fetch = self._original
-
     def test_404(self):
-        uri = "http://something.unittest/"
-        self.assertRaises(urllib.error.HTTPError, discover, uri)
+        location = 'http://unittest/404'
+        fetch = mock.Mock(return_value=HTTPResponse('', 200, {'X-XRDS-Location': location}))
+        with mock.patch('openid.fetchers.fetch', fetch):
+            discover('http://something.unittest/')
+        fetch.assert_called_with(location)
+        self.assertEqual(fetch.call_count, 2)
 
 
 class _TestCase(unittest.TestCase):
