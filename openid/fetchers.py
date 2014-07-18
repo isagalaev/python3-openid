@@ -8,7 +8,6 @@ __all__ = ['fetch', 'HTTPResponse']
 import urllib.request
 import urllib.error
 import urllib.parse
-import http.client
 
 import sys
 import contextlib
