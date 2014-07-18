@@ -21,19 +21,14 @@ from . import discoverdata
 from .support import HTTPResponse
 
 
-status_header_re = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
+STATUS_RE = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
 
 
 def mkResponse(data):
-    status_mo = status_header_re.match(data)
+    match = STATUS_RE.match(data)
+    status = int(match.group(1))
     headers_str, body = data.split('\n\n', 1)
-    headers = {}
-    for line in headers_str.split('\n'):
-        k, v = line.split(':', 1)
-        k = k.strip()
-        v = v.strip()
-        headers[k] = v
-    status = int(status_mo.group(1))
+    headers = dict(l.split(': ') for l in headers_str.split('\n'))
     return HTTPResponse('<test>', status, headers=headers, body=body.encode('utf-8'))
 
 
