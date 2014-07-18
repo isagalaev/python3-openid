@@ -22,6 +22,7 @@ from .support import HTTPResponse
 
 
 STATUS_RE = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
+BASE_URL = 'http://invalid.unittest/'
 
 
 def mkResponse(data):
@@ -33,16 +34,13 @@ def mkResponse(data):
 
 
 class TestFetcher(object):
-    def __init__(self, base_url):
-        self.base_url = base_url
-
     def fetch(self, url, body=None, headers=None):
         current_url = url
         while True:
             parsed = urllib.parse.urlparse(current_url)
             path = parsed[2][1:]
             try:
-                data = discoverdata.generateSample(path, self.base_url)
+                data = discoverdata.generateSample(path, BASE_URL)
             except KeyError:
                 data = '404 Not found\n\nNot found'
 
@@ -84,8 +82,6 @@ class TestSecondGet(unittest.TestCase):
 
 
 class _TestCase(unittest.TestCase):
-    base_url = 'http://invalid.unittest/'
-
     def __init__(self, input_name, id_name, result_name, success):
         self.input_name = input_name
         self.id_name = id_name
@@ -100,10 +96,10 @@ class _TestCase(unittest.TestCase):
 
     def setUp(self):
         self._original = fetchers.fetch
-        fetchers.fetch = TestFetcher(self.base_url).fetch
+        fetchers.fetch = TestFetcher().fetch
 
         self.input_url, self.expected = discoverdata.generateResult(
-            self.base_url,
+            BASE_URL,
             self.input_name,
             self.id_name,
             self.result_name,
