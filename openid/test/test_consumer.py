@@ -25,11 +25,10 @@ from openid.yadis.manager import Discovery
 from openid.yadis.discover import DiscoveryFailure
 from openid.dh import DiffieHellman
 
-from openid.fetchers import HTTPResponse
 from openid import fetchers
 from openid.store import memstore
 
-from .support import CatchLogs
+from .support import CatchLogs, HTTPResponse
 
 
 assocs = [
@@ -98,7 +97,7 @@ class TestFetcher(object):
     def __init__(self, user_url, user_page, xxx_todo_changeme):
         (assoc_secret, assoc_handle) = xxx_todo_changeme
         self.get_responses = {
-            user_url: HTTPResponse(user_url, 200, body=user_page)
+            user_url: user_page
         }
         self.assoc_secret = assoc_secret
         self.assoc_handle = assoc_handle
@@ -107,7 +106,7 @@ class TestFetcher(object):
     def fetch(self, url, body=None, headers=None):
         if body is None:
             if url in self.get_responses:
-                return self.get_responses[url]
+                return HTTPResponse(url, 200, body=self.get_responses[url])
         else:
             try:
                 body.index('openid.mode=associate')
@@ -1254,7 +1253,7 @@ class TestCheckAuth(unittest.TestCase, CatchLogs):
 
     def test_error(self):
         self.fetcher.response = HTTPResponse(
-            "http://some_url", 404, {'Hea': 'der'}, 'blah:blah\n')
+            'http://some_url', 404, {'Hea': 'der'}, b'blah:blah\n')
         query = {'openid.signed': 'stuff',
                  'openid.stuff': 'a value'}
         r = self.consumer._checkAuth(Message.fromPostArgs(query),
@@ -2088,7 +2087,7 @@ class TestAddExtension(unittest.TestCase):
 def kvpost_fetch(url, body=None, headers=None):
     status = int(url.rsplit('/', 1)[1])
     if 200 <= status < 300:
-        return HTTPResponse(final_url=url, status=status, body='foo:bar\nbaz:quux\n')
+        return HTTPResponse(url, status, body=b'foo:bar\nbaz:quux\n')
     if 400 <= status < 500:
         raise urllib.error.HTTPError(url, status, 'Test request failed', {}, io.BytesIO(b'error:bonk\nerror_code:7\n'))
     if 500 <= status:

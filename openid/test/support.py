@@ -1,4 +1,5 @@
 from openid import message
+import io
 from logging.handlers import BufferingHandler
 import logging
 
@@ -67,3 +68,19 @@ class CatchLogs(object):
 
     def failUnlessLogEmpty(self):
         self.failUnlessLogMatches()
+
+class HTTPResponse:
+    def __init__(self, url, status, headers=None, body=None):
+        self.url = url
+        self.status = status
+        self.headers = headers or {}
+        self._body = io.BytesIO(body)
+
+    def info():
+        return self._headers
+
+    def read(self, *args):
+        return self._body.read(*args)
+
+    def getheader(self, name):
+        return {k.lower(): v for k, v in self.headers.items()}.get(name.lower())

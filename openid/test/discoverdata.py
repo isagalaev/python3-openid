@@ -114,6 +114,7 @@ def generateResult(base_url, input_name, id_name, result_name, success):
 
     result = generateSample(result_name, base_url)
     headers, content = result.split('\n\n', 1)
+    content = content.encode('utf-8')
     header_lines = headers.split('\n')
     for header_line in header_lines:
         if header_line.startswith('Content-Type:'):

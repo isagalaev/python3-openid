@@ -5,9 +5,9 @@ import os.path
 from urllib.parse import urlsplit
 
 from . import datadriven
+from .support import HTTPResponse
 
 from openid import fetchers
-from openid.fetchers import HTTPResponse
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer import discover, consumer as openid_consumer
 from openid.yadis import xrires
@@ -24,7 +24,7 @@ class SimpleMockFetcher(object):
     def fetch(self, url, body=None, headers=None):
         response = self.responses.pop(0)
         assert body is None
-        assert response.final_url == url
+        assert response.url == url
         return response
 
 
@@ -40,7 +40,7 @@ class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
         ]
 
     def __init__(self, responses):
-        self.url = responses[0].final_url
+        self.url = responses[0].url
         datadriven.DataDrivenTestCase.__init__(self, self.url)
         self.responses = responses
 
@@ -167,7 +167,7 @@ class DiscoveryMockFetcher(object):
         except KeyError:
             status = 404
             ctype = 'text/plain'
-            body = ''
+            body = b''
         else:
             status = 200
 
@@ -291,7 +291,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
-                                  data="junk",
+                                  data=b'junk',
                                   expected_service_count=0)
 
         services = self._discover(

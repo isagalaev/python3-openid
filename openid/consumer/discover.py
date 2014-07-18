@@ -435,9 +435,9 @@ def discoverXRI(iname):
 
 def discoverNoYadis(uri):
     http_resp = fetchers.fetch(uri)
-    claimed_id = http_resp.final_url
+    claimed_id = http_resp.url
     openid_services = OpenIDServiceEndpoint.fromHTML(
-        claimed_id, http_resp.body)
+        claimed_id, http_resp.read()) # MAX_RESPONSE
     return claimed_id, openid_services
 
 def discoverURI(uri):

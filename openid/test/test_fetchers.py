@@ -7,6 +7,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from openid import fetchers
 
+from .support import HTTPResponse
+
 # XXX: make these separate test cases
 
 
@@ -18,16 +20,14 @@ def _assertEqual(v1, v2, extra):
 
 
 def failUnlessResponseExpected(expected, actual, extra):
-    _assertEqual(expected.final_url, actual.final_url, extra)
+    _assertEqual(expected.url, actual.url, extra)
     _assertEqual(expected.status, actual.status, extra)
-    _assertEqual(expected.body, actual.body, extra)
-    got_headers = dict(actual.headers)
-
-    del got_headers['date']
-    del got_headers['server']
-
-    for k, v in expected.headers.items():
-        assert got_headers[k] == v, (k, v, got_headers[k], extra)
+    _assertEqual(expected.read(), actual.read(), extra)
+    actual_headers = {k.lower(): v for k, v in actual.headers.items()}
+    expected_headers = {k.lower(): v for k, v in expected.headers.items()}
+    del actual_headers['date']
+    del actual_headers['server']
+    assert actual_headers == expected_headers
 
 
 def test_fetcher(server):
@@ -36,19 +36,9 @@ def test_fetcher(server):
         host, port = server.server_address
         return 'http://%s:%s%s' % (host, port, path)
 
-    expected_headers = {'content-type': 'text/plain'}
-
-    expect_success = fetchers.HTTPResponse(
-        geturl('/success'), 200, expected_headers, b'/success')
-    cases = [
-        ('/success', expect_success),
-        ('/301redirect', expect_success),
-        ('/302redirect', expect_success),
-        ('/303redirect', expect_success),
-        ('/307redirect', expect_success),
-        ]
-
-    for path, expected in cases:
+    paths = ['/success', '/301redirect', '/302redirect', '/303redirect', '/307redirect']
+    for path in paths:
+        expected = HTTPResponse(geturl('/success'), 200, {'content-type': 'text/plain'}, b'/success')
         fetch_url = geturl(path)
         try:
             actual = fetchers.fetch(fetch_url)

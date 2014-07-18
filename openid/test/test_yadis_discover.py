@@ -18,6 +18,7 @@ from openid.yadis.discover import discover, DiscoveryFailure
 from openid import fetchers
 
 from . import discoverdata
+from .support import HTTPResponse
 
 status_header_re = re.compile(r'Status: (\d+) .*?$', re.MULTILINE)
 
@@ -38,11 +39,11 @@ def mkResponse(data):
     headers = {}
     for line in headers_str.split('\n'):
         k, v = line.split(':', 1)
-        k = k.strip().lower()
+        k = k.strip()
         v = v.strip()
         headers[k] = v
     status = int(status_mo.group(1))
-    return fetchers.HTTPResponse('<test>', status, headers=headers, body=body)
+    return HTTPResponse('<test>', status, headers=headers, body=body.encode('utf-8'))
 
 
 class TestFetcher(object):
@@ -63,9 +64,9 @@ class TestFetcher(object):
             if response.status >= 400:
                 raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
             if response.status in [301, 302, 303, 307]:
-                current_url = response.headers['location']
+                current_url = response.getheader('location')
             else:
-                response.final_url = current_url
+                response.url = current_url
                 return response
 
 
@@ -80,7 +81,7 @@ class TestSecondGet(unittest.TestCase):
                 headers = {
                     'X-XRDS-Location'.lower(): 'http://unittest/404',
                     }
-                return fetchers.HTTPResponse(uri, 200, headers, '')
+                return HTTPResponse(uri, 200, headers, b'')
             else:
                 raise urllib.error.HTTPError(uri, 404, 'Test request failed', {}, io.BytesIO(b''))
 
@@ -93,7 +94,7 @@ class TestSecondGet(unittest.TestCase):
 
     def test_404(self):
         uri = "http://something.unittest/"
-        self.assertRaises(DiscoveryFailure, discover, uri)
+        self.assertRaises(urllib.error.HTTPError, discover, uri)
 
 
 class _TestCase(unittest.TestCase):

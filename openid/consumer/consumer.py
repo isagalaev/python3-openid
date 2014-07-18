@@ -225,7 +225,7 @@ def makeKVPost(request_message, server_url):
     """
     try:
         response = fetchers.fetch(server_url, body=request_message.toURLEncoded())
-        return Message.fromKVForm(response.body)
+        return Message.fromKVForm(response.read())
     except urllib.error.HTTPError as e:
         if e.code == 400:
             raise ServerError.fromMessage(Message.fromKVForm(e.read()))

@@ -87,7 +87,7 @@ class ProxyResolver(object):
                 response = fetchers.fetch(url)
             except urllib.error.HTTPError as e:
                 logging.warning(str(e))
-            et = etxrd.parseXRDS(response.body)
+            et = etxrd.parseXRDS(response.read()) # MAX_RESPONSE
             canonicalID = etxrd.getCanonicalID(xri, et)
             some_services = list(iterServices(et))
             services.extend(some_services)
