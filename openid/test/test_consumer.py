@@ -3,7 +3,6 @@ import urllib.error
 import time
 import warnings
 import pprint
-import contextlib
 from unittest import mock
 import io
 
@@ -31,16 +30,6 @@ from openid import fetchers
 from openid.store import memstore
 
 from .support import CatchLogs
-
-
-@contextlib.contextmanager
-def custom_fetch(fetch):
-    _original = fetchers.fetch
-    fetchers.fetch = fetch
-    try:
-        yield
-    finally:
-        fetchers.fetch = _original
 
 
 assocs = [
@@ -220,7 +209,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         assert info.status == SUCCESS, info.message
         assert info.identity_url == user_url
 
-    with custom_fetch(fetcher.fetch):
+    with mock.patch('openid.fetchers.fetch', fetcher.fetch):
         assert fetcher.num_assocs == 0
         run()
         assert fetcher.num_assocs == 1
@@ -1348,7 +1337,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         when making associations
         """
         self.fetcher = ExceptionRaisingMockFetcher()
-        with custom_fetch(self.fetcher.fetch):
+        with mock.patch('openid.fetchers.fetch', self.fetcher.fetch):
             self.assertRaises(self.fetcher.MyException,
                                   self.consumer._makeKVPost,
                                   Message.fromPostArgs({'mode': 'associate'}),
