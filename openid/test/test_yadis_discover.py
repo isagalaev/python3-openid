@@ -26,31 +26,26 @@ class TestSecondGet(unittest.TestCase):
         self.assertEqual(fetch.call_count, 2)
 
 
-def make_response(data):
+def make_response(data, url):
     status = int(STATUS_RE.search(data).group(1))
     headers_str, body = data.split('\n\n', 1)
     headers = dict(l.split(': ') for l in headers_str.split('\n'))
-    return HTTPResponse('<test>', status, headers=headers, body=body.encode('utf-8'))
+    return HTTPResponse(url, status, headers=headers, body=body.encode('utf-8'))
 
 
 def fetch(url, body=None, headers=None):
-    current_url = url
-    while True:
-        parsed = urllib.parse.urlparse(current_url)
-        path = parsed.path.lstrip('/')
-        try:
-            data = discoverdata.generateSample(path, BASE_URL)
-        except KeyError:
-            data = '404 Not found\n\nNot found'
+    path = urllib.parse.urlparse(url).path.lstrip('/')
+    try:
+        data = discoverdata.generateSample(path, BASE_URL)
+    except KeyError:
+        data = '404 Not found\n\nNot found'
 
-        response = make_response(data)
-        if response.status >= 400:
-            raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
-        if response.status in [301, 302, 303, 307]:
-            current_url = response.getheader('location')
-        else:
-            response.url = current_url
-            return response
+    response = make_response(data, url)
+    if response.status >= 400:
+        raise urllib.error.HTTPError(url, response.status, 'Test request failed', {}, io.BytesIO())
+    if response.status in [301, 302, 303, 307]:
+        return fetch(response.getheader('location'))
+    return response
 
 
 class Discover(unittest.TestCase):
