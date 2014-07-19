@@ -1,14 +1,9 @@
-# -*- test-case-name: openid.test.test_fetchers -*-
-"""
-This module contains the HTTP fetcher interface and several implementations.
-"""
-
-__all__ = ['fetch']
-
+'''
+Wrapper around urlopen providing default parameters and safety checkings.
+'''
 import urllib.request
 import urllib.error
 import urllib.parse
-
 import sys
 
 import openid
