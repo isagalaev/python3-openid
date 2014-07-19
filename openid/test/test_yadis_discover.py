@@ -37,7 +37,7 @@ def fetch(url, body=None, headers=None):
     current_url = url
     while True:
         parsed = urllib.parse.urlparse(current_url)
-        path = parsed[2][1:]
+        path = parsed.path.lstrip('/')
         try:
             data = discoverdata.generateSample(path, BASE_URL)
         except KeyError:
