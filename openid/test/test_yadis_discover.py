@@ -68,36 +68,12 @@ class Discover(unittest.TestCase):
             result_name,
             success,
         )
-        if expected is urllib.error.HTTPError:
+        if expected is None:
             self.assertRaises(urllib.error.HTTPError, discover, input_url)
         else:
             result = discover(input_url)
             self.assertEqual(input_url, result.request_uri)
-
-            msg = 'Identity URL mismatch: actual = %r, expected = %r' % (
-                result.normalized_uri, expected.normalized_uri)
-            self.assertEqual(
-                expected.normalized_uri, result.normalized_uri, msg)
-
-            msg = 'Content mismatch: actual = %r, expected = %r' % (
-                result.response_text, expected.response_text)
-            self.assertEqual(
-                expected.response_text, result.response_text, msg)
-
-            expected_keys = dir(expected)
-            expected_keys.sort()
-            actual_keys = dir(result)
-            actual_keys.sort()
-            self.assertEqual(actual_keys, expected_keys)
-
-            for k in dir(expected):
-                if k.startswith('__') and k.endswith('__'):
-                    continue
-                exp_v = getattr(expected, k)
-                if isinstance(exp_v, types.MethodType):
-                    continue
-                act_v = getattr(result, k)
-                assert act_v == exp_v, (k, exp_v, act_v)
+            self.assertEqual(result.__dict__, expected.__dict__)
 
 # Generation of test methods within Discover. They have predictable names,
 # can be run individually and are discovered by standard unittest machinery.
