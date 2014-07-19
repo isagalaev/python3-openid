@@ -78,7 +78,7 @@ class HTTPResponse:
         self._body = io.BytesIO(body)
 
     def info():
-        return self._headers
+        return self.headers
 
     def read(self, *args):
         return self._body.read(*args)
