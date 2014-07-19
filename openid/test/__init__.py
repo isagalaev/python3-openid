@@ -67,6 +67,7 @@ def pyUnitTests():
         'rpverify',
         'extension',
         'codecutil',
+        'yadis_discover',
     ]
 
     test_modules = [
@@ -101,7 +102,6 @@ def pyUnitTests():
         'test_openidyadis',
         'test_parsehtml',
         'test_urinorm',
-        'test_yadis_discover',
         'trustroot',
         ]
 
