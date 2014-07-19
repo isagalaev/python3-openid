@@ -41,11 +41,12 @@ def fetch(url, body=None, headers=None):
         data = '404 Not found\n\nNot found'
 
     response = make_response(data, url)
-    if response.status >= 400:
-        raise urllib.error.HTTPError(url, response.status, 'Test request failed', {}, io.BytesIO())
-    if response.status in [301, 302, 303, 307]:
+    if 300 <= response.status < 400:
         return fetch(response.getheader('location'))
-    return response
+    elif 400 <= response.status:
+        raise urllib.error.HTTPError(url, response.status, 'Test request failed', {}, io.BytesIO())
+    else:
+        return response
 
 
 class Discover(unittest.TestCase):
