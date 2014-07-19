@@ -102,11 +102,14 @@ class Discover(unittest.TestCase):
 # Generation of test methods within Discover. They have predictable names,
 # can be run individually and are discovered by standard unittest machinery.
 for success, input_name, id_name, result_name in discoverdata.testlist:
-    def test_method(self):
-        self._test(success, input_name, id_name, result_name)
+    def g(*args):
+        def test_method(self):
+            self._test(*args)
+        return test_method
+    method = g(success, input_name, id_name, result_name)
     name = 'test_%s' % input_name
-    test_method.__name__ = name
-    setattr(Discover, name, test_method)
+    method.__name__ = name
+    setattr(Discover, name, method)
 
 
 if __name__ == '__main__':
