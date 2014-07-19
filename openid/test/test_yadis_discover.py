@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-"""Tests for yadis.discover.
-
-@todo: Now that yadis.discover uses urljr.fetchers, we should be able to do
-   tests with a mock fetcher instead of spawning threads with BaseHTTPServer.
-"""
-
 import unittest
 from unittest import mock
 import urllib.parse
@@ -13,7 +6,7 @@ import re
 import types
 import io
 
-from openid.yadis.discover import discover, DiscoveryFailure
+from openid.yadis.discover import discover
 
 from . import discoverdata
 from .support import HTTPResponse
@@ -33,7 +26,7 @@ class TestSecondGet(unittest.TestCase):
         self.assertEqual(fetch.call_count, 2)
 
 
-def mkResponse(data):
+def make_response(data):
     status = int(STATUS_RE.search(data).group(1))
     headers_str, body = data.split('\n\n', 1)
     headers = dict(l.split(': ') for l in headers_str.split('\n'))
@@ -50,7 +43,7 @@ def fetch(url, body=None, headers=None):
         except KeyError:
             data = '404 Not found\n\nNot found'
 
-        response = mkResponse(data)
+        response = make_response(data)
         if response.status >= 400:
             raise urllib.error.HTTPError(current_url, response.status, 'Test request failed', {}, io.BytesIO())
         if response.status in [301, 302, 303, 307]:
