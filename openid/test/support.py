@@ -69,6 +69,7 @@ class CatchLogs(object):
     def failUnlessLogEmpty(self):
         self.failUnlessLogMatches()
 
+
 class HTTPResponse:
     def __init__(self, url, status, headers=None, body=None):
         self.url = url
@@ -84,3 +85,25 @@ class HTTPResponse:
 
     def getheader(self, name):
         return {k.lower(): v for k, v in self.headers.items()}.get(name.lower())
+
+
+def gentests(data):
+    '''
+    TestCase class decorator for data-driven tests.
+
+    Given a list of (name, args) pairs the decorator generates a separate test
+    method named 'test_<name>' for each pair. The test method would call the
+    method '_test' defined in a class to perform actual testing, passing it
+    the args.
+    '''
+    def decorator(cls):
+        for name, args in data:
+            def g(*args):
+                def test_method(self):
+                    self._test(*args)
+                return test_method
+            method = g(*args)
+            method.__name__ = 'test_' + name
+            setattr(cls, method.__name__, method)
+        return cls
+    return decorator

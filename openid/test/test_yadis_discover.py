@@ -9,7 +9,7 @@ import io
 from openid.yadis.discover import discover
 
 from . import discoverdata
-from .support import HTTPResponse
+from .support import gentests, HTTPResponse
 
 
 STATUS_RE = re.compile(r'^Status: (\d+) .+\n')
@@ -49,6 +49,7 @@ def fetch(url, body=None, headers=None):
         return response
 
 
+@gentests(discoverdata.testlist)
 class Discover(unittest.TestCase):
 
     @mock.patch('openid.fetchers.fetch', fetch)
@@ -70,18 +71,6 @@ class Discover(unittest.TestCase):
             result = discover(input_url)
             self.assertEqual(input_url, result.request_uri)
             self.assertEqual(result.__dict__, expected.__dict__)
-
-# Generation of test methods within Discover. They have predictable names,
-# can be run individually and are discovered by standard unittest machinery.
-for success, input_name, id_name, result_name in discoverdata.testlist:
-    def g(*args):
-        def test_method(self):
-            self._test(*args)
-        return test_method
-    method = g(success, input_name, id_name, result_name)
-    name = 'test_%s' % input_name
-    method.__name__ = name
-    setattr(Discover, name, method)
 
 
 if __name__ == '__main__':
