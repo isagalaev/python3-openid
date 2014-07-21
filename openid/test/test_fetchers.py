@@ -79,17 +79,10 @@ def test_fetcher():
             failUnlessResponseExpected(expected, actual, extra=locals())
 
     for err_url in [
-            'http://invalid.janrain.com/',
             'not:a/url',
             'ftp://janrain.com/pub/',
-            'file://localhost/thing.txt',
-            'ftp://server/path',
-            'sftp://server/path',
-            'ssh://server/path',
-            geturl('/notfound'),
+            geturl('/404'),
             geturl('/badreq'),
-            geturl('/forbidden'),
-            geturl('/error'),
             geturl('/server_error'),
         ]:
         try:
