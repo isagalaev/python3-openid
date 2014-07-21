@@ -57,15 +57,12 @@ def urlopen(request, data=None):
     return HTTPResponse(url, 200, headers, body)
 
 
-def geturl(path):
-    return 'http://%s%s' % (TEST_HOST, path)
-
-
 @mock.patch('urllib.request.urlopen', urlopen)
 class Fetcher(unittest.TestCase):
     def test_success(self):
-        actual = fetchers.fetch(geturl('/success'))
-        expected = HTTPResponse(geturl('/success'), 200, {'content-type': 'text/plain'}, b'/success')
+        url = 'http://%s/success' % TEST_HOST
+        actual = fetchers.fetch(url)
+        expected = HTTPResponse(url, 200, {'content-type': 'text/plain'}, b'/success')
         failUnlessResponseExpected(expected, actual, extra=locals())
 
     def test_bad_urls(self):
