@@ -1,4 +1,3 @@
-import warnings
 import unittest
 from unittest import mock
 import urllib.request
@@ -9,8 +8,6 @@ import io
 from openid import fetchers
 
 from .support import HTTPResponse
-
-# XXX: make these separate test cases
 
 
 def _assertEqual(v1, v2, extra):
@@ -59,45 +56,32 @@ def urlopen(request, data=None):
     return HTTPResponse(url, status, headers, body)
 
 
+def geturl(path):
+    return 'http://unittest%s' % path
+
+
 @mock.patch('urllib.request.urlopen', urlopen)
-def test_fetcher():
-
-    def geturl(path):
-        return 'http://unittest%s' % path
-
-    paths = ['/success']
-    for path in paths:
+class Fetcher(unittest.TestCase):
+    def test_success(self):
+        actual = fetchers.fetch(geturl('/success'))
         expected = HTTPResponse(geturl('/success'), 200, {'content-type': 'text/plain'}, b'/success')
-        fetch_url = geturl(path)
-        try:
-            actual = fetchers.fetch(fetch_url)
-        except (SystemExit, KeyboardInterrupt):
-            pass
-        except Exception as e:
-            raise AssertionError((fetch_url, e))
-        else:
-            failUnlessResponseExpected(expected, actual, extra=locals())
+        failUnlessResponseExpected(expected, actual, extra=locals())
 
-    for err_url in [
-            'not:a/url',
-            'ftp://janrain.com/pub/',
-            geturl('/404'),
-            geturl('/badreq'),
-            geturl('/server_error'),
-        ]:
-        try:
-            result = fetchers.fetch(err_url)
-        except urllib.error.URLError:
-            pass
-        else:
-            assert False, 'An exception was expected, got result %r' % result
+    def test_failure(self):
+        for err_url in [
+                'not-a-url',
+                'ftp://janrain.com/pub/',
+                geturl('/404'),
+                geturl('/badreq'),
+                geturl('/server_error'),
+            ]:
+            try:
+                result = fetchers.fetch(err_url)
+            except urllib.error.URLError:
+                pass
+            else:
+                assert False, 'An exception was expected, got result %r' % result
 
 
-def test():
-    test_fetcher()
-
-
-def pyUnitTests():
-    return unittest.TestSuite([
-        unittest.FunctionTestCase(test),
-    ])
+if __name__ == '__main__':
+    unittest.main()
