@@ -35,6 +35,9 @@ def failUnlessResponseExpected(expected, actual, extra):
 def urlopen(request, data=None):
     if isinstance(request, str):
         request = urllib.request.Request(request)
+    # track the last call arguments
+    urlopen.request = request
+    urlopen.data = data
 
     url = request.get_full_url()
     schema, server, path, params, query, fragment = urlparse(url)
@@ -76,6 +79,10 @@ class Fetcher(unittest.TestCase):
 
     def test_http_errors(self):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://%s/404' % TEST_HOST)
+
+    def test_user_agent(self):
+        fetchers.fetch('http://unittest/success')
+        self.assertEqual(urlopen.request.get_header('User-agent'), fetchers.USER_AGENT)
 
 
 if __name__ == '__main__':
