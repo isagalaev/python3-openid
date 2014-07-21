@@ -35,15 +35,8 @@ def failUnlessResponseExpected(expected, actual, extra):
 def urlopen(request, data=None):
     DATA = {
         '/success': (200, None),
-        '/301redirect': (301, '/success'),
-        '/302redirect': (302, '/success'),
-        '/303redirect': (303, '/success'),
-        '/307redirect': (307, '/success'),
-        '/notfound': (404, None),
         '/badreq': (400, None),
-        '/forbidden': (403, None),
-        '/error': (500, None),
-        '/server_error': (503, None),
+        '/server_error': (500, None),
     }
 
     if isinstance(request, str):
@@ -54,10 +47,6 @@ def urlopen(request, data=None):
     if path not in DATA:
         raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
     status, location = DATA[path]
-    if 300 <= status < 400:
-        if request.get_method() == 'POST':
-            raise urllib.error.HTTPError(url, 405, '', {'Allow': 'GET'}, io.BytesIO(b'Not allowed'))
-        return urlopen(urlunparse((schema, server, location, params, query, fragment)))
     if 400 <= status:
         raise urllib.error.HTTPError(url, status, '', {}, io.BytesIO())
     body = b'/success'
@@ -76,7 +65,7 @@ def test_fetcher():
     def geturl(path):
         return 'http://unittest%s' % path
 
-    paths = ['/success', '/301redirect', '/302redirect', '/303redirect', '/307redirect']
+    paths = ['/success']
     for path in paths:
         expected = HTTPResponse(geturl('/success'), 200, {'content-type': 'text/plain'}, b'/success')
         fetch_url = geturl(path)
