@@ -1,9 +1,10 @@
 import warnings
 import unittest
+from unittest import mock
 import urllib.request
 import urllib.error
-import urllib.parse
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, urlunparse
+import io
 
 from openid import fetchers
 
@@ -27,14 +28,53 @@ def failUnlessResponseExpected(expected, actual, extra):
     expected_headers = {k.lower(): v for k, v in expected.headers.items()}
     del actual_headers['date']
     del actual_headers['server']
-    assert actual_headers == expected_headers
+    del actual_headers['content-length']
+    _assertEqual(actual_headers, expected_headers, extra)
 
 
-def test_fetcher(server):
+def urlopen(request, data=None):
+    DATA = {
+        '/success': (200, None),
+        '/301redirect': (301, '/success'),
+        '/302redirect': (302, '/success'),
+        '/303redirect': (303, '/success'),
+        '/307redirect': (307, '/success'),
+        '/notfound': (404, None),
+        '/badreq': (400, None),
+        '/forbidden': (403, None),
+        '/error': (500, None),
+        '/server_error': (503, None),
+    }
+
+    if isinstance(request, str):
+        request = urllib.request.Request(request)
+
+    url = request.get_full_url()
+    schema, server, path, params, query, fragment = urlparse(url)
+    if path not in DATA:
+        raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
+    status, location = DATA[path]
+    if 300 <= status < 400:
+        if request.get_method() == 'POST':
+            raise urllib.error.HTTPError(url, 405, '', {'Allow': 'GET'}, io.BytesIO(b'Not allowed'))
+        return urlopen(urlunparse((schema, server, location, params, query, fragment)))
+    if 400 <= status:
+        raise urllib.error.HTTPError(url, status, '', {}, io.BytesIO())
+    body = b'/success'
+    headers = {
+        'Server': 'Urlopen-Mock',
+        'Date': 'Mon, 21 Jul 2014 19:52:42 GMT',
+        'Content-type': 'text/plain',
+        'Content-length': len(body),
+    }
+    return HTTPResponse(url, status, headers, body)
+
+
+@mock.patch('urllib.request.urlopen', urlopen)
+def test_fetcher():
 
     def geturl(path):
-        host, port = server.server_address
-        return 'http://%s:%s%s' % (host, port, path)
+        return 'http://unittest%s' % path
 
     paths = ['/success', '/301redirect', '/302redirect', '/303redirect', '/307redirect']
     for path in paths:
@@ -71,98 +111,8 @@ def test_fetcher(server):
             assert False, 'An exception was expected, got result %r' % result
 
 
-class FetcherTestHandler(BaseHTTPRequestHandler):
-    cases = {
-        '/success': (200, None),
-        '/301redirect': (301, '/success'),
-        '/302redirect': (302, '/success'),
-        '/303redirect': (303, '/success'),
-        '/307redirect': (307, '/success'),
-        '/notfound': (404, None),
-        '/badreq': (400, None),
-        '/forbidden': (403, None),
-        '/error': (500, None),
-        '/server_error': (503, None),
-        }
-
-    def log_request(self, *args):
-        pass
-
-    def do_GET(self):
-        try:
-            http_code, location = self.cases[self.path]
-        except KeyError:
-            self.errorResponse('Bad path')
-        else:
-            extra_headers = [('Content-type', 'text/plain')]
-            if location is not None:
-                host, port = self.server.server_address
-                base = ('http://%s:%s' % (host, port,))
-                location = base + location
-                extra_headers.append(('Location', location))
-            self._respond(http_code, extra_headers, self.path)
-
-    def do_POST(self):
-        try:
-            http_code, extra_headers = self.cases[self.path]
-        except KeyError:
-            self.errorResponse('Bad path')
-        else:
-            if http_code in [301, 302, 303, 307]:
-                self.errorResponse()
-            else:
-                content_type = self.headers.get('content-type', 'text/plain')
-                extra_headers.append(('Content-type', content_type))
-                content_length = int(self.headers.get('Content-length', '-1'))
-                body = self.rfile.read(content_length)
-                self._respond(http_code, extra_headers, body)
-
-    def errorResponse(self, message=None):
-        req = [
-            ('HTTP method', self.command),
-            ('path', self.path),
-            ]
-        if message:
-            req.append(('message', message))
-
-        body_parts = ['Bad request:\r\n']
-        for k, v in req:
-            body_parts.append(' %s: %s\r\n' % (k, v))
-        body = ''.join(body_parts)
-        self._respond(400, [('Content-type', 'text/plain')], body)
-
-    def _respond(self, http_code, extra_headers, body):
-        self.send_response(http_code)
-        for k, v in extra_headers:
-            self.send_header(k, v)
-        self.end_headers()
-        self.wfile.write(bytes(body, encoding="utf-8"))
-
-    # def finish(self):
-    #     if not self.wfile.closed:
-    #         self.wfile.flush()
-    #         # self.wfile.close()
-    #     # self.rfile.close()
-
-
 def test():
-    host = 'localhost'
-    # When I use port 0 here, it works for the first fetch and the
-    # next one gets connection refused.  Bummer.  So instead, pick a
-    # port that's *probably* not in use.
-    import os
-    port = (os.getpid() % 31000) + 1024
-
-    server = HTTPServer((host, port), FetcherTestHandler)
-
-    import threading
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.setDaemon(True)
-    server_thread.start()
-
-    test_fetcher(server)
-
-    server.shutdown()
+    test_fetcher()
 
 
 def pyUnitTests():
