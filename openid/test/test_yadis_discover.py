@@ -49,8 +49,9 @@ def fetch(url, body=None, headers=None):
         return response
 
 
-@gentests(discoverdata.testlist)
+@gentests
 class Discover(unittest.TestCase):
+    data = discoverdata.testlist
 
     @mock.patch('openid.fetchers.fetch', fetch)
     def _test(self, success, input_name, id_name, result_name):
