@@ -84,6 +84,11 @@ class Fetcher(unittest.TestCase):
         fetchers.fetch('http://unittest/success')
         self.assertEqual(urlopen.request.get_header('User-agent'), fetchers.USER_AGENT)
 
+    def test_post(self):
+        body = b'body'
+        fetchers.fetch('http://unittest/success', body, {'Content-length': len(body)})
+        self.assertEqual(urlopen.request.data, body)
+
 
 if __name__ == '__main__':
     unittest.main()
