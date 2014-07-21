@@ -33,12 +33,6 @@ def failUnlessResponseExpected(expected, actual, extra):
 
 
 def urlopen(request, data=None):
-    DATA = {
-        '/success': (200, None),
-        '/badreq': (400, None),
-        '/server_error': (500, None),
-    }
-
     if isinstance(request, str):
         request = urllib.request.Request(request)
 
@@ -47,12 +41,9 @@ def urlopen(request, data=None):
 
     if server != TEST_HOST:
         raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
-    if path not in DATA:
+    if path != '/success':
         raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
 
-    status, location = DATA[path]
-    if 400 <= status:
-        raise urllib.error.HTTPError(url, status, '', {}, io.BytesIO())
     body = b'/success'
     headers = {
         'Server': 'Urlopen-Mock',
@@ -60,7 +51,7 @@ def urlopen(request, data=None):
         'Content-type': 'text/plain',
         'Content-length': len(body),
     }
-    return HTTPResponse(url, status, headers, body)
+    return HTTPResponse(url, 200, headers, body)
 
 
 def geturl(path):
@@ -83,18 +74,8 @@ class Fetcher(unittest.TestCase):
             self.assertRaises(urllib.error.URLError, fetchers.fetch, 'ftp://localhost/')
             self.assertEqual(urlopen.call_count, 0)
 
-    def test_failure(self):
-        for err_url in [
-                geturl('/404'),
-                geturl('/badreq'),
-                geturl('/server_error'),
-            ]:
-            try:
-                result = fetchers.fetch(err_url)
-            except urllib.error.URLError:
-                pass
-            else:
-                assert False, 'An exception was expected, got result %r' % result
+    def test_http_errors(self):
+        self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://%s/404' % TEST_HOST)
 
 
 if __name__ == '__main__':
