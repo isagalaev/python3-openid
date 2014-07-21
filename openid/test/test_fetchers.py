@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 import urllib.request
 import urllib.error
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 import io
 
 from openid import fetchers
@@ -21,11 +21,11 @@ def urlopen(request, data=None):
     urlopen.data = data
 
     url = request.get_full_url()
-    schema, server, path, params, query, fragment = urlparse(url)
+    parts = urlparse(url)
 
-    if server != TEST_HOST:
+    if parts.netloc != TEST_HOST:
         raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
-    if path != '/success':
+    if parts.path != '/success':
         raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
 
     body = b'/success'
