@@ -13,25 +13,6 @@ from .support import HTTPResponse
 TEST_HOST = 'unittest'
 
 
-def _assertEqual(v1, v2, extra):
-    try:
-        assert v1 == v2
-    except AssertionError:
-        raise AssertionError("%r != %r ; context %r" % (v1, v2, extra))
-
-
-def failUnlessResponseExpected(expected, actual, extra):
-    _assertEqual(expected.url, actual.url, extra)
-    _assertEqual(expected.status, actual.status, extra)
-    _assertEqual(expected.read(), actual.read(), extra)
-    actual_headers = {k.lower(): v for k, v in actual.headers.items()}
-    expected_headers = {k.lower(): v for k, v in expected.headers.items()}
-    del actual_headers['date']
-    del actual_headers['server']
-    del actual_headers['content-length']
-    _assertEqual(actual_headers, expected_headers, extra)
-
-
 def urlopen(request, data=None):
     if isinstance(request, str):
         request = urllib.request.Request(request)
@@ -61,9 +42,11 @@ def urlopen(request, data=None):
 class Fetcher(unittest.TestCase):
     def test_success(self):
         url = 'http://%s/success' % TEST_HOST
-        actual = fetchers.fetch(url)
-        expected = HTTPResponse(url, 200, {'content-type': 'text/plain'}, b'/success')
-        failUnlessResponseExpected(expected, actual, extra=locals())
+        result = fetchers.fetch(url)
+        self.assertEqual(result.url, url)
+        self.assertEqual(result.status, 200)
+        body = b'/success'
+        self.assertEqual(result.read(), body)
 
     def test_bad_urls(self):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'not-a-url')
