@@ -10,6 +10,9 @@ from openid import fetchers
 from .support import HTTPResponse
 
 
+TEST_HOST = 'unittest'
+
+
 def _assertEqual(v1, v2, extra):
     try:
         assert v1 == v2
@@ -41,8 +44,12 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     schema, server, path, params, query, fragment = urlparse(url)
+
+    if server != TEST_HOST:
+        raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
     if path not in DATA:
         raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
+
     status, location = DATA[path]
     if 400 <= status:
         raise urllib.error.HTTPError(url, status, '', {}, io.BytesIO())
@@ -57,7 +64,7 @@ def urlopen(request, data=None):
 
 
 def geturl(path):
-    return 'http://unittest%s' % path
+    return 'http://%s%s' % (TEST_HOST, path)
 
 
 @mock.patch('urllib.request.urlopen', urlopen)
@@ -67,10 +74,17 @@ class Fetcher(unittest.TestCase):
         expected = HTTPResponse(geturl('/success'), 200, {'content-type': 'text/plain'}, b'/success')
         failUnlessResponseExpected(expected, actual, extra=locals())
 
+    def test_bad_urls(self):
+        self.assertRaises(urllib.error.URLError, fetchers.fetch, 'not-a-url')
+        self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://unknown-host/')
+
+    def test_disallowed(self):
+        with mock.patch('urllib.request.urlopen') as urlopen:
+            self.assertRaises(urllib.error.URLError, fetchers.fetch, 'ftp://localhost/')
+            self.assertEqual(urlopen.call_count, 0)
+
     def test_failure(self):
         for err_url in [
-                'not-a-url',
-                'ftp://janrain.com/pub/',
                 geturl('/404'),
                 geturl('/badreq'),
                 geturl('/server_error'),
