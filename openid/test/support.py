@@ -1,7 +1,15 @@
-from openid import message
+import urllib.request
+import urllib.error
+import urllib.parse
 import io
 from logging.handlers import BufferingHandler
 import logging
+
+from openid import message
+
+
+TEST_HOST = 'unittest'
+
 
 class TestHandler(BufferingHandler):
     def __init__(self, messages):
@@ -105,3 +113,28 @@ def gentests(cls):
         method.__name__ = 'test_' + name
         setattr(cls, method.__name__, method)
     return cls
+
+
+def urlopen(request, data=None):
+    if isinstance(request, str):
+        request = urllib.request.Request(request)
+    # track the last call arguments
+    urlopen.request = request
+    urlopen.data = data
+
+    url = request.get_full_url()
+    parts = urllib.parse.urlparse(url)
+
+    if parts.netloc != TEST_HOST:
+        raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
+    if parts.path != '/success':
+        raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
+
+    body = b'/success'
+    headers = {
+        'Server': 'Urlopen-Mock',
+        'Date': 'Mon, 21 Jul 2014 19:52:42 GMT',
+        'Content-type': 'text/plain',
+        'Content-length': len(body),
+    }
+    return HTTPResponse(url, 200, headers, body)
