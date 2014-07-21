@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 import io
 
 from openid import fetchers
-
 from .support import HTTPResponse
 
 
