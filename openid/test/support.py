@@ -125,8 +125,8 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     parts = urllib.parse.urlparse(url)
-    if parts.netloc != TEST_HOST:
-        raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
+    if parts.netloc.split(':')[0] != TEST_HOST:
+        raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
     match = re.match(r'/(\d{3})$', parts.path)
     if not match:
         raise urllib.error.HTTPError(url, 404, 'Couldn\'t parse status', {}, io.BytesIO())

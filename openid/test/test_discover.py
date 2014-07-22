@@ -33,23 +33,12 @@ class Failure(unittest.TestCase):
         self.assertRaises(urllib.error.URLError, discover.discover, url)
 
 
-### Tests for openid.consumer.discover.discover
-
-class TestNormalization(unittest.TestCase):
-    def setUp(self):
-        self._original = fetchers.fetch
-        fetchers.fetch = ErrorRaisingFetcher(RuntimeError()).fetch
-
-    def tearDown(self):
-        fetchers.fetch = self._original
-
+@mock.patch('urllib.request.urlopen', support.urlopen)
+class Normalization(unittest.TestCase):
     def testAddingProtocol(self):
-        try:
-            discover.discover('users.stompy.janrain.com:8000/x')
-        except DiscoveryFailure:
-            self.fail('failed to parse url with port correctly')
-        except RuntimeError:
-            pass  # expected
+        url = '%s:8000/200' % support.TEST_HOST
+        discover.discover(url)
+        self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 
 
 class DiscoveryMockFetcher(object):
