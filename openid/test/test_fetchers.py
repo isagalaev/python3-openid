@@ -20,9 +20,9 @@ class Fetcher(unittest.TestCase):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://unknown-host/')
 
     def test_disallowed(self):
-        with mock.patch('urllib.request.urlopen') as support.urlopen:
+        with mock.patch('urllib.request.urlopen') as urlopen:
             self.assertRaises(urllib.error.URLError, fetchers.fetch, 'ftp://localhost/')
-            self.assertEqual(support.urlopen.call_count, 0)
+            self.assertEqual(urlopen.call_count, 0)
 
     def test_http_errors(self):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://%s/404' % support.TEST_HOST)
