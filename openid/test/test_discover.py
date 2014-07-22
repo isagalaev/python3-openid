@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import unittest
+from unittest import mock
 import os.path
-from urllib.parse import urlsplit
+import urllib
+from urllib.parse import urlsplit, urlencode, urljoin
 
-from . import datadriven
+from . import datadriven, support
 from .support import HTTPResponse
 
 from openid import fetchers
@@ -14,52 +16,21 @@ from openid.yadis import xrires
 from openid.yadis.xri import XRI
 from openid import message
 import openid.store.memstore
-### Tests for conditions that trigger DiscoveryFailure
 
 
-class SimpleMockFetcher(object):
-    def __init__(self, responses):
-        self.responses = list(responses)
+@mock.patch('urllib.request.urlopen', support.urlopen)
+@support.gentests
+class Failure(unittest.TestCase):
+    data = [
+        ('network_error', ('http://network.error/',)),
+        ('not_found', ('/404',)),
+        ('header_found', ('/200?' + urlencode({'header': 'X-XRDS-Location: http://%s/404' % support.TEST_HOST}),)),
+        ('server_error', ('/500',)),
+    ]
 
-    def fetch(self, url, body=None, headers=None):
-        response = self.responses.pop(0)
-        assert body is None
-        assert response.url == url
-        return response
-
-
-class TestDiscoveryFailure(datadriven.DataDrivenTestCase):
-    cases = [
-        [HTTPResponse('http://network.error/', None)],
-        [HTTPResponse('http://not.found/', 404)],
-        [HTTPResponse('http://bad.request/', 400)],
-        [HTTPResponse('http://server.error/', 500)],
-        [HTTPResponse('http://header.found/', 200,
-                      headers={'x-xrds-location':'http://xrds.missing/'}),
-         HTTPResponse('http://xrds.missing/', 404)],
-        ]
-
-    def __init__(self, responses):
-        self.url = responses[0].url
-        datadriven.DataDrivenTestCase.__init__(self, self.url)
-        self.responses = responses
-
-    def setUp(self):
-        self._original = fetchers.fetch
-        self.fetcher = SimpleMockFetcher(self.responses)
-        fetchers.fetch = self.fetcher.fetch
-
-    def tearDown(self):
-        fetchers.fetch = self._original
-
-    def runOneTest(self):
-        expected_status = self.responses[-1].status
-        try:
-            discover.discover(self.url)
-        except DiscoveryFailure as why:
-            self.assertEqual(why.http_response.status, expected_status)
-        else:
-            self.fail('Did not raise DiscoveryFailure')
+    def _test(self, path):
+        url = urljoin('http://%s' % support.TEST_HOST, path)
+        self.assertRaises(urllib.error.URLError, discover.discover, url)
 
 
 ### Tests for raising/catching exceptions from the fetcher through the

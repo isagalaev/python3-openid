@@ -144,4 +144,7 @@ def urlopen(request, data=None):
         'Content-type': 'text/plain',
         'Content-length': len(body),
     }
+    query = urllib.parse.parse_qs(parts.query)
+    extra_headers = query.get('header', [])
+    headers.update(h.split(': ', 1) for h in extra_headers)
     return HTTPResponse(url, status, headers, body)
