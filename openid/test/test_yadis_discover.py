@@ -8,7 +8,7 @@ import io
 
 from openid.yadis.discover import discover
 
-from . import discoverdata
+from . import discoverdata, support
 from .support import gentests, HTTPResponse
 
 
@@ -18,12 +18,11 @@ BASE_URL = 'http://invalid.unittest/'
 
 class TestSecondGet(unittest.TestCase):
     def test_404(self):
-        location = 'http://unittest/404'
-        fetch = mock.Mock(return_value=HTTPResponse('', 200, {'X-XRDS-Location': location}))
-        with mock.patch('openid.fetchers.fetch', fetch):
-            discover('http://something.unittest/')
-        fetch.assert_called_with(location)
-        self.assertEqual(fetch.call_count, 2)
+        with mock.patch('urllib.request.urlopen', support.urlopen):
+            params = {'header': 'X-XRDS-Location: http://unittest/404'}
+            url = 'http://unittest/200?' + urllib.parse.urlencode(params)
+            self.assertRaises(urllib.error.HTTPError, discover, url)
+
 
 
 def make_response(data, url):
