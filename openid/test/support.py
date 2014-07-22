@@ -2,6 +2,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import io
+import re
 from logging.handlers import BufferingHandler
 import logging
 
@@ -124,17 +125,23 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     parts = urllib.parse.urlparse(url)
-
     if parts.netloc != TEST_HOST:
         raise urllib.error.URLError('Wrong host, expected: %s' % TEST_HOST)
-    if parts.path != '/success':
-        raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
+    match = re.match(r'/(\d{3})$', parts.path)
+    if not match:
+        raise urllib.error.HTTPError(url, 404, 'Couldn\'t parse status', {}, io.BytesIO())
+    status = int(match.group(1))
 
-    body = b'/success'
+    if 300 <= status < 400:
+        raise urllib.error.HTTPError(url, 400, 'Can\'t return 3xx status', {}, io.BytesIO())
+    if 400 <= status:
+        raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
+
+    body = b'OK'
     headers = {
         'Server': 'Urlopen-Mock',
         'Date': 'Mon, 21 Jul 2014 19:52:42 GMT',
         'Content-type': 'text/plain',
         'Content-length': len(body),
     }
-    return HTTPResponse(url, 200, headers, body)
+    return HTTPResponse(url, status, headers, body)
