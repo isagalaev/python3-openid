@@ -24,19 +24,19 @@ class Failure(unittest.TestCase):
     data = [
         ('network_error', ('http://network.error/',)),
         ('not_found', ('/404',)),
-        ('header_found', ('/200?' + urlencode({'header': 'X-XRDS-Location: http://%s/404' % support.TEST_HOST}),)),
+        ('header_found', ('/200?' + urlencode({'header': 'X-XRDS-Location: http://unittest/404'}),)),
         ('server_error', ('/500',)),
     ]
 
     def _test(self, path):
-        url = urljoin('http://%s' % support.TEST_HOST, path)
+        url = urljoin('http://unittest', path)
         self.assertRaises(urllib.error.URLError, discover.discover, url)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Normalization(unittest.TestCase):
     def testAddingProtocol(self):
-        url = '%s:8000/200' % support.TEST_HOST
+        url = 'unittest:8000/200'
         discover.discover(url)
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 

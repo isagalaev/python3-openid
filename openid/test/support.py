@@ -9,9 +9,6 @@ import logging
 from openid import message
 
 
-TEST_HOST = 'unittest'
-
-
 class TestHandler(BufferingHandler):
     def __init__(self, messages):
         BufferingHandler.__init__(self, 0)
@@ -125,7 +122,7 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     parts = urllib.parse.urlparse(url)
-    if parts.netloc.split(':')[0] != TEST_HOST:
+    if parts.netloc.split(':')[0] != 'unittest':
         raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
     match = re.match(r'/(\d{3})$', parts.path)
     if not match:

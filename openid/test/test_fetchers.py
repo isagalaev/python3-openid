@@ -9,7 +9,7 @@ from . import support
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Fetcher(unittest.TestCase):
     def test_success(self):
-        url = 'http://%s/200' % support.TEST_HOST
+        url = 'http://unittest/200'
         result = fetchers.fetch(url)
         self.assertEqual(result.url, url)
         self.assertEqual(result.status, 200)
@@ -25,7 +25,7 @@ class Fetcher(unittest.TestCase):
             self.assertEqual(urlopen.call_count, 0)
 
     def test_http_errors(self):
-        self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://%s/404' % support.TEST_HOST)
+        self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://unittest/404')
 
     def test_user_agent(self):
         fetchers.fetch('http://unittest/200')
