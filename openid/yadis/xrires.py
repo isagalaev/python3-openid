@@ -85,12 +85,12 @@ class ProxyResolver(object):
             url = self.queryURL(xri, service_type)
             try:
                 response = fetchers.fetch(url)
+                et = etxrd.parseXRDS(response.read()) # MAX_RESPONSE
+                canonicalID = etxrd.getCanonicalID(xri, et)
+                some_services = list(iterServices(et))
+                services.extend(some_services)
             except urllib.error.HTTPError as e:
                 logging.warning(str(e))
-            et = etxrd.parseXRDS(response.read()) # MAX_RESPONSE
-            canonicalID = etxrd.getCanonicalID(xri, et)
-            some_services = list(iterServices(et))
-            services.extend(some_services)
         # TODO:
         #  * If we do get hits for multiple service_types, we're almost
         #    certainly going to have duplicated service entries and
