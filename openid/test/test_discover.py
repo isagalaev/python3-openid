@@ -535,7 +535,7 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
 class PreferredNamespace(unittest.TestCase):
     data = [
         ('empty', (message.OPENID1_NS, [])),
-        ('bogus', (message.OPENID1_NS, ['http://jyte.com/'])),
+        ('bogus', (message.OPENID1_NS, ['http://unittest/'])),
         ('openid10', (message.OPENID1_NS, [discover.OPENID_1_0_TYPE])),
         ('openid11', (message.OPENID1_NS, [discover.OPENID_1_1_TYPE])),
         ('openid20', (message.OPENID2_NS, [discover.OPENID_2_0_TYPE])),
