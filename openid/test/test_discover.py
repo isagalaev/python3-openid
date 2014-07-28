@@ -533,31 +533,23 @@ class TestXRIDiscoveryIDP(BaseTestDiscovery):
                              "http://www.livejournal.com/openid/server.bml")
 
 
-class TestPreferredNamespace(datadriven.DataDrivenTestCase):
-    def __init__(self, expected_ns, type_uris):
-        datadriven.DataDrivenTestCase.__init__(
-            self, 'Expecting %s from %s' % (expected_ns, type_uris))
-        self.expected_ns = expected_ns
-        self.type_uris = type_uris
+@support.gentests
+class PreferredNamespace(unittest.TestCase):
+    data = [
+        ('empty', (message.OPENID1_NS, [])),
+        ('bogus', (message.OPENID1_NS, ['http://jyte.com/'])),
+        ('openid10', (message.OPENID1_NS, [discover.OPENID_1_0_TYPE])),
+        ('openid11', (message.OPENID1_NS, [discover.OPENID_1_1_TYPE])),
+        ('openid20', (message.OPENID2_NS, [discover.OPENID_2_0_TYPE])),
+        ('openid20idp', (message.OPENID2_NS, [discover.OPENID_IDP_2_0_TYPE])),
+        ('openid2and1', (message.OPENID2_NS, [discover.OPENID_2_0_TYPE, discover.OPENID_1_0_TYPE])),
+        ('openid1and2', (message.OPENID2_NS, [discover.OPENID_1_0_TYPE, discover.OPENID_2_0_TYPE])),
+    ]
 
-    def runOneTest(self):
+    def _test(self, ns, type_uris):
         endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.type_uris = self.type_uris
-        actual_ns = endpoint.preferredNamespace()
-        self.assertEqual(actual_ns, self.expected_ns)
-
-    cases = [
-        (message.OPENID1_NS, []),
-        (message.OPENID1_NS, ['http://jyte.com/']),
-        (message.OPENID1_NS, [discover.OPENID_1_0_TYPE]),
-        (message.OPENID1_NS, [discover.OPENID_1_1_TYPE]),
-        (message.OPENID2_NS, [discover.OPENID_2_0_TYPE]),
-        (message.OPENID2_NS, [discover.OPENID_IDP_2_0_TYPE]),
-        (message.OPENID2_NS, [discover.OPENID_2_0_TYPE,
-                              discover.OPENID_1_0_TYPE]),
-        (message.OPENID2_NS, [discover.OPENID_1_0_TYPE,
-                              discover.OPENID_2_0_TYPE]),
-        ]
+        endpoint.type_uris = type_uris
+        self.assertEqual(ns, endpoint.preferredNamespace())
 
 
 class Endpoint(unittest.TestCase):
