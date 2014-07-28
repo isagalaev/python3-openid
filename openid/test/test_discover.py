@@ -560,7 +560,7 @@ class TestPreferredNamespace(datadriven.DataDrivenTestCase):
         ]
 
 
-class TestIsOPIdentifier(unittest.TestCase):
+class Endpoint(unittest.TestCase):
     def test_isOPIdentifier(self):
         endpoint = discover.OpenIDServiceEndpoint()
         self.assertFalse(endpoint.isOPIdentifier())
@@ -573,8 +573,6 @@ class TestIsOPIdentifier(unittest.TestCase):
         endpoint.type_uris.append(discover.OPENID_IDP_2_0_TYPE)
         self.assertTrue(endpoint.isOPIdentifier())
 
-
-class TestFromOPEndpointURL(unittest.TestCase):
     def test_fromOPEndpointURL(self):
         url = 'http://example.com/op/endpoint'
         endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(url)
