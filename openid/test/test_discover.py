@@ -583,6 +583,16 @@ class Endpoint(unittest.TestCase):
         self.assertEqual(endpoint.canonicalID, None)
         self.assertEqual(endpoint.server_url, url)
 
+    def test_supportsType(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        self.assertFalse(endpoint.supportsType(discover.OPENID_2_0_TYPE))
+        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
+        self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
+        # Should implicitly support this:
+        endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
+        self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
+
+
 @support.gentests
 class TestDiscoverFunction(unittest.TestCase):
     data = [
@@ -599,61 +609,6 @@ class TestDiscoverFunction(unittest.TestCase):
         hit, miss = (uri, xri) if target == 'uri' else (xri, uri)
         hit.assert_called_with(value)
         self.assertEqual(miss.call_count, 0)
-
-
-class TestEndpointSupportsType(unittest.TestCase):
-    def setUp(self):
-        self.endpoint = discover.OpenIDServiceEndpoint()
-
-    def failUnlessSupportsOnly(self, *types):
-        for t in [
-            'foo',
-            discover.OPENID_1_1_TYPE,
-            discover.OPENID_1_0_TYPE,
-            discover.OPENID_2_0_TYPE,
-            discover.OPENID_IDP_2_0_TYPE,
-            ]:
-            if t in types:
-                self.assertTrue(self.endpoint.supportsType(t),
-                                "Must support %r" % (t,))
-            else:
-                self.assertFalse(self.endpoint.supportsType(t),
-                            "Shouldn't support %r" % (t,))
-
-    def test_supportsNothing(self):
-        self.failUnlessSupportsOnly()
-
-    def test_openid2(self):
-        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_2_0_TYPE)
-
-    def test_openid2provider(self):
-        self.endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_IDP_2_0_TYPE,
-                                    discover.OPENID_2_0_TYPE)
-
-    def test_openid1_0(self):
-        self.endpoint.type_uris = [discover.OPENID_1_0_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_1_0_TYPE)
-
-    def test_openid1_1(self):
-        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE)
-
-    def test_multiple(self):
-        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE,
-                                   discover.OPENID_2_0_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE,
-                                    discover.OPENID_2_0_TYPE)
-
-    def test_multipleWithProvider(self):
-        self.endpoint.type_uris = [discover.OPENID_1_1_TYPE,
-                                   discover.OPENID_2_0_TYPE,
-                                   discover.OPENID_IDP_2_0_TYPE]
-        self.failUnlessSupportsOnly(discover.OPENID_1_1_TYPE,
-                                    discover.OPENID_2_0_TYPE,
-                                    discover.OPENID_IDP_2_0_TYPE,
-                                    )
 
 
 class TestEndpointDisplayIdentifier(unittest.TestCase):
