@@ -564,19 +564,13 @@ class TestIsOPIdentifier(unittest.TestCase):
     def setUp(self):
         self.endpoint = discover.OpenIDServiceEndpoint()
 
-    def test_none(self):
+    def test_isOPIdentifier(self):
         self.assertFalse(self.endpoint.isOPIdentifier())
-
-    def test_multipleMissing(self):
         self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
                                    discover.OPENID_1_0_TYPE,
                                    discover.OPENID_1_1_TYPE]
         self.assertFalse(self.endpoint.isOPIdentifier())
-
-    def test_multiplePresent(self):
-        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
-                                   discover.OPENID_1_0_TYPE,
-                                   discover.OPENID_IDP_2_0_TYPE]
+        self.endpoint.type_uris.append(discover.OPENID_IDP_2_0_TYPE)
         self.assertTrue(self.endpoint.isOPIdentifier())
 
 
