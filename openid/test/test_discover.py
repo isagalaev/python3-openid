@@ -147,12 +147,13 @@ def readDataFile(filename):
 
 
 class TestDiscovery(BaseTestDiscovery):
-    def _discover(self, content_type, data, expected_service_count,
+    def _discover(self, content_type, filename, expected_service_count,
                   expected_id=None):
         if expected_id is None:
             expected_id = self.id_url
 
-        self.documents[self.id_url] = (content_type, data)
+
+        self.documents[self.id_url] = (content_type, readDataFile(filename))
         id_url, services = discover.discover(self.id_url)
         self.assertEqual(expected_service_count, len(services))
         self.assertEqual(expected_id, id_url)
@@ -164,7 +165,7 @@ class TestDiscovery(BaseTestDiscovery):
         """
         self._discover(
             content_type='text/html;charset=utf-8',
-            data=readDataFile('unicode.html'),
+            filename='unicode.html',
             expected_service_count=0)
 
     def test_unicode_undecodable_html2(self):
@@ -178,16 +179,16 @@ class TestDiscovery(BaseTestDiscovery):
         data = readDataFile('unicode3.html')
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(content_type='text/html;charset=utf-8',
-                       data=data, expected_service_count=1)
+                       filename='unicode3.html', expected_service_count=1)
 
     def test_noOpenID(self):
         services = self._discover(content_type='text/plain',
-                                  data=b'junk',
+                                  filename='junk.txt',
                                   expected_service_count=0)
 
         services = self._discover(
             content_type='text/html',
-            data=readDataFile('openid_no_delegate.html'),
+            filename='openid_no_delegate.html',
             expected_service_count=1,
             )
 
@@ -203,7 +204,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_html1(self):
         services = self._discover(
             content_type='text/html',
-            data=readDataFile('openid.html'),
+            filename='openid.html',
             expected_service_count=1)
 
         self._checkService(
@@ -243,7 +244,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_html2(self):
         services = self._discover(
             content_type='text/html',
-            data=readDataFile('openid2.html'),
+            filename='openid2.html',
             expected_service_count=1,
             )
 
@@ -260,7 +261,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_html1And2(self):
         services = self._discover(
             content_type='text/html',
-            data=readDataFile('openid_1_and_2.html'),
+            filename='openid_1_and_2.html',
             expected_service_count=2,
             )
 
@@ -277,7 +278,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadisEmpty(self):
         services = self._discover(content_type='application/xrds+xml',
-                                  data=readDataFile('yadis_0entries.xml'),
+                                  filename='yadis_0entries.xml',
                                   expected_service_count=0)
 
     def test_htmlEmptyYadis(self):
@@ -288,7 +289,7 @@ class TestDiscovery(BaseTestDiscovery):
             'application/xrds+xml', readDataFile('yadis_0entries.xml'))
 
         services = self._discover(content_type='text/html',
-                                  data=readDataFile('openid_and_yadis.html'),
+                                  filename='openid_and_yadis.html',
                                   expected_service_count=1)
 
         self._checkService(
@@ -303,7 +304,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis1NoDelegate(self):
         services = self._discover(content_type='application/xrds+xml',
-                                  data=readDataFile('yadis_no_delegate.xml'),
+                                  filename='yadis_no_delegate.xml',
                                   expected_service_count=1)
 
         self._checkService(
@@ -319,7 +320,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis2NoLocalID(self):
         services = self._discover(
             content_type='application/xrds+xml',
-            data=readDataFile('openid2_xrds_no_local_id.xml'),
+            filename='openid2_xrds_no_local_id.xml',
             expected_service_count=1,
             )
 
@@ -336,7 +337,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis2(self):
         services = self._discover(
             content_type='application/xrds+xml',
-            data=readDataFile('openid2_xrds.xml'),
+            filename='openid2_xrds.xml',
             expected_service_count=1,
             )
 
@@ -353,7 +354,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis2OP(self):
         services = self._discover(
             content_type='application/xrds+xml',
-            data=readDataFile('yadis_idp.xml'),
+            filename='yadis_idp.xml',
             expected_service_count=1,
             )
 
@@ -369,7 +370,7 @@ class TestDiscovery(BaseTestDiscovery):
         """The delegate tag isn't meaningful for OP entries."""
         services = self._discover(
             content_type='application/xrds+xml',
-            data=readDataFile('yadis_idp_delegate.xml'),
+            filename='yadis_idp_delegate.xml',
             expected_service_count=1,
             )
 
@@ -384,14 +385,14 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis2BadLocalID(self):
         self.assertRaises(DiscoveryFailure, self._discover,
             content_type='application/xrds+xml',
-            data=readDataFile('yadis_2_bad_local_id.xml'),
+            filename='yadis_2_bad_local_id.xml',
             expected_service_count=1,
             )
 
     def test_yadis1And2(self):
         services = self._discover(
             content_type='application/xrds+xml',
-            data=readDataFile('openid_1_and_2_xrds.xml'),
+            filename='openid_1_and_2_xrds.xml',
             expected_service_count=1,
             )
 
@@ -408,7 +409,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis1And2BadLocalID(self):
         self.assertRaises(DiscoveryFailure, self._discover,
             content_type='application/xrds+xml',
-            data=readDataFile('openid_1_and_2_xrds_bad_delegate.xml'),
+            filename='openid_1_and_2_xrds_bad_delegate.xml',
             expected_service_count=1,
             )
 
