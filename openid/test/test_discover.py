@@ -567,16 +567,8 @@ class TestIsOPIdentifier(unittest.TestCase):
     def test_none(self):
         self.assertFalse(self.endpoint.isOPIdentifier())
 
-    def test_openid1_0(self):
-        self.endpoint.type_uris = [discover.OPENID_1_0_TYPE]
-        self.assertFalse(self.endpoint.isOPIdentifier())
-
     def test_openid1_1(self):
         self.endpoint.type_uris = [discover.OPENID_1_1_TYPE]
-        self.assertFalse(self.endpoint.isOPIdentifier())
-
-    def test_openid2(self):
-        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE]
         self.assertFalse(self.endpoint.isOPIdentifier())
 
     def test_openid2OP(self):
