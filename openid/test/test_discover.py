@@ -584,6 +584,11 @@ class Endpoint(unittest.TestCase):
         endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
         self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
 
+    def test_strip_fragment(self):
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.claimed_id = 'http://unittest/#123'
+        self.assertEqual(endpoint.getDisplayIdentifier(), 'http://unittest/')
+
 
 @support.gentests
 class TestDiscoverFunction(unittest.TestCase):
@@ -601,14 +606,6 @@ class TestDiscoverFunction(unittest.TestCase):
         hit, miss = (uri, xri) if target == 'uri' else (xri, uri)
         hit.assert_called_with(value)
         self.assertEqual(miss.call_count, 0)
-
-
-class TestEndpointDisplayIdentifier(unittest.TestCase):
-    def test_strip_fragment(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = 'http://recycled.invalid/#123'
-        self.assertEqual('http://recycled.invalid/',
-                         endpoint.getDisplayIdentifier())
 
 
 class TestDiscoveryFailureDjangoAllAuth(unittest.TestCase):
