@@ -597,35 +597,32 @@ class TestFromOPEndpointURL(unittest.TestCase):
         self.assertEqual(self.endpoint.server_url, self.op_endpoint_url)
 
 
+@mock.patch('openid.consumer.discover.discoverURI')
+@mock.patch('openid.consumer.discover.discoverXRI')
 class TestDiscoverFunction(unittest.TestCase):
-    def setUp(self):
-        self._old_discoverURI = discover.discoverURI
-        self._old_discoverXRI = discover.discoverXRI
+    def test_uri(self, xri, uri):
+        url = 'http://woo!'
+        discover.discover(url)
+        uri.assert_called_with(url)
+        self.assertEqual(xri.call_count, 0)
 
-        discover.discoverXRI = self.discoverXRI
-        discover.discoverURI = self.discoverURI
+    def test_uriForBogus(self, xri, uri):
+        url = 'not a URL or XRI'
+        discover.discover(url)
+        uri.assert_called_with(url)
+        self.assertEqual(xri.call_count, 0)
 
-    def tearDown(self):
-        discover.discoverURI = self._old_discoverURI
-        discover.discoverXRI = self._old_discoverXRI
+    def test_xri(self, xri, uri):
+        url = 'xri://=something'
+        discover.discover(url)
+        xri.assert_called_with(url)
+        self.assertEqual(uri.call_count, 0)
 
-    def discoverXRI(self, identifier):
-        return 'XRI'
-
-    def discoverURI(self, identifier):
-        return 'URI'
-
-    def test_uri(self):
-        self.assertEqual('URI', discover.discover('http://woo!'))
-
-    def test_uriForBogus(self):
-        self.assertEqual('URI', discover.discover('not a URL or XRI'))
-
-    def test_xri(self):
-        self.assertEqual('XRI', discover.discover('xri://=something'))
-
-    def test_xriChar(self):
-        self.assertEqual('XRI', discover.discover('=something'))
+    def test_xriChar(self, xri, uri):
+        url = '=something'
+        discover.discover(url)
+        xri.assert_called_with(url)
+        self.assertEqual(uri.call_count, 0)
 
 
 class TestEndpointSupportsType(unittest.TestCase):
