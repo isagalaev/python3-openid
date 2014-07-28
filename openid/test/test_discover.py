@@ -608,20 +608,5 @@ class TestDiscoverFunction(unittest.TestCase):
         self.assertEqual(miss.call_count, 0)
 
 
-class TestDiscoveryFailureDjangoAllAuth(unittest.TestCase):
-    def test_discovery(self):
-        session = {}
-        store = openid.store.memstore.MemoryStore()
-        client = openid_consumer.Consumer(session, store)
-        # Now confirm that trying discovery on a non-OpenID URL raises a
-        # DiscoveryFailure
-        with self.assertRaises(DiscoveryFailure):
-            auth_request = client.begin("http://www.google.com")
-            result = auth_request.redirectURL(
-                'http://localhost/',
-                'http://localhost/callback')
-            self.assertEquals(result, None)
-
-
 if __name__ == '__main__':
     unittest.main()
