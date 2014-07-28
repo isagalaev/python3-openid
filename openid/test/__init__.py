@@ -69,6 +69,7 @@ def pyUnitTests():
         'codecutil',
         'yadis_discover',
         'fetchers',
+        'discover',
     ]
 
     test_modules = [
@@ -96,7 +97,6 @@ def pyUnitTests():
         'storetest',
         'test_accept',
         'test_association',
-        'test_discover',
         'test_htmldiscover',
         'test_nonce',
         'test_openidyadis',

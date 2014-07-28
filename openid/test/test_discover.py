@@ -6,7 +6,7 @@ import os.path
 import urllib
 from urllib.parse import urlsplit, urlencode, urljoin
 
-from . import datadriven, support
+from . import support
 from .support import HTTPResponse
 
 from openid import fetchers
@@ -626,12 +626,5 @@ class TestDiscoveryFailureDjangoAllAuth(unittest.TestCase):
             self.assertEquals(result, None)
 
 
-def pyUnitTests():
-    suite = datadriven.loadTests(__name__)
-    return suite
-
-
 if __name__ == '__main__':
-    suite = pyUnitTests()
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+    unittest.main()
