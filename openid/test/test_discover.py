@@ -561,17 +561,17 @@ class TestPreferredNamespace(datadriven.DataDrivenTestCase):
 
 
 class TestIsOPIdentifier(unittest.TestCase):
-    def setUp(self):
-        self.endpoint = discover.OpenIDServiceEndpoint()
-
     def test_isOPIdentifier(self):
-        self.assertFalse(self.endpoint.isOPIdentifier())
-        self.endpoint.type_uris = [discover.OPENID_2_0_TYPE,
-                                   discover.OPENID_1_0_TYPE,
-                                   discover.OPENID_1_1_TYPE]
-        self.assertFalse(self.endpoint.isOPIdentifier())
-        self.endpoint.type_uris.append(discover.OPENID_IDP_2_0_TYPE)
-        self.assertTrue(self.endpoint.isOPIdentifier())
+        endpoint = discover.OpenIDServiceEndpoint()
+        self.assertFalse(endpoint.isOPIdentifier())
+        endpoint.type_uris = [
+            discover.OPENID_2_0_TYPE,
+            discover.OPENID_1_0_TYPE,
+            discover.OPENID_1_1_TYPE,
+        ]
+        self.assertFalse(endpoint.isOPIdentifier())
+        endpoint.type_uris.append(discover.OPENID_IDP_2_0_TYPE)
+        self.assertTrue(endpoint.isOPIdentifier())
 
 
 class TestFromOPEndpointURL(unittest.TestCase):
