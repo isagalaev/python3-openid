@@ -575,27 +575,15 @@ class TestIsOPIdentifier(unittest.TestCase):
 
 
 class TestFromOPEndpointURL(unittest.TestCase):
-    def setUp(self):
-        self.op_endpoint_url = 'http://example.com/op/endpoint'
-        self.endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(
-            self.op_endpoint_url)
-
-    def test_isOPEndpoint(self):
-        self.assertTrue(self.endpoint.isOPIdentifier())
-
-    def test_noIdentifiers(self):
-        self.assertEqual(self.endpoint.getLocalID(), None)
-        self.assertEqual(self.endpoint.claimed_id, None)
-
-    def test_compatibility(self):
-        self.assertFalse(self.endpoint.compatibilityMode())
-
-    def test_canonicalID(self):
-        self.assertEqual(self.endpoint.canonicalID, None)
-
-    def test_serverURL(self):
-        self.assertEqual(self.endpoint.server_url, self.op_endpoint_url)
-
+    def test_fromOPEndpointURL(self):
+        url = 'http://example.com/op/endpoint'
+        endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(url)
+        self.assertTrue(endpoint.isOPIdentifier())
+        self.assertEqual(endpoint.getLocalID(), None)
+        self.assertEqual(endpoint.claimed_id, None)
+        self.assertFalse(endpoint.compatibilityMode())
+        self.assertEqual(endpoint.canonicalID, None)
+        self.assertEqual(endpoint.server_url, url)
 
 @support.gentests
 class TestDiscoverFunction(unittest.TestCase):
