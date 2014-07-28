@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 import unittest
 from unittest import mock
 import os.path
@@ -11,11 +10,10 @@ from .support import HTTPResponse
 
 from openid import fetchers
 from openid.yadis.discover import DiscoveryFailure
-from openid.consumer import discover, consumer as openid_consumer
+from openid.consumer import discover
 from openid.yadis import xrires
 from openid.yadis.xri import XRI
 from openid import message
-import openid.store.memstore
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
