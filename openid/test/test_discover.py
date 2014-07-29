@@ -144,25 +144,11 @@ class URIDiscovery(BaseDiscovery):
             display_identifier=url,
             )
 
-    def test_html1Fragment(self):
-        """Ensure that the Claimed Identifier does not have a fragment
-        if one is supplied in the User Input."""
+    def test_fragment(self):
         url = 'http://unittest/openid.html'
-        expected_id = url
-        url += '#fragment'
-        id_url, services = discover.discover(url)
-        self.assertEqual(len(services), 1)
-        self.assertEqual(id_url, expected_id)
-
-        self._checkService(
-            services[0],
-            used_yadis=False,
-            types=['1.1'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=expected_id,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=expected_id,
-            )
+        id_url, services = discover.discover(url + '#fragment')
+        self.assertEqual(id_url, url)
+        self.assertEqual(services[0].claimed_id, url)
 
     def test_html2(self):
         url = 'http://unittest/openid2.html'
