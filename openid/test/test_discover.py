@@ -18,8 +18,8 @@ class Failure(unittest.TestCase):
     data = [
         ('network_error', ('http://network.error/',)),
         ('not_found', ('/404',)),
-        ('header_found', ('/200?' + urlencode({'header': 'X-XRDS-Location: http://unittest/404'}),)),
-        ('server_error', ('/500',)),
+        ('header_found', ('/?' + urlencode({'header': 'X-XRDS-Location: http://unittest/404'}),)),
+        ('server_error', ('/?status=500',)),
     ]
 
     def _test(self, path):
@@ -30,7 +30,7 @@ class Failure(unittest.TestCase):
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Normalization(unittest.TestCase):
     def testAddingProtocol(self):
-        url = 'unittest:8000/200'
+        url = 'unittest:8000/'
         discover.discover(url)
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 

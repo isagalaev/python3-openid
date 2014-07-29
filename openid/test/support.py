@@ -117,6 +117,15 @@ def gentests(cls):
     return cls
 
 
+TYPES = {
+    '.txt': 'text/plain',
+    '.html': 'text/html',
+    '.xml': 'application/xml',
+    '.xrds': 'application/xrds+xml',
+    '.xri': 'application/xrds+xml',
+}
+
+
 def urlopen(request, data=None):
     if isinstance(request, str):
         request = urllib.request.Request(request)
@@ -126,33 +135,34 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     parts = urllib.parse.urlparse(url)
+
     if parts.netloc.split(':')[0] not in ['unittest', 'proxy.xri.net']:
         raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
-    path = parts.path.lstrip('/')
-    if path.isdigit():
-        status = int(path)
-        if 300 <= status < 400:
-            raise urllib.error.HTTPError(url, 400, 'Can\'t return 3xx status', {}, io.BytesIO())
-        if 400 <= status:
-            raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
-        body = b'OK'
-    else:
-        try:
-            status = 200
-            if parts.netloc == 'proxy.xri.net':
-                path = path.replace('=', '_').replace('*', '_') + '.xri'
-            with open(os.path.join(DATAPATH, path), 'rb') as f:
-                body = f.read()
-        except FileNotFoundError:
-            raise urllib.error.HTTPError(url, 404, '%s not found' % path, {}, io.BytesIO())
+
+    try:
+        path = parts.path.lstrip('/') or '200.txt'
+        if parts.netloc == 'proxy.xri.net':
+            path = path.replace('=', '_').replace('*', '_') + '.xri'
+        with open(os.path.join(DATAPATH, path), 'rb') as f:
+            body = f.read()
+    except FileNotFoundError:
+        raise urllib.error.HTTPError(url, 404, '%s not found' % path, {}, io.BytesIO())
+
+    query = urllib.parse.parse_qs(parts.query)
+
+    status = int(query.get('status', ['200'])[0])
+    if 300 <= status < 400:
+        raise ValueError('Can\'t return 3xx status', url)
+    if 400 <= status:
+        raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
 
     headers = {
         'Server': 'Urlopen-Mock',
         'Date': 'Mon, 21 Jul 2014 19:52:42 GMT',
-        'Content-type': 'text/plain',
+        'Content-type': TYPES.get(os.path.splitext(path)[1], 'text/plain'),
         'Content-length': len(body),
     }
-    query = urllib.parse.parse_qs(parts.query)
     extra_headers = query.get('header', [])
     headers.update(h.split(': ', 1) for h in extra_headers)
+
     return HTTPResponse(url, status, headers, body)

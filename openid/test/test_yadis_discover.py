@@ -20,9 +20,9 @@ class TestSecondGet(unittest.TestCase):
     def test_404(self):
         with mock.patch('urllib.request.urlopen', support.urlopen):
             params = {'header': 'X-XRDS-Location: http://unittest/404'}
-            url = 'http://unittest/200?' + urllib.parse.urlencode(params)
+            url = 'http://unittest/?' + urllib.parse.urlencode(params)
             self.assertRaises(urllib.error.HTTPError, discover, url)
-
+            self.assertEqual(support.urlopen.request.get_full_url(), 'http://unittest/404')
 
 
 def make_response(data, url):

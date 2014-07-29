@@ -9,11 +9,11 @@ from . import support
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Fetcher(unittest.TestCase):
     def test_success(self):
-        url = 'http://unittest/200'
+        url = 'http://unittest/'
         result = fetchers.fetch(url)
         self.assertEqual(result.url, url)
         self.assertEqual(result.status, 200)
-        self.assertEqual(result.read(), b'OK')
+        self.assertEqual(result.read(), b'OK\n')
 
     def test_bad_urls(self):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'not-a-url')
@@ -28,12 +28,12 @@ class Fetcher(unittest.TestCase):
         self.assertRaises(urllib.error.URLError, fetchers.fetch, 'http://unittest/404')
 
     def test_user_agent(self):
-        fetchers.fetch('http://unittest/200')
+        fetchers.fetch('http://unittest/')
         self.assertEqual(support.urlopen.request.get_header('User-agent'), fetchers.USER_AGENT)
 
     def test_post(self):
         body = b'body'
-        fetchers.fetch('http://unittest/200', body, {'Content-length': len(body)})
+        fetchers.fetch('http://unittest/', body, {'Content-length': len(body)})
         self.assertEqual(support.urlopen.request.data, body)
 
 
