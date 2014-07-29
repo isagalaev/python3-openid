@@ -113,9 +113,9 @@ class URIDiscovery(BaseDiscovery):
     def test_noOpenID(self):
         services = self._discover('http://unittest/junk.txt', 0)
 
+    def test_no_delegate(self):
         url = 'http://unittest/openid_no_delegate.html'
         services = self._discover(url, 1)
-
         self._checkService(
             services[0],
             used_yadis=False,
