@@ -35,7 +35,7 @@ class Normalization(unittest.TestCase):
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 
 
-class BaseTestDiscovery(unittest.TestCase):
+class BaseDiscovery(unittest.TestCase):
     def _checkService(self, s,
                       server_url,
                       claimed_id=None,
@@ -88,7 +88,7 @@ class BaseTestDiscovery(unittest.TestCase):
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-class TestDiscovery(BaseTestDiscovery):
+class URIDiscovery(BaseDiscovery):
     def _discover(self, url, expected_service_count):
         id_url, services = discover.discover(url)
         self.assertEqual(expected_service_count, len(services))
@@ -298,7 +298,7 @@ class TestDiscovery(BaseTestDiscovery):
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-class TestXRIDiscovery(BaseTestDiscovery):
+class XRIDiscovery(BaseDiscovery):
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=iname')
 
