@@ -48,6 +48,8 @@ class DiscoveryMockFetcher(object):
 
     def fetch(self, url, body=None, headers=None):
         self.fetchlog.append((url, body, headers))
+        if url.startswith('http://unittest'):
+            return support.urlopen(url, data=body)
         if self.redirect:
             final_url = self.redirect
         else:
@@ -63,8 +65,6 @@ class DiscoveryMockFetcher(object):
             status = 200
 
         return HTTPResponse(final_url, status, {'content-type': ctype}, body)
-
-# from twisted.trial import unittest as trialtest
 
 
 class BaseTestDiscovery(unittest.TestCase):
@@ -145,16 +145,16 @@ def readDataFile(filename):
         contents = f.read()
     return contents
 
+def fileurl(content_type, filename):
+    query = urlencode({'headers': 'Content-type: %s' % content_type})
+    return 'http://unittest/test_discover/%s?%s' % (filename, query)
 
 class TestDiscovery(BaseTestDiscovery):
-    def _discover(self, content_type, filename, expected_service_count,
+    def _discover(self, url, expected_service_count,
                   expected_id=None):
         if expected_id is None:
-            expected_id = self.id_url
-
-
-        self.documents[self.id_url] = (content_type, readDataFile(filename))
-        id_url, services = discover.discover(self.id_url)
+            expected_id = url
+        id_url, services = discover.discover(url)
         self.assertEqual(expected_service_count, len(services))
         self.assertEqual(expected_id, id_url)
         return services
@@ -163,9 +163,7 @@ class TestDiscovery(BaseTestDiscovery):
         """
         Check page with unicode and HTML entities
         """
-        self._discover(
-            content_type='text/html;charset=utf-8',
-            filename='unicode.html',
+        self._discover(fileurl('text/html;charset=utf-8', 'unicode.html'),
             expected_service_count=0)
 
     def test_unicode_undecodable_html2(self):
@@ -178,43 +176,35 @@ class TestDiscovery(BaseTestDiscovery):
 
         data = readDataFile('unicode3.html')
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
-        self._discover(content_type='text/html;charset=utf-8',
-                       filename='unicode3.html', expected_service_count=1)
+        self._discover(fileurl('text/html;charset=utf-8', 'unicode3.html'), expected_service_count=1)
 
     def test_noOpenID(self):
-        services = self._discover(content_type='text/plain',
-                                  filename='junk.txt',
-                                  expected_service_count=0)
+        services = self._discover(fileurl('text/plain', 'junk.txt'), expected_service_count=0)
 
-        services = self._discover(
-            content_type='text/html',
-            filename='openid_no_delegate.html',
-            expected_service_count=1,
-            )
+        url = fileurl('text/html', 'openid_no_delegate.html')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=False,
             types=['1.1'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
-            local_id=self.id_url,
+            claimed_id=url,
+            local_id=url,
             )
 
     def test_html1(self):
-        services = self._discover(
-            content_type='text/html',
-            filename='openid.html',
-            expected_service_count=1)
+        url = fileurl('text/html', 'openid.html')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=False,
             types=['1.1'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
+            claimed_id=url,
             local_id='http://smoker.myopenid.com/',
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_html1Fragment(self):
@@ -242,28 +232,22 @@ class TestDiscovery(BaseTestDiscovery):
             )
 
     def test_html2(self):
-        services = self._discover(
-            content_type='text/html',
-            filename='openid2.html',
-            expected_service_count=1,
-            )
+        url = fileurl('text/html', 'openid2.html')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=False,
             types=['2.0'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
+            claimed_id=url,
             local_id='http://smoker.myopenid.com/',
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_html1And2(self):
-        services = self._discover(
-            content_type='text/html',
-            filename='openid_1_and_2.html',
-            expected_service_count=2,
-            )
+        url = fileurl('text/html', 'openid_1_and_2.html')
+        services = self._discover(url, expected_service_count=2)
 
         for t, s in zip(['2.0', '1.1'], services):
             self._checkService(
@@ -271,90 +255,74 @@ class TestDiscovery(BaseTestDiscovery):
                 used_yadis=False,
                 types=[t],
                 server_url="http://www.myopenid.com/server",
-                claimed_id=self.id_url,
+                claimed_id=url,
                 local_id='http://smoker.myopenid.com/',
-                display_identifier=self.id_url,
+                display_identifier=url,
                 )
 
     def test_yadisEmpty(self):
-        services = self._discover(content_type='application/xrds+xml',
-                                  filename='yadis_0entries.xml',
+        services = self._discover(fileurl('application/xrds+xml', 'yadis_0entries.xml'),
                                   expected_service_count=0)
 
     def test_htmlEmptyYadis(self):
         """HTML document has discovery information, but points to an
         empty Yadis document."""
         # The XRDS document pointed to by "openid_and_yadis.html"
-        self.documents[self.id_url + 'xrds'] = (
-            'application/xrds+xml', readDataFile('yadis_0entries.xml'))
-
-        services = self._discover(content_type='text/html',
-                                  filename='openid_and_yadis.html',
-                                  expected_service_count=1)
-
+        url = fileurl('text/html', 'openid_and_yadis.html')
+        services = self._discover(url, expected_service_count=1)
         self._checkService(
             services[0],
             used_yadis=False,
             types=['1.1'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
+            claimed_id=url,
             local_id='http://smoker.myopenid.com/',
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_yadis1NoDelegate(self):
-        services = self._discover(content_type='application/xrds+xml',
-                                  filename='yadis_no_delegate.xml',
-                                  expected_service_count=1)
+        url = fileurl('application/xrds+xml', 'yadis_no_delegate.xml')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=True,
             types=['1.0'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
-            local_id=self.id_url,
-            display_identifier=self.id_url,
+            claimed_id=url,
+            local_id=url,
+            display_identifier=url,
             )
 
     def test_yadis2NoLocalID(self):
-        services = self._discover(
-            content_type='application/xrds+xml',
-            filename='openid2_xrds_no_local_id.xml',
-            expected_service_count=1,
-            )
-
+        url = fileurl('application/xrds+xml', 'openid2_xrds_no_local_id.xml')
+        services = self._discover(url, expected_service_count=1)
         self._checkService(
             services[0],
             used_yadis=True,
             types=['2.0'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
-            local_id=self.id_url,
-            display_identifier=self.id_url,
+            claimed_id=url,
+            local_id=url,
+            display_identifier=url,
             )
 
     def test_yadis2(self):
-        services = self._discover(
-            content_type='application/xrds+xml',
-            filename='openid2_xrds.xml',
-            expected_service_count=1,
-            )
+        url = fileurl('application/xrds+xml', 'openid2_xrds.xml')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=True,
             types=['2.0'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
+            claimed_id=url,
             local_id='http://smoker.myopenid.com/',
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_yadis2OP(self):
-        services = self._discover(
-            content_type='application/xrds+xml',
-            filename='yadis_idp.xml',
+        services = self._discover(fileurl('application/xrds+xml', 'yadis_idp.xml'),
             expected_service_count=1,
             )
 
@@ -368,9 +336,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis2OPDelegate(self):
         """The delegate tag isn't meaningful for OP entries."""
-        services = self._discover(
-            content_type='application/xrds+xml',
-            filename='yadis_idp_delegate.xml',
+        services = self._discover(fileurl('application/xrds+xml', 'yadis_idp_delegate.xml'),
             expected_service_count=1,
             )
 
@@ -383,34 +349,31 @@ class TestDiscovery(BaseTestDiscovery):
             )
 
     def test_yadis2BadLocalID(self):
-        self.assertRaises(DiscoveryFailure, self._discover,
-            content_type='application/xrds+xml',
-            filename='yadis_2_bad_local_id.xml',
-            expected_service_count=1,
+        with self.assertRaises(DiscoveryFailure):
+            self._discover(
+                fileurl('application/xrds+xml', 'yadis_2_bad_local_id.xml'),
+                expected_service_count=1,
             )
 
     def test_yadis1And2(self):
-        services = self._discover(
-            content_type='application/xrds+xml',
-            filename='openid_1_and_2_xrds.xml',
-            expected_service_count=1,
-            )
+        url = fileurl('application/xrds+xml', 'openid_1_and_2_xrds.xml')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=True,
             types=['2.0', '1.1'],
             server_url="http://www.myopenid.com/server",
-            claimed_id=self.id_url,
+            claimed_id=url,
             local_id='http://smoker.myopenid.com/',
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_yadis1And2BadLocalID(self):
-        self.assertRaises(DiscoveryFailure, self._discover,
-            content_type='application/xrds+xml',
-            filename='openid_1_and_2_xrds_bad_delegate.xml',
-            expected_service_count=1,
+        with self.assertRaises(DiscoveryFailure):
+            self._discover(
+                fileurl('application/xrds+xml', 'openid_1_and_2_xrds_bad_delegate.xml'),
+                expected_service_count=1,
             )
 
 

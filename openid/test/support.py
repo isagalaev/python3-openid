@@ -3,10 +3,14 @@ import urllib.error
 import urllib.parse
 import io
 import re
+import os
 from logging.handlers import BufferingHandler
 import logging
 
 from openid import message
+
+
+DATAPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 class TestHandler(BufferingHandler):
@@ -124,17 +128,22 @@ def urlopen(request, data=None):
     parts = urllib.parse.urlparse(url)
     if parts.netloc.split(':')[0] != 'unittest':
         raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
-    match = re.match(r'/(\d{3})$', parts.path)
-    if not match:
-        raise urllib.error.HTTPError(url, 404, 'Couldn\'t parse status', {}, io.BytesIO())
-    status = int(match.group(1))
+    path = parts.path.lstrip('/')
+    if path.isdigit():
+        status = int(path)
+        if 300 <= status < 400:
+            raise urllib.error.HTTPError(url, 400, 'Can\'t return 3xx status', {}, io.BytesIO())
+        if 400 <= status:
+            raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
+        body = b'OK'
+    else:
+        try:
+            status = 200
+            with open(os.path.join(DATAPATH, path), 'rb') as f:
+                body = f.read()
+        except FileNotFoundError:
+            raise urllib.error.HTTPError(url, 404, '%s not found' % path, {}, io.BytesIO())
 
-    if 300 <= status < 400:
-        raise urllib.error.HTTPError(url, 400, 'Can\'t return 3xx status', {}, io.BytesIO())
-    if 400 <= status:
-        raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
-
-    body = b'OK'
     headers = {
         'Server': 'Urlopen-Mock',
         'Date': 'Mon, 21 Jul 2014 19:52:42 GMT',
