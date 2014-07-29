@@ -105,13 +105,10 @@ def readDataFile(filename):
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestDiscovery(BaseTestDiscovery):
-    def _discover(self, url, expected_service_count,
-                  expected_id=None):
-        if expected_id is None:
-            expected_id = url
+    def _discover(self, url, expected_service_count):
         id_url, services = discover.discover(url)
         self.assertEqual(expected_service_count, len(services))
-        self.assertEqual(expected_id, id_url)
+        self.assertEqual(url, id_url)
         return services
 
     def test_unicode(self):
