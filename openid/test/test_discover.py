@@ -106,9 +106,8 @@ class URIDiscovery(BaseDiscovery):
         Check page with unicode and HTML entities that can not be decoded
         but xrds document is found before it matters
         """
-        with self.assertRaises(UnicodeDecodeError):
-            filename = os.path.join(support.DATAPATH, 'unicode3.html')
-            open(filename, encoding='utf-8').read()
+        with open(os.path.join(support.DATAPATH, 'unicode3.html'), encoding='utf-8') as f:
+            self.assertRaises(UnicodeDecodeError, f.read)
         self._discover('http://unittest/unicode3.html', 1)
 
     def test_noOpenID(self):
