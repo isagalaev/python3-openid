@@ -39,38 +39,7 @@ class Normalization(unittest.TestCase):
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 
 
-class DiscoveryMockFetcher(object):
-    redirect = None
-
-    def __init__(self, documents):
-        self.documents = documents
-        self.fetchlog = []
-
-    def fetch(self, url, body=None, headers=None):
-        self.fetchlog.append((url, body, headers))
-        if url.startswith('http://unittest'):
-            return support.urlopen(url, data=body)
-        if self.redirect:
-            final_url = self.redirect
-        else:
-            final_url = url
-
-        try:
-            ctype, body = self.documents[url]
-        except KeyError:
-            status = 404
-            ctype = 'text/plain'
-            body = b''
-        else:
-            status = 200
-
-        return HTTPResponse(final_url, status, {'content-type': ctype}, body)
-
-
 class BaseTestDiscovery(unittest.TestCase):
-    documents = {}
-    fetcherClass = DiscoveryMockFetcher
-
     def _checkService(self, s,
                       server_url,
                       claimed_id=None,
@@ -121,15 +90,6 @@ class BaseTestDiscovery(unittest.TestCase):
         self.assertEqual(s.display_identifier or s.claimed_id,
                          s.getDisplayIdentifier())
 
-    def setUp(self):
-        self.documents = self.documents.copy()
-        self.fetcher = self.fetcherClass(self.documents)
-        self._original = fetchers.fetch
-        fetchers.fetch = self.fetcher.fetch
-
-    def tearDown(self):
-        fetchers.fetch = self._original
-
 
 def readDataFile(filename):
     """
@@ -137,16 +97,16 @@ def readDataFile(filename):
     read in binary mode and the return value is a bytes object.
     """
     module_directory = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(
-        module_directory, 'data', 'test_discover', filename)
+    filename = os.path.join(support.DATAPATH, filename)
     with open(filename, 'rb') as f:
         contents = f.read()
     return contents
 
 def fileurl(content_type, filename):
     query = urlencode({'headers': 'Content-type: %s' % content_type})
-    return 'http://unittest/test_discover/%s?%s' % (filename, query)
+    return 'http://unittest/%s?%s' % (filename, query)
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestDiscovery(BaseTestDiscovery):
     def _discover(self, url, expected_service_count,
                   expected_id=None):
@@ -366,20 +326,8 @@ class TestDiscovery(BaseTestDiscovery):
             )
 
 
-class MockFetcherForXRIProxy(object):
-
-    def __init__(self, documents):
-        self.documents = documents
-        self.fetchlog = []
-
-    def fetch(self, url, body=None, headers=None):
-        self.fetchlog.append((url, body, headers))
-        return support.urlopen(url.replace('=', 'test_discover/='))
-
-
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestXRIDiscovery(BaseTestDiscovery):
-    fetcherClass = MockFetcherForXRIProxy
-
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=iname')
 
@@ -443,9 +391,8 @@ class TestXRIDiscovery(BaseTestDiscovery):
         self.assertEqual(endpoint.getLocalID(), XRI("=!1000"))
 
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestXRIDiscoveryIDP(BaseTestDiscovery):
-    fetcherClass = MockFetcherForXRIProxy
-
     def test_xri(self):
         user_xri, services = discover.discoverXRI('=iname.idp')
         self.assertTrue(services, "Expected services, got zero")
