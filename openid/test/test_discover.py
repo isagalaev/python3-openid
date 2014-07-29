@@ -372,48 +372,20 @@ class TestDiscovery(BaseTestDiscovery):
 
 class MockFetcherForXRIProxy(object):
 
-    def __init__(self, documents, proxy_url=xrires.DEFAULT_PROXY):
+    def __init__(self, documents):
         self.documents = documents
         self.fetchlog = []
-        self.proxy_url = None
 
     def fetch(self, url, body=None, headers=None):
         self.fetchlog.append((url, body, headers))
-
-        u = urlsplit(url)
-        proxy_host = u[1]
-        xri = u[2]
-        query = u[3]
-
-        if not headers and not query:
-            raise ValueError("No headers or query; you probably didn't "
-                             "mean to do that.")
-
-        if xri.startswith('/'):
-            xri = xri[1:]
-
-        try:
-            ctype, body = self.documents[xri]
-        except KeyError:
-            status = 404
-            ctype = 'text/plain'
-            body = ''
-        else:
-            status = 200
-
-        return HTTPResponse(url, status, {'content-type': ctype}, body)
+        return support.urlopen(url.replace('=', 'test_discover/='))
 
 
 class TestXRIDiscovery(BaseTestDiscovery):
     fetcherClass = MockFetcherForXRIProxy
 
-    documents = {'=smoker': ('application/xrds+xml',
-                             readDataFile('yadis_2entries_delegate.xml')),
-                 '=smoker*bad': ('application/xrds+xml',
-                                 readDataFile('yadis_another_delegate.xml'))}
-
     def test_xri(self):
-        user_xri, services = discover.discoverXRI('=smoker')
+        user_xri, services = discover.discoverXRI('=iname')
 
         self._checkService(
             services[0],
@@ -423,7 +395,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://smoker.myopenid.com/',
-            display_identifier='=smoker'
+            display_identifier='=iname'
             )
 
         self._checkService(
@@ -434,11 +406,11 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
-            display_identifier='=smoker'
+            display_identifier='=iname'
             )
 
     def test_xri_normalize(self):
-        user_xri, services = discover.discoverXRI('xri://=smoker')
+        user_xri, services = discover.discoverXRI('xri://=iname')
 
         self._checkService(
             services[0],
@@ -448,7 +420,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://smoker.myopenid.com/',
-            display_identifier='=smoker'
+            display_identifier='=iname'
             )
 
         self._checkService(
@@ -459,11 +431,11 @@ class TestXRIDiscovery(BaseTestDiscovery):
             claimed_id=XRI("=!1000"),
             canonical_id=XRI("=!1000"),
             local_id='http://frank.livejournal.com/',
-            display_identifier='=smoker'
+            display_identifier='=iname'
             )
 
     def test_xriNoCanonicalID(self):
-        user_xri, services = discover.discoverXRI('=smoker*bad')
+        user_xri, services = discover.discoverXRI('=iname*empty')
         self.assertFalse(services)
 
     def test_useCanonicalID(self):
@@ -478,11 +450,8 @@ class TestXRIDiscovery(BaseTestDiscovery):
 class TestXRIDiscoveryIDP(BaseTestDiscovery):
     fetcherClass = MockFetcherForXRIProxy
 
-    documents = {'=smoker': ('application/xrds+xml',
-                             readDataFile('yadis_2entries_idp.xml'))}
-
     def test_xri(self):
-        user_xri, services = discover.discoverXRI('=smoker')
+        user_xri, services = discover.discoverXRI('=iname.idp')
         self.assertTrue(services, "Expected services, got zero")
         self.assertEqual(services[0].server_url,
                              "http://www.livejournal.com/openid/server.bml")

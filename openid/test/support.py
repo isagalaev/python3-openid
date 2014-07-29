@@ -126,7 +126,7 @@ def urlopen(request, data=None):
 
     url = request.get_full_url()
     parts = urllib.parse.urlparse(url)
-    if parts.netloc.split(':')[0] != 'unittest':
+    if parts.netloc.split(':')[0] not in ['unittest', 'proxy.xri.net']:
         raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
     path = parts.path.lstrip('/')
     if path.isdigit():
@@ -139,6 +139,8 @@ def urlopen(request, data=None):
     else:
         try:
             status = 200
+            if parts.netloc == 'proxy.xri.net':
+                path = path.replace('=', '_').replace('*', '_') + '.xri'
             with open(os.path.join(DATAPATH, path), 'rb') as f:
                 body = f.read()
         except FileNotFoundError:
