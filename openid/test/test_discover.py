@@ -115,8 +115,7 @@ class TestDiscovery(BaseTestDiscovery):
         """
         Check page with unicode and HTML entities
         """
-        self._discover('http://unittest/unicode.html',
-            expected_service_count=0)
+        self._discover('http://unittest/unicode.html', 0)
 
     def test_unicode_undecodable_html2(self):
         """
@@ -125,13 +124,13 @@ class TestDiscovery(BaseTestDiscovery):
         """
         data = readDataFile('unicode3.html')
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
-        self._discover('http://unittest/unicode3.html', expected_service_count=1)
+        self._discover('http://unittest/unicode3.html', 1)
 
     def test_noOpenID(self):
-        services = self._discover('http://unittest/junk.txt', expected_service_count=0)
+        services = self._discover('http://unittest/junk.txt', 0)
 
         url = 'http://unittest/openid_no_delegate.html'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -144,7 +143,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_html1(self):
         url = 'http://unittest/openid.html'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -178,7 +177,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_html2(self):
         url = 'http://unittest/openid2.html'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -192,7 +191,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_html1And2(self):
         url = 'http://unittest/openid_1_and_2.html'
-        services = self._discover(url, expected_service_count=2)
+        services = self._discover(url, 2)
 
         for t, s in zip(['2.0', '1.1'], services):
             self._checkService(
@@ -206,15 +205,14 @@ class TestDiscovery(BaseTestDiscovery):
                 )
 
     def test_yadisEmpty(self):
-        services = self._discover('http://unittest/yadis_0entries.xrds',
-                                  expected_service_count=0)
+        services = self._discover('http://unittest/yadis_0entries.xrds', 0)
 
     def test_htmlEmptyYadis(self):
         """HTML document has discovery information, but points to an
         empty Yadis document."""
         # The XRDS document pointed to by "openid_and_yadis.html"
         url = 'http://unittest/openid_and_yadis.html'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
         self._checkService(
             services[0],
             used_yadis=False,
@@ -227,7 +225,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis1NoDelegate(self):
         url = 'http://unittest/yadis_no_delegate.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -241,7 +239,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis2NoLocalID(self):
         url = 'http://unittest/openid2_xrds_no_local_id.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
         self._checkService(
             services[0],
             used_yadis=True,
@@ -254,7 +252,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis2(self):
         url = 'http://unittest/openid2_xrds.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -268,7 +266,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis2OP(self):
         url = 'http://unittest/yadis_idp.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -281,7 +279,7 @@ class TestDiscovery(BaseTestDiscovery):
     def test_yadis2OPDelegate(self):
         """The delegate tag isn't meaningful for OP entries."""
         url = 'http://unittest/yadis_idp_delegate.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -293,14 +291,11 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis2BadLocalID(self):
         with self.assertRaises(DiscoveryFailure):
-            self._discover(
-                'http://unittest/yadis_2_bad_local_id.xrds',
-                expected_service_count=1,
-            )
+            self._discover('http://unittest/yadis_2_bad_local_id.xrds', 1)
 
     def test_yadis1And2(self):
         url = 'http://unittest/openid_1_and_2_xrds.xrds'
-        services = self._discover(url, expected_service_count=1)
+        services = self._discover(url, 1)
 
         self._checkService(
             services[0],
@@ -314,10 +309,7 @@ class TestDiscovery(BaseTestDiscovery):
 
     def test_yadis1And2BadLocalID(self):
         with self.assertRaises(DiscoveryFailure):
-            self._discover(
-                'http://unittest/openid_1_and_2_xrds_bad_delegate.xrds',
-                expected_service_count=1,
-            )
+            self._discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds', 1)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
