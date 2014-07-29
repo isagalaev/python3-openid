@@ -68,8 +68,6 @@ class DiscoveryMockFetcher(object):
 
 
 class BaseTestDiscovery(unittest.TestCase):
-    id_url = "http://someuser.unittest/"
-
     documents = {}
     fetcherClass = DiscoveryMockFetcher
 
@@ -315,30 +313,28 @@ class TestDiscovery(BaseTestDiscovery):
             )
 
     def test_yadis2OP(self):
-        services = self._discover(fileurl('application/xrds+xml', 'yadis_idp.xml'),
-            expected_service_count=1,
-            )
+        url = fileurl('application/xrds+xml', 'yadis_idp.xml')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=True,
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_yadis2OPDelegate(self):
         """The delegate tag isn't meaningful for OP entries."""
-        services = self._discover(fileurl('application/xrds+xml', 'yadis_idp_delegate.xml'),
-            expected_service_count=1,
-            )
+        url = fileurl('application/xrds+xml', 'yadis_idp_delegate.xml')
+        services = self._discover(url, expected_service_count=1)
 
         self._checkService(
             services[0],
             used_yadis=True,
             types=['2.0 OP'],
             server_url="http://www.myopenid.com/server",
-            display_identifier=self.id_url,
+            display_identifier=url,
             )
 
     def test_yadis2BadLocalID(self):
