@@ -171,9 +171,6 @@ class TestDiscovery(BaseTestDiscovery):
         Check page with unicode and HTML entities that can not be decoded
         but xrds document is found before it matters
         """
-        self.documents[self.id_url + 'xrds'] = (
-            'application/xrds+xml', readDataFile('yadis_idp.xml'))
-
         data = readDataFile('unicode3.html')
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover(fileurl('text/html;charset=utf-8', 'unicode3.html'), expected_service_count=1)
@@ -210,16 +207,12 @@ class TestDiscovery(BaseTestDiscovery):
     def test_html1Fragment(self):
         """Ensure that the Claimed Identifier does not have a fragment
         if one is supplied in the User Input."""
-        content_type = 'text/html'
-        data = readDataFile('openid.html')
-        expected_service_count = 1
-
-        self.documents[self.id_url] = (content_type, data)
-        expected_id = self.id_url
-        self.id_url = self.id_url + '#fragment'
-        id_url, services = discover.discover(self.id_url)
-        self.assertEqual(expected_service_count, len(services))
-        self.assertEqual(expected_id, id_url)
+        url = fileurl('text/html', 'openid.html')
+        expected_id = url
+        url += '#fragment'
+        id_url, services = discover.discover(url)
+        self.assertEqual(len(services), 1)
+        self.assertEqual(id_url, expected_id)
 
         self._checkService(
             services[0],
