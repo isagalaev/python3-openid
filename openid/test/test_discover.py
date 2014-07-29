@@ -111,7 +111,12 @@ class URIDiscovery(BaseDiscovery):
         self._discover('http://unittest/unicode3.html', 1)
 
     def test_noOpenID(self):
-        services = self._discover('http://unittest/junk.txt', 0)
+        url, services = discover.discover('http://unittest/junk.txt')
+        self.assertFalse(services)
+
+    def test_yadisEmpty(self):
+        url, services = discover.discover('http://unittest/yadis_0entries.xrds')
+        self.assertFalse(services)
 
     def test_no_delegate(self):
         url = 'http://unittest/openid_no_delegate.html'
@@ -187,9 +192,6 @@ class URIDiscovery(BaseDiscovery):
                 local_id='http://smoker.myopenid.com/',
                 display_identifier=url,
                 )
-
-    def test_yadisEmpty(self):
-        services = self._discover('http://unittest/yadis_0entries.xrds', 0)
 
     def test_htmlEmptyYadis(self):
         """HTML document has discovery information, but points to an
