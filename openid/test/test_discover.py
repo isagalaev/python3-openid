@@ -365,10 +365,7 @@ class TestXRIDiscovery(BaseTestDiscovery):
         endpoint.canonicalID = XRI("=!1000")
         self.assertEqual(endpoint.getLocalID(), XRI("=!1000"))
 
-
-@mock.patch('urllib.request.urlopen', support.urlopen)
-class TestXRIDiscoveryIDP(BaseTestDiscovery):
-    def test_xri(self):
+    def test_xri_idp(self):
         user_xri, services = discover.discoverXRI('=iname.idp')
         self.assertTrue(services, "Expected services, got zero")
         self.assertEqual(services[0].server_url,
