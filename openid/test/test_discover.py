@@ -91,18 +91,6 @@ class BaseTestDiscovery(unittest.TestCase):
                          s.getDisplayIdentifier())
 
 
-def readDataFile(filename):
-    """
-    Read the contents of the given file and return them. NOTE that files are
-    read in binary mode and the return value is a bytes object.
-    """
-    module_directory = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(support.DATAPATH, filename)
-    with open(filename, 'rb') as f:
-        contents = f.read()
-    return contents
-
-
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestDiscovery(BaseTestDiscovery):
     def _discover(self, url, expected_service_count):
@@ -122,7 +110,9 @@ class TestDiscovery(BaseTestDiscovery):
         Check page with unicode and HTML entities that can not be decoded
         but xrds document is found before it matters
         """
-        data = readDataFile('unicode3.html')
+        filename = os.path.join(support.DATAPATH, 'unicode3.html')
+        with open(filename, 'rb') as f:
+            data = f.read()
         self.assertRaises(UnicodeDecodeError, data.decode, 'utf-8')
         self._discover('http://unittest/unicode3.html', 1)
 
