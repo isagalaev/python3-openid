@@ -2,16 +2,12 @@
 import unittest
 from unittest import mock
 import os.path
-import urllib
+import urllib.error
 from urllib.parse import urlsplit, urlencode, urljoin
 
 from . import support
-from .support import HTTPResponse
-
-from openid import fetchers
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer import discover
-from openid.yadis import xrires
 from openid.yadis.xri import XRI
 from openid import message
 
