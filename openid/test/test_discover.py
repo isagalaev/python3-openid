@@ -166,18 +166,12 @@ class URIDiscovery(BaseDiscovery):
 
     def test_html1And2(self):
         url = 'http://unittest/openid_1_and_2.html'
-        services = self._discover(url, 2)
-
-        for t, s in zip(['2.0', '1.1'], services):
-            self._checkService(
-                s,
-                used_yadis=False,
-                types=[t],
-                server_url="http://www.myopenid.com/server",
-                claimed_id=url,
-                local_id='http://smoker.myopenid.com/',
-                display_identifier=url,
-                )
+        id_url, services = discover.discover(url)
+        self.assertEqual(len(services), 2)
+        for s in services:
+            self.assertEqual(s.server_url, 'http://www.myopenid.com/server')
+            self.assertEqual(s.local_id, 'http://smoker.myopenid.com/')
+            self.assertEqual(s.claimed_id, url)
 
     def test_htmlEmptyYadis(self):
         """HTML document has discovery information, but points to an
