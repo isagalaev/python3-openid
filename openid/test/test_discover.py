@@ -257,7 +257,7 @@ class URIDiscovery(BaseDiscovery):
 
     def test_yadis2BadLocalID(self):
         with self.assertRaises(DiscoveryFailure):
-            self._discover('http://unittest/yadis_2_bad_local_id.xrds', 1)
+            discover.discover('http://unittest/yadis_2_bad_local_id.xrds')
 
     def test_yadis1And2(self):
         url = 'http://unittest/openid_1_and_2_xrds.xrds'
