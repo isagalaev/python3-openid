@@ -90,6 +90,11 @@ class Discovery(unittest.TestCase):
         self.assertTrue(services[0].local_id, 'http://smoker.myopenid.com/')
         self.assertTrue(services[1].local_id, 'http://frank.livejournal.com/')
 
+    def test_xriNoCanonicalID(self):
+        with self.assertLogs('', 'ERROR'):
+            user_xri, services = discover.discover('=iname*empty')
+        self.assertFalse(services)
+
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Services(unittest.TestCase):
@@ -312,11 +317,6 @@ class Services(unittest.TestCase):
             local_id='http://smoker.myopenid.com/',
             display_identifier='=iname'
             )
-
-    def test_xriNoCanonicalID(self):
-        with self.assertLogs('', 'ERROR'):
-            user_xri, services = discover.discover('=iname*empty')
-        self.assertFalse(services)
 
 
 @support.gentests
