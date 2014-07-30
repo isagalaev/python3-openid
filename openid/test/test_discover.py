@@ -29,6 +29,63 @@ class Failure(unittest.TestCase):
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Discovery(unittest.TestCase):
+    def test_unicode(self):
+        """
+        Check page with unicode and HTML entities
+        """
+        id_url, services = discover.discover('http://unittest/unicode.html')
+        self.assertEqual(len(services), 0)
+
+    def test_unicode_undecodable_html2(self):
+        """
+        Check page with unicode and HTML entities that can not be decoded
+        but xrds document is found before it matters
+        """
+        with open(os.path.join(support.DATAPATH, 'unicode3.html'), encoding='utf-8') as f:
+            self.assertRaises(UnicodeDecodeError, f.read)
+        id_url, services = discover.discover('http://unittest/unicode3.html')
+        self.assertEqual(len(services), 1)
+
+    def test_noOpenID(self):
+        url, services = discover.discover('http://unittest/junk.txt')
+        self.assertFalse(services)
+
+    def test_yadisEmpty(self):
+        url, services = discover.discover('http://unittest/yadis_0entries.xrds')
+        self.assertFalse(services)
+
+    def test_fragment(self):
+        url = 'http://unittest/openid.html'
+        id_url, services = discover.discover(url + '#fragment')
+        self.assertEqual(id_url, url)
+        self.assertEqual(services[0].claimed_id, url)
+
+    def test_add_protocol(self):
+        url = 'unittest:8000/'
+        discover.discover(url)
+        self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
+
+    def test_localid_mismatch(self):
+        with self.assertRaises(DiscoveryFailure):
+            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
+
+    def test_html1And2(self):
+        url = 'http://unittest/openid_1_and_2.html'
+        id_url, services = discover.discover(url)
+        self.assertEqual(len(services), 2)
+        for s in services:
+            self.assertEqual(s.server_url, 'http://www.myopenid.com/server')
+            self.assertEqual(s.local_id, 'http://smoker.myopenid.com/')
+            self.assertEqual(s.claimed_id, url)
+
+    def test_xri_idp(self):
+        user_xri, services = discover.discover('=iname.idp')
+        self.assertTrue(services)
+        self.assertEqual(services[0].server_url, 'http://www.livejournal.com/openid/server.bml')
+
+
+@mock.patch('urllib.request.urlopen', support.urlopen)
+class Services(unittest.TestCase):
     def _checkService(self, s,
                       server_url,
                       claimed_id=None,
@@ -85,45 +142,6 @@ class Discovery(unittest.TestCase):
         self.assertEqual(url, id_url)
         return services
 
-    def test_unicode(self):
-        """
-        Check page with unicode and HTML entities
-        """
-        id_url, services = discover.discover('http://unittest/unicode.html')
-        self.assertEqual(len(services), 0)
-
-    def test_unicode_undecodable_html2(self):
-        """
-        Check page with unicode and HTML entities that can not be decoded
-        but xrds document is found before it matters
-        """
-        with open(os.path.join(support.DATAPATH, 'unicode3.html'), encoding='utf-8') as f:
-            self.assertRaises(UnicodeDecodeError, f.read)
-        self._discover('http://unittest/unicode3.html', 1)
-
-    def test_noOpenID(self):
-        url, services = discover.discover('http://unittest/junk.txt')
-        self.assertFalse(services)
-
-    def test_yadisEmpty(self):
-        url, services = discover.discover('http://unittest/yadis_0entries.xrds')
-        self.assertFalse(services)
-
-    def test_fragment(self):
-        url = 'http://unittest/openid.html'
-        id_url, services = discover.discover(url + '#fragment')
-        self.assertEqual(id_url, url)
-        self.assertEqual(services[0].claimed_id, url)
-
-    def test_add_protocol(self):
-        url = 'unittest:8000/'
-        discover.discover(url)
-        self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
-
-    def test_localid_mismatch(self):
-        with self.assertRaises(DiscoveryFailure):
-            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
-
     def test_no_delegate(self):
         url = 'http://unittest/openid_no_delegate.html'
         services = self._discover(url, 1)
@@ -163,15 +181,6 @@ class Discovery(unittest.TestCase):
             local_id='http://smoker.myopenid.com/',
             display_identifier=url,
             )
-
-    def test_html1And2(self):
-        url = 'http://unittest/openid_1_and_2.html'
-        id_url, services = discover.discover(url)
-        self.assertEqual(len(services), 2)
-        for s in services:
-            self.assertEqual(s.server_url, 'http://www.myopenid.com/server')
-            self.assertEqual(s.local_id, 'http://smoker.myopenid.com/')
-            self.assertEqual(s.claimed_id, url)
 
     def test_htmlEmptyYadis(self):
         """HTML document has discovery information, but points to an
@@ -323,12 +332,6 @@ class Discovery(unittest.TestCase):
         with self.assertLogs('', 'ERROR'):
             user_xri, services = discover.discover('=iname*empty')
         self.assertFalse(services)
-
-    def test_xri_idp(self):
-        user_xri, services = discover.discover('=iname.idp')
-        self.assertTrue(services, "Expected services, got zero")
-        self.assertEqual(services[0].server_url,
-                             "http://www.livejournal.com/openid/server.bml")
 
 
 @support.gentests
