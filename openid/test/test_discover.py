@@ -255,9 +255,9 @@ class URIDiscovery(BaseDiscovery):
             display_identifier=url,
             )
 
-    def test_yadis2BadLocalID(self):
+    def test_localid_mismatch(self):
         with self.assertRaises(DiscoveryFailure):
-            discover.discover('http://unittest/yadis_2_bad_local_id.xrds')
+            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
 
     def test_yadis1And2(self):
         url = 'http://unittest/openid_1_and_2_xrds.xrds'
@@ -272,10 +272,6 @@ class URIDiscovery(BaseDiscovery):
             local_id='http://smoker.myopenid.com/',
             display_identifier=url,
             )
-
-    def test_yadis1And2BadLocalID(self):
-        with self.assertRaises(DiscoveryFailure):
-            self._discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds', 1)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
