@@ -323,14 +323,6 @@ class Discovery(unittest.TestCase):
             user_xri, services = discover.discoverXRI('=iname*empty')
         self.assertFalse(services)
 
-    def test_useCanonicalID(self):
-        """When there is no delegate, the CanonicalID should be used with XRI.
-        """
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = XRI("=!1000")
-        endpoint.canonicalID = XRI("=!1000")
-        self.assertEqual(endpoint.getLocalID(), XRI("=!1000"))
-
     def test_xri_idp(self):
         user_xri, services = discover.discoverXRI('=iname.idp')
         self.assertTrue(services, "Expected services, got zero")
@@ -393,6 +385,14 @@ class Endpoint(unittest.TestCase):
         endpoint = discover.OpenIDServiceEndpoint()
         endpoint.claimed_id = 'http://unittest/#123'
         self.assertEqual(endpoint.getDisplayIdentifier(), 'http://unittest/')
+
+    def test_useCanonicalID(self):
+        """When there is no delegate, the CanonicalID should be used with XRI.
+        """
+        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint.claimed_id = XRI("=!1000")
+        endpoint.canonicalID = XRI("=!1000")
+        self.assertEqual(endpoint.getLocalID(), XRI("=!1000"))
 
 
 @support.gentests
