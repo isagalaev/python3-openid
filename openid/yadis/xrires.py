@@ -7,7 +7,7 @@ import urllib.error
 from openid import fetchers
 from openid.yadis import etxrd
 from openid.yadis.xri import toURINormal
-from openid.yadis.services import iterServices
+from openid.yadis.etxrd import iterServices, getTypeURIs
 import logging
 
 DEFAULT_PROXY = 'http://proxy.xri.net/'
@@ -56,10 +56,6 @@ class ProxyResolver(object):
     def query(self, xri, service_types):
         """Resolve some services for an XRI.
 
-        Note: I don't implement any service endpoint selection beyond what
-        the resolver I'm querying does, so the Services I return may well
-        include Services that were not of the types you asked for.
-
         May raise urllib.error.URLError or L{etxrd.XRDSError} if
         the fetching or parsing don't go so well.
 
@@ -87,7 +83,8 @@ class ProxyResolver(object):
                 response = fetchers.fetch(url)
                 et = etxrd.parseXRDS(response.read()) # MAX_RESPONSE
                 canonicalID = etxrd.getCanonicalID(xri, et)
-                some_services = list(iterServices(et))
+                some_services = iterServices(et)
+                some_services = [s for s in some_services if service_type in getTypeURIs(s)]
                 services.extend(some_services)
             except urllib.error.HTTPError as e:
                 logging.warning(str(e))

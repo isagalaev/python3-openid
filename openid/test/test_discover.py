@@ -83,7 +83,6 @@ class Discovery(unittest.TestCase):
         self.assertTrue(services)
         self.assertEqual(services[0].server_url, 'http://www.livejournal.com/openid/server.bml')
 
-    @unittest.expectedFailure
     def test_two_services(self):
         xri, services = discover.discover('=twoservices')
         self.assertEqual(len(services), 2)
@@ -119,7 +118,7 @@ class Services(unittest.TestCase):
     def _test(self, url, used_yadis, types, claimed_id, local_id, canonical_id, display_identifier):
         id_url, services = discover.discover(url)
         # Disabled because XRI test return 4 services instead of 1 — possibly a bug
-        # self.assertEqual(len(services), 1)
+        self.assertEqual(len(services), 1)
         if claimed_id is None:
             claimed_id = url
         if local_id is None:
