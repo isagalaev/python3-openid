@@ -269,7 +269,7 @@ class Discovery(unittest.TestCase):
             )
 
     def test_xri(self):
-        user_xri, services = discover.discoverXRI('=iname')
+        user_xri, services = discover.discover('=iname')
 
         self._checkService(
             services[0],
@@ -294,7 +294,7 @@ class Discovery(unittest.TestCase):
             )
 
     def test_xri_normalize(self):
-        user_xri, services = discover.discoverXRI('xri://=iname')
+        user_xri, services = discover.discover('xri://=iname')
 
         self._checkService(
             services[0],
@@ -320,11 +320,11 @@ class Discovery(unittest.TestCase):
 
     def test_xriNoCanonicalID(self):
         with self.assertLogs('', 'ERROR'):
-            user_xri, services = discover.discoverXRI('=iname*empty')
+            user_xri, services = discover.discover('=iname*empty')
         self.assertFalse(services)
 
     def test_xri_idp(self):
-        user_xri, services = discover.discoverXRI('=iname.idp')
+        user_xri, services = discover.discover('=iname.idp')
         self.assertTrue(services, "Expected services, got zero")
         self.assertEqual(services[0].server_url,
                              "http://www.livejournal.com/openid/server.bml")
