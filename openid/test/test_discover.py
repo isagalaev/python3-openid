@@ -85,6 +85,13 @@ class Discovery(unittest.TestCase):
         self.assertEqual(url, id_url)
         return services
 
+    def test_unicode(self):
+        """
+        Check page with unicode and HTML entities
+        """
+        id_url, services = discover.discover('http://unittest/unicode.html')
+        self.assertEqual(len(services), 0)
+
     def test_unicode_undecodable_html2(self):
         """
         Check page with unicode and HTML entities that can not be decoded
@@ -116,12 +123,6 @@ class Discovery(unittest.TestCase):
     def test_localid_mismatch(self):
         with self.assertRaises(DiscoveryFailure):
             discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
-
-    def test_unicode(self):
-        """
-        Check page with unicode and HTML entities
-        """
-        self._discover('http://unittest/unicode.html', 0)
 
     def test_no_delegate(self):
         url = 'http://unittest/openid_no_delegate.html'
