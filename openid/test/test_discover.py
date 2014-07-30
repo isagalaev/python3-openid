@@ -327,7 +327,8 @@ class XRIDiscovery(BaseDiscovery):
             )
 
     def test_xriNoCanonicalID(self):
-        user_xri, services = discover.discoverXRI('=iname*empty')
+        with self.assertLogs('', 'ERROR'):
+            user_xri, services = discover.discoverXRI('=iname*empty')
         self.assertFalse(services)
 
     def test_useCanonicalID(self):
