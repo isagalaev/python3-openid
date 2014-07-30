@@ -97,16 +97,34 @@ class Discovery(unittest.TestCase):
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
+@support.gentests
 class Services(unittest.TestCase):
-    def _checkService(self, s,
-                      server_url,
-                      claimed_id=None,
-                      local_id=None,
-                      canonical_id=None,
-                      types=None,
-                      used_yadis=False,
-                      display_identifier=None
-                      ):
+    data = [
+        ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], 'http://www.myopenid.com/server', None, None, None, None)),
+        ('html1', ('http://unittest/openid.html', False, ['1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
+        ('html2', ('http://unittest/openid2.html', False, ['2.0'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
+        ('html_empty_yadis', ('http://unittest/openid_and_yadis.html', False, ['1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
+        ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', True, ['1.0'], 'http://www.myopenid.com/server', None, None, None, None)),
+        ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', True, ['2.0'], 'http://www.myopenid.com/server', None, None, None, None)),
+        ('yadis2', ('http://unittest/openid2_xrds.xrds', True, ['2.0'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
+        ('yadis2_op', ('http://unittest/yadis_idp.xrds', True, ['2.0 OP'], 'http://www.myopenid.com/server', False, False, None, None)),
+        ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', True, ['2.0 OP'], 'http://www.myopenid.com/server', False, False, None, None)),
+        ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', True, ['2.0', '1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
+        ('xri', ('=iname', True, ['1.0'], 'http://www.myopenid.com/server', XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"), None)),
+        ('xri_normalize', ('xri://=iname', True, ['1.0'], 'http://www.myopenid.com/server', XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'), '=iname')),
+    ]
+
+    def _test(self, url, used_yadis, types, server_url, claimed_id, local_id,
+              canonical_id, display_identifier):
+        id_url, services = discover.discover(url)
+        # self.assertEqual(len(services), 1)
+        if claimed_id is None:
+            claimed_id = url
+        if local_id is None:
+            local_id = url
+        if display_identifier is None:
+            display_identifier = url
+        s = services[0]
         self.assertEqual(server_url, s.server_url)
         if types == ['2.0 OP']:
             self.assertFalse(claimed_id)
@@ -148,175 +166,7 @@ class Services(unittest.TestCase):
         self.assertEqual(s.display_identifier or s.claimed_id,
                          s.getDisplayIdentifier())
 
-    def _discover(self, url, expected_service_count):
-        id_url, services = discover.discover(url)
-        self.assertEqual(expected_service_count, len(services))
-        self.assertEqual(url, id_url)
-        return services
 
-    def test_no_delegate(self):
-        url = 'http://unittest/openid_no_delegate.html'
-        services = self._discover(url, 1)
-        self._checkService(
-            services[0],
-            used_yadis=False,
-            types=['1.1'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id=url,
-            )
-
-    def test_html1(self):
-        url = 'http://unittest/openid.html'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=False,
-            types=['1.1'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=url,
-            )
-
-    def test_html2(self):
-        url = 'http://unittest/openid2.html'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=False,
-            types=['2.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=url,
-            )
-
-    def test_htmlEmptyYadis(self):
-        """HTML document has discovery information, but points to an
-        empty Yadis document."""
-        # The XRDS document pointed to by "openid_and_yadis.html"
-        url = 'http://unittest/openid_and_yadis.html'
-        services = self._discover(url, 1)
-        self._checkService(
-            services[0],
-            used_yadis=False,
-            types=['1.1'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=url,
-            )
-
-    def test_yadis1NoDelegate(self):
-        url = 'http://unittest/yadis_no_delegate.xrds'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['1.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id=url,
-            display_identifier=url,
-            )
-
-    def test_yadis2NoLocalID(self):
-        url = 'http://unittest/openid2_xrds_no_local_id.xrds'
-        services = self._discover(url, 1)
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['2.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id=url,
-            display_identifier=url,
-            )
-
-    def test_yadis2(self):
-        url = 'http://unittest/openid2_xrds.xrds'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['2.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=url,
-            )
-
-    def test_yadis2OP(self):
-        url = 'http://unittest/yadis_idp.xrds'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['2.0 OP'],
-            server_url="http://www.myopenid.com/server",
-            display_identifier=url,
-            )
-
-    def test_yadis2OPDelegate(self):
-        """The delegate tag isn't meaningful for OP entries."""
-        url = 'http://unittest/yadis_idp_delegate.xrds'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['2.0 OP'],
-            server_url="http://www.myopenid.com/server",
-            display_identifier=url,
-            )
-
-    def test_yadis1And2(self):
-        url = 'http://unittest/openid_1_and_2_xrds.xrds'
-        services = self._discover(url, 1)
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['2.0', '1.1'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=url,
-            local_id='http://smoker.myopenid.com/',
-            display_identifier=url,
-            )
-
-    def test_xri(self):
-        user_xri, services = discover.discover('=iname')
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['1.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=XRI("=!1000"),
-            canonical_id=XRI("=!1000"),
-            local_id='http://smoker.myopenid.com/',
-            display_identifier='=iname'
-            )
-
-    def test_xri_normalize(self):
-        user_xri, services = discover.discover('xri://=iname')
-
-        self._checkService(
-            services[0],
-            used_yadis=True,
-            types=['1.0'],
-            server_url="http://www.myopenid.com/server",
-            claimed_id=XRI("=!1000"),
-            canonical_id=XRI("=!1000"),
-            local_id='http://smoker.myopenid.com/',
-            display_identifier='=iname'
-            )
 
 
 @support.gentests
