@@ -100,6 +100,8 @@ class Discovery(unittest.TestCase):
 @support.gentests
 class Services(unittest.TestCase):
     data = [
+        # arguments: url, used_yadis, types, claimed_id, local_id, canonical_id, display_identifier
+        # last four arguments can be None, in which case the url is used instead
         ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], None, None, None, None)),
         ('html1', ('http://unittest/openid.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None, None)),
         ('html2', ('http://unittest/openid2.html', False, ['2.0'], None, 'http://smoker.myopenid.com/', None, None)),
