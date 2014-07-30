@@ -95,12 +95,6 @@ class URIDiscovery(BaseDiscovery):
         self.assertEqual(url, id_url)
         return services
 
-    def test_unicode(self):
-        """
-        Check page with unicode and HTML entities
-        """
-        self._discover('http://unittest/unicode.html', 0)
-
     def test_unicode_undecodable_html2(self):
         """
         Check page with unicode and HTML entities that can not be decoded
@@ -117,6 +111,22 @@ class URIDiscovery(BaseDiscovery):
     def test_yadisEmpty(self):
         url, services = discover.discover('http://unittest/yadis_0entries.xrds')
         self.assertFalse(services)
+
+    def test_fragment(self):
+        url = 'http://unittest/openid.html'
+        id_url, services = discover.discover(url + '#fragment')
+        self.assertEqual(id_url, url)
+        self.assertEqual(services[0].claimed_id, url)
+
+    def test_localid_mismatch(self):
+        with self.assertRaises(DiscoveryFailure):
+            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
+
+    def test_unicode(self):
+        """
+        Check page with unicode and HTML entities
+        """
+        self._discover('http://unittest/unicode.html', 0)
 
     def test_no_delegate(self):
         url = 'http://unittest/openid_no_delegate.html'
@@ -143,12 +153,6 @@ class URIDiscovery(BaseDiscovery):
             local_id='http://smoker.myopenid.com/',
             display_identifier=url,
             )
-
-    def test_fragment(self):
-        url = 'http://unittest/openid.html'
-        id_url, services = discover.discover(url + '#fragment')
-        self.assertEqual(id_url, url)
-        self.assertEqual(services[0].claimed_id, url)
 
     def test_html2(self):
         url = 'http://unittest/openid2.html'
@@ -254,10 +258,6 @@ class URIDiscovery(BaseDiscovery):
             server_url="http://www.myopenid.com/server",
             display_identifier=url,
             )
-
-    def test_localid_mismatch(self):
-        with self.assertRaises(DiscoveryFailure):
-            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
 
     def test_yadis1And2(self):
         url = 'http://unittest/openid_1_and_2_xrds.xrds'
