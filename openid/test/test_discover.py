@@ -27,14 +27,6 @@ class Failure(unittest.TestCase):
         self.assertRaises(urllib.error.URLError, discover.discover, url)
 
 
-@mock.patch('urllib.request.urlopen', support.urlopen)
-class Normalization(unittest.TestCase):
-    def testAddingProtocol(self):
-        url = 'unittest:8000/'
-        discover.discover(url)
-        self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
-
-
 class BaseDiscovery(unittest.TestCase):
     def _checkService(self, s,
                       server_url,
@@ -117,6 +109,11 @@ class URIDiscovery(BaseDiscovery):
         id_url, services = discover.discover(url + '#fragment')
         self.assertEqual(id_url, url)
         self.assertEqual(services[0].claimed_id, url)
+
+    def test_add_protocol(self):
+        url = 'unittest:8000/'
+        discover.discover(url)
+        self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 
     def test_localid_mismatch(self):
         with self.assertRaises(DiscoveryFailure):
