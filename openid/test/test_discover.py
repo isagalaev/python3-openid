@@ -100,23 +100,23 @@ class Discovery(unittest.TestCase):
 @support.gentests
 class Services(unittest.TestCase):
     data = [
-        ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], 'http://www.myopenid.com/server', None, None, None, None)),
-        ('html1', ('http://unittest/openid.html', False, ['1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
-        ('html2', ('http://unittest/openid2.html', False, ['2.0'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
-        ('html_empty_yadis', ('http://unittest/openid_and_yadis.html', False, ['1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
-        ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', True, ['1.0'], 'http://www.myopenid.com/server', None, None, None, None)),
-        ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', True, ['2.0'], 'http://www.myopenid.com/server', None, None, None, None)),
-        ('yadis2', ('http://unittest/openid2_xrds.xrds', True, ['2.0'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
-        ('yadis2_op', ('http://unittest/yadis_idp.xrds', True, ['2.0 OP'], 'http://www.myopenid.com/server', False, False, None, None)),
-        ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', True, ['2.0 OP'], 'http://www.myopenid.com/server', False, False, None, None)),
-        ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', True, ['2.0', '1.1'], 'http://www.myopenid.com/server', None, 'http://smoker.myopenid.com/', None, None)),
-        ('xri', ('=iname', True, ['1.0'], 'http://www.myopenid.com/server', XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"), None)),
-        ('xri_normalize', ('xri://=iname', True, ['1.0'], 'http://www.myopenid.com/server', XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'), '=iname')),
+        ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], None, None, None, None)),
+        ('html1', ('http://unittest/openid.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None, None)),
+        ('html2', ('http://unittest/openid2.html', False, ['2.0'], None, 'http://smoker.myopenid.com/', None, None)),
+        ('html_empty_yadis', ('http://unittest/openid_and_yadis.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None, None)),
+        ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', True, ['1.0'], None, None, None, None)),
+        ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', True, ['2.0'], None, None, None, None)),
+        ('yadis2', ('http://unittest/openid2_xrds.xrds', True, ['2.0'], None, 'http://smoker.myopenid.com/', None, None)),
+        ('yadis2_op', ('http://unittest/yadis_idp.xrds', True, ['2.0 OP'], False, False, None, None)),
+        ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', True, ['2.0 OP'], False, False, None, None)),
+        ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', True, ['2.0', '1.1'], None, 'http://smoker.myopenid.com/', None, None)),
+        ('xri', ('=iname', True, ['1.0'], XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"), None)),
+        ('xri_normalize', ('xri://=iname', True, ['1.0'], XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'), '=iname')),
     ]
 
-    def _test(self, url, used_yadis, types, server_url, claimed_id, local_id,
-              canonical_id, display_identifier):
+    def _test(self, url, used_yadis, types, claimed_id, local_id, canonical_id, display_identifier):
         id_url, services = discover.discover(url)
+        # Disabled because XRI test return 4 services instead of 1 — possibly a bug
         # self.assertEqual(len(services), 1)
         if claimed_id is None:
             claimed_id = url
@@ -125,7 +125,7 @@ class Services(unittest.TestCase):
         if display_identifier is None:
             display_identifier = url
         s = services[0]
-        self.assertEqual(server_url, s.server_url)
+        self.assertEqual(s.server_url, 'http://www.myopenid.com/server')
         if types == ['2.0 OP']:
             self.assertFalse(claimed_id)
             self.assertFalse(local_id)
