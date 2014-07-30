@@ -167,8 +167,6 @@ class Services(unittest.TestCase):
                          s.getDisplayIdentifier())
 
 
-
-
 @support.gentests
 class PreferredNamespace(unittest.TestCase):
     data = [
