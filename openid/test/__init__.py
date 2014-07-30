@@ -124,54 +124,6 @@ def pyUnitTests():
     return suite
 
 
-def _import_djopenid():
-    """
-    Import djopenid from the examples directory without putting it in sys.path
-    permanently (which we don't really want to do as we don't want namespace
-    conflicts)
-    """
-    # Find our way to the examples/djopenid directory
-    grandParentDir = os.path.join(__file__, "..", "..", "..")
-    grandParentDir = os.path.abspath(grandParentDir)
-    examplesDir = os.path.join(grandParentDir, "examples")
-
-    sys.path.append(examplesDir)
-    import djopenid
-    sys.path.remove(examplesDir)
-
-
-def djangoExampleTests():
-    """
-    Run tests from examples/djopenid.
-
-    @return: number of failed tests.
-    """
-    # Django uses this to find out where its settings are.
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'djopenid.settings'
-
-    _import_djopenid()
-
-    try:
-        import django.test.simple
-    except ImportError:
-        warnings.warn("django.test.simple not found; skipping django examples.")
-        return 0
-
-    import djopenid.server.models
-    import djopenid.consumer.models
-    print ("Testing Django examples:")
-
-    runner = django.test.simple.DjangoTestSuiteRunner()
-    return runner.run_tests(['server', 'consumer'])
-
-    # These tests do get put into a test suite, so we could run them with the
-    # other tests, but django also establishes a test database for them, so we
-    # let it do that thing instead.
-    return django.test.simple.run_tests([djopenid.server.models,
-                                         djopenid.consumer.models])
-
-
-
 def test_suite():
     """
     Collect all of the tests together in a single suite.
@@ -180,5 +132,4 @@ def test_suite():
     combined_suite = unittest.TestSuite()
     combined_suite.addTests(specialCaseTests())
     combined_suite.addTests(pyUnitTests())
-    combined_suite.addTest(unittest.FunctionTestCase(djangoExampleTests))
     return combined_suite
