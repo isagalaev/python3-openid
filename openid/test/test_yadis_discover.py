@@ -64,25 +64,41 @@ class Discover(unittest.TestCase):
         ("redir_xrds",          (True, "redir_xrds", "xrds" , "xrds")),
         ("redir_xrds_html",     (False, "redir_xrds_html", "xrds_html" , "xrds_html")),
         ("redir_redir_equiv",   (True, "redir_redir_equiv", "equiv" , "xrds")),
-        ("404_server_response", (False, "404_server_response", None , None)),
-        ("404_with_header",     (False, "404_with_header", None , None)),
-        ("404_with_meta",       (False, "404_with_meta", None , None)),
-        ("500_server_response", (False, "500_server_response", None , None)),
     ]
-
 
     @mock.patch('openid.fetchers.fetch', fetch)
     def _test(self, success, input_name, id_name, result_name):
-        '''
-        Common function called with different arguments from generated
-        test methods.
-        '''
         input_url, expected = discoverdata.generateResult(
             BASE_URL,
             input_name,
             id_name,
             result_name,
             success,
+        )
+        if expected is None:
+            self.assertRaises(urllib.error.HTTPError, discover, input_url)
+        else:
+            result = discover(input_url)
+            self.assertEqual(input_url, result.request_uri)
+            self.assertEqual(result.__dict__, expected.__dict__)
+
+@gentests
+class Failure(unittest.TestCase):
+    data = [
+        ("404_server_response", ("404_server_response",)),
+        ("404_with_header",     ("404_with_header",)),
+        ("404_with_meta",       ("404_with_meta",)),
+        ("500_server_response", ("500_server_response",)),
+    ]
+
+    @mock.patch('openid.fetchers.fetch', fetch)
+    def _test(self, input_name):
+        input_url, expected = discoverdata.generateResult(
+            BASE_URL,
+            input_name,
+            None,
+            None,
+            False,
         )
         if expected is None:
             self.assertRaises(urllib.error.HTTPError, discover, input_url)
