@@ -8,26 +8,6 @@ from openid.yadis.constants import YADIS_HEADER_NAME
 tests_dir = os.path.dirname(__file__)
 data_path = os.path.join(tests_dir, 'data')
 
-testlist = [
-    # args: success, id_name, result_name
-    ("equiv",               (True, "equiv", "equiv" , "xrds")),
-    ("header",              (True, "header", "header" , "xrds")),
-    ("lowercase_header",    (True, "lowercase_header", "lowercase_header" , "xrds")),
-    ("xrds",                (True, "xrds", "xrds" , "xrds")),
-    ("xrds_ctparam",        (True, "xrds_ctparam", "xrds_ctparam" , "xrds_ctparam")),
-    ("xrds_ctcase",         (True, "xrds_ctcase", "xrds_ctcase" , "xrds_ctcase")),
-    ("xrds_html",           (False, "xrds_html", "xrds_html" , "xrds_html")),
-    ("redir_equiv",         (True, "redir_equiv", "equiv" , "xrds")),
-    ("redir_header",        (True, "redir_header", "header" , "xrds")),
-    ("redir_xrds",          (True, "redir_xrds", "xrds" , "xrds")),
-    ("redir_xrds_html",     (False, "redir_xrds_html", "xrds_html" , "xrds_html")),
-    ("redir_redir_equiv",   (True, "redir_redir_equiv", "equiv" , "xrds")),
-    ("404_server_response", (False, "404_server_response", None , None)),
-    ("404_with_header",     (False, "404_with_header", None , None)),
-    ("404_with_meta",       (False, "404_with_meta", None , None)),
-    ("500_server_response", (False, "500_server_response", None , None)),
-]
-
 
 def getDataName(*components):
     sanitized = []
