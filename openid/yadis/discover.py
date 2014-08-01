@@ -20,12 +20,8 @@ class DiscoveryFailure(Exception):
 
 class DiscoveryResult(object):
     """Contains the result of performing Yadis discovery on a URI"""
-
-    # The URI that was passed to the fetcher
-    request_uri = None
-
-    # The result of following redirects from the request_uri
-    normalized_uri = None
+    # Normalized request uri
+    uri = None
 
     # The URI from which the response text was returned (set to
     # None if there was no XRDS document found)
@@ -37,18 +33,14 @@ class DiscoveryResult(object):
     # The document returned from the xrds_uri
     response_text = None
 
-    def __init__(self, request_uri):
-        """Initialize the state of the object
-
-        sets all attributes to None except the request_uri
-        """
-        self.request_uri = request_uri
+    def __init__(self, uri):
+        self.uri = uri
 
     def usedYadisLocation(self):
         """Was the Yadis protocol's indirection used?"""
         if self.xrds_uri is None:
             return False
-        return self.normalized_uri != self.xrds_uri
+        return self.uri != self.xrds_uri
 
     def isXRDS(self):
         """Is the response text supposed to be an XRDS document?"""
@@ -65,11 +57,8 @@ def discover(uri):
 
     @return: DiscoveryResult object
     """
-    result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
-
-    # Note the URL after following redirects
-    result.normalized_uri = resp.url
+    result = DiscoveryResult(resp.url)
 
     # Attempt to find out where to go to discover the document
     # or if we already have it
@@ -83,7 +72,7 @@ def discover(uri):
             resp = fetchers.fetch(result.xrds_uri)
             result.response_text = resp.read() # MAX_RESPONSE
         except urllib.error.URLError as e:
-            e.identity_url = result.normalized_uri
+            e.identity_url = result.uri
             raise e
         result.content_type = resp.getheader('content-type')
 

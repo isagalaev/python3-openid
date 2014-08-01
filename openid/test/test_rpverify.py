@@ -50,7 +50,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
     def mockDiscover(self, uri):
         result = DiscoveryResult(uri)
         result.response_text = self.data
-        result.normalized_uri = uri
         return result
 
     def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):

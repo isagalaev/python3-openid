@@ -212,7 +212,7 @@ class OpenIDServiceEndpoint(object):
             method = cls.fromXRDS
         else:
             method = cls.fromHTML
-        return method(discoveryResult.normalized_uri,
+        return method(discoveryResult.uri,
                       discoveryResult.response_text)
 
     fromDiscoveryResult = classmethod(fromDiscoveryResult)
@@ -383,7 +383,7 @@ def discoverYadis(uri):
     """
     response = yadisDiscover(uri)
 
-    yadis_url = response.normalized_uri
+    yadis_url = response.uri
     body = response.response_text
     try:
         openid_services = OpenIDServiceEndpoint.fromXRDS(yadis_url, body)

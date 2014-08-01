@@ -24,17 +24,17 @@ def getServiceEndpoints(input_url, flt=None):
     """
     result = discover(input_url)
     try:
-        endpoints = applyFilter(result.normalized_uri,
+        endpoints = applyFilter(result.uri,
                                 result.response_text, flt)
     except XRDSError as err:
         raise DiscoveryFailure(str(err), None)
-    return (result.normalized_uri, endpoints)
+    return (result.uri, endpoints)
 
-def applyFilter(normalized_uri, xrd_data, flt=None):
+def applyFilter(uri, xrd_data, flt=None):
     """Generate an iterable of endpoint objects given this input data,
     presumably from the result of performing the Yadis protocol.
 
-    @param normalized_uri: The input URL, after following redirects,
+    @param uri: The input URL, after following redirects,
         as in the Yadis protocol.
 
 
@@ -49,6 +49,6 @@ def applyFilter(normalized_uri, xrd_data, flt=None):
     endpoints = []
     for service_element in iterServices(et):
         endpoints.extend(
-            flt.getServiceEndpoints(normalized_uri, service_element))
+            flt.getServiceEndpoints(uri, service_element))
 
     return endpoints
