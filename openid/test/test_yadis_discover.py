@@ -11,26 +11,16 @@ from . import support
 @support.gentests
 class XRDS(unittest.TestCase):
     data = [
-        ('xrds', ({},)),
-        ('content_type_param', ({'header': 'Content-type: application/xrds+xml; charset=UTF8'},)),
-        ('content_type_case', ({'header': 'Content-type: appliCATION/XRDS+xml'},)),
+        ('xrds', ('/openid_1_and_2_xrds.xrds', {},)),
+        ('ctype_param', ('/openid_1_and_2_xrds.xrds', {'header': 'Content-type: application/xrds+xml; charset=UTF8'},)),
+        ('ctype_case', ('/openid_1_and_2_xrds.xrds', {'header': 'Content-type: appliCATION/XRDS+xml'},)),
+        ('header', ('/', {'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'},)),
+        ('lowercase', ('/', {'header': 'x-xrds-location: http://unittest/openid_1_and_2_xrds.xrds'},)),
+        ('http_equiv', ('/http_equiv.html', {})),
     ]
-
-    def _test(self, params):
-        url = 'http://unittest/openid_1_and_2_xrds.xrds?' + urllib.parse.urlencode(params)
-        result = discover(url)
-        self.assertTrue(result.isXRDS())
-
-
-@mock.patch('urllib.request.urlopen', support.urlopen)
-@support.gentests
-class Location(unittest.TestCase):
-    data = [
-        ('header', ('/?' + urllib.parse.urlencode({'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
-        ('lowercase', ('/?' + urllib.parse.urlencode({'header': 'x-xrds-location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
-        ('http_equiv', ('/http_equiv.html',)),
-    ]
-    def _test(self, path):
+    def _test(self, path, params):
+        if params:
+            path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
         result = discover(url)
         self.assertTrue(result.isXRDS())
