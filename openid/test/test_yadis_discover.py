@@ -46,7 +46,6 @@ class Discover(unittest.TestCase):
         ("xrds",                (True, "xrds", "xrds" , "xrds")),
         ("xrds_ctparam",        (True, "xrds_ctparam", "xrds_ctparam" , "xrds_ctparam")),
         ("xrds_ctcase",         (True, "xrds_ctcase", "xrds_ctcase" , "xrds_ctcase")),
-        ("xrds_html",           (False, "xrds_html", "xrds_html" , "xrds_html")),
     ]
 
     @mock.patch('openid.fetchers.fetch', fetch)
@@ -89,6 +88,12 @@ class Special(unittest.TestCase):
     def test_exception(self):
         url = 'http://unittest/404'
         self.assertRaises(urllib.error.HTTPError, discover, url)
+
+    def test_wrong_content_type(self):
+        params = {'header': 'Content-type: text/html'}
+        url = 'http://unittest/openid_1_and_2_xrds.xrds?' + urllib.parse.urlencode(params)
+        result = discover(url)
+        self.assertFalse(result.isXRDS())
 
 
 if __name__ == '__main__':

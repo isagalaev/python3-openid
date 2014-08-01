@@ -15,9 +15,3 @@ Status: 200 OK
 Content-Type: appliCATION/XRDS+xml
 
 <XRDS Content>
-
-xrds_html
-Status: 200 OK
-Content-Type: text/html
-
-<XRDS Content>
