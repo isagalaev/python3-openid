@@ -45,7 +45,7 @@ def is_xrds(body):
     except etxrd.XRDSError:
         return False
 
-def discover(uri):
+def discover(uri, result=None):
     """Discover services for a given URI.
 
     @param uri: The identity URI as a well-formed http or https
@@ -55,14 +55,15 @@ def discover(uri):
 
     @return: DiscoveryResult object
     """
+    if result is None:
+        result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
-    result = DiscoveryResult(resp.url)
     result.response_text = resp.read() # MAX_RESPONSE
     if is_xrds(result.response_text):
-        result.xrds_uri = result.uri
+        result.xrds_uri = uri
         return result
     location = whereIsYadis(resp, result.response_text)
-    return discover(location) if location else result
+    return discover(location, result) if location else result
 
 def whereIsYadis(resp, body):
     """Given a HTTPResponse, return the location of the Yadis document.
@@ -85,14 +86,3 @@ def whereIsYadis(resp, body):
         return findHTMLMeta(StringIO(content))
     except MetaNotFound:
         pass
-
-
-
-
-
-
-
-
-
-
-        ss
