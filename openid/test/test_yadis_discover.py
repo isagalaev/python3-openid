@@ -33,7 +33,7 @@ class Location(unittest.TestCase):
     def _test(self, path):
         url = urllib.parse.urljoin('http://unittest/', path)
         result = discover(url)
-        self.assertTrue(result.usedYadisLocation())
+        self.assertTrue(result.isXRDS())
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)

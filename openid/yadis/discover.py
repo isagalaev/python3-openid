@@ -5,7 +5,7 @@ from io import StringIO
 import urllib.error
 
 from openid import fetchers
-
+from openid.yadis import etxrd
 from openid.yadis.constants import \
      YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
@@ -47,6 +47,14 @@ class DiscoveryResult(object):
         return (self.usedYadisLocation() or
                 self.content_type.rsplit(';', 1)[0].lower() == YADIS_CONTENT_TYPE)
 
+
+def is_xrds(body):
+    try:
+        et = etxrd.parseXRDS(body)
+        return True
+    except etxrd.XRDSError:
+        return False
+
 def discover(uri):
     """Discover services for a given URI.
 
@@ -63,21 +71,14 @@ def discover(uri):
     # Attempt to find out where to go to discover the document
     # or if we already have it
     result.content_type = resp.getheader('content-type')
-
     result.response_text = resp.read() # MAX_RESPONSE
-    result.xrds_uri = whereIsYadis(resp, result.response_text)
-
-    if result.xrds_uri and result.usedYadisLocation():
-        try:
-            resp = fetchers.fetch(result.xrds_uri)
-            result.response_text = resp.read() # MAX_RESPONSE
-        except urllib.error.URLError as e:
-            e.identity_url = result.uri
-            raise e
-        result.content_type = resp.getheader('content-type')
-
-    return result
-
+    if is_xrds(result.response_text):
+        result.xrds_uri = result.uri
+        return result
+    location = whereIsYadis(resp, result.response_text)
+    if not location:
+        return result
+    return discover(location)
 
 def whereIsYadis(resp, body):
     """Given a HTTPResponse, return the location of the Yadis document.
