@@ -77,52 +77,46 @@ def whereIsYadis(resp, body):
     # or if we already have it
     content_type = resp.getheader('content-type')
 
-    # According to the spec, the content-type header must be an exact
-    # match, or else we have to look for an indirection.
-    if (content_type and
-        content_type.split(';', 1)[0].lower() == YADIS_CONTENT_TYPE):
-        return resp.url
-    else:
-        # Try the header
-        yadis_loc = resp.getheader(YADIS_HEADER_NAME)
+    # Try the header
+    yadis_loc = resp.getheader(YADIS_HEADER_NAME)
 
-        if not yadis_loc:
-            # Parse as HTML if the header is missing.
-            #
-            # XXX: do we want to do something with content-type, like
-            # have a whitelist or a blacklist (for detecting that it's
-            # HTML)?
+    if not yadis_loc:
+        # Parse as HTML if the header is missing.
+        #
+        # XXX: do we want to do something with content-type, like
+        # have a whitelist or a blacklist (for detecting that it's
+        # HTML)?
 
-            # Decode body by encoding of file
-            content_type = content_type or ''
-            encoding = content_type.rsplit(';', 1)
-            if (len(encoding) == 2 and
-                    encoding[1].strip().startswith('charset=')):
-                encoding = encoding[1].split('=', 1)[1].strip()
-            else:
-                encoding = 'utf-8'
+        # Decode body by encoding of file
+        content_type = content_type or ''
+        encoding = content_type.rsplit(';', 1)
+        if (len(encoding) == 2 and
+                encoding[1].strip().startswith('charset=')):
+            encoding = encoding[1].split('=', 1)[1].strip()
+        else:
+            encoding = 'utf-8'
 
+        try:
+            content = body.decode(encoding)
+        except UnicodeError:
+            # All right, the detected encoding has failed. Try with
+            # UTF-8 (even if there was no detected encoding and we've
+            # defaulted to UTF-8, it's not that expensive an operation)
             try:
-                content = body.decode(encoding)
+                content = body.decode('utf-8')
             except UnicodeError:
-                # All right, the detected encoding has failed. Try with
-                # UTF-8 (even if there was no detected encoding and we've
-                # defaulted to UTF-8, it's not that expensive an operation)
-                try:
-                    content = body.decode('utf-8')
-                except UnicodeError:
-                    # At this point the content cannot be decoded to a str
-                    # using the detected encoding or falling back to utf-8,
-                    # so we have to resort to replacing undecodable chars.
-                    # This *will* result in broken content but there isn't
-                    # anything else that can be done.
-                    content = body.decode(encoding, 'replace')
+                # At this point the content cannot be decoded to a str
+                # using the detected encoding or falling back to utf-8,
+                # so we have to resort to replacing undecodable chars.
+                # This *will* result in broken content but there isn't
+                # anything else that can be done.
+                content = body.decode(encoding, 'replace')
 
-            try:
-                yadis_loc = findHTMLMeta(StringIO(content))
-            except (MetaNotFound, UnicodeError):
-                # UnicodeError: Response body could not be encoded and xrds
-                # location could not be found before troubles occur.
-                pass
+        try:
+            yadis_loc = findHTMLMeta(StringIO(content))
+        except (MetaNotFound, UnicodeError):
+            # UnicodeError: Response body could not be encoded and xrds
+            # location could not be found before troubles occur.
+            pass
 
-        return yadis_loc
+    return yadis_loc
