@@ -66,12 +66,9 @@ class Discover(unittest.TestCase):
             result_name,
             success,
         )
-        if expected is None:
-            self.assertRaises(urllib.error.HTTPError, discover, input_url)
-        else:
-            result = discover(input_url)
-            self.assertEqual(input_url, result.request_uri)
-            self.assertEqual(result.__dict__, expected.__dict__)
+        result = discover(input_url)
+        self.assertEqual(input_url, result.request_uri)
+        self.assertEqual(result.__dict__, expected.__dict__)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
