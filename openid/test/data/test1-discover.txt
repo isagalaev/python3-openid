@@ -99,39 +99,3 @@ x-xrds-location: URL_BASE/xrds
 <h1>Joe Schmoe's Homepage</h1>
 <p>Blah blah blah blah blah blah blah</p>
 </body>
-
-404_server_response
-Status: 404 Not Found
-
-EEk!
-
-500_server_response
-Status: 500 Server error
-
-EEk!
-
-201_server_response
-Status: 201 Created
-
-EEk!
-
-404_with_header
-Status: 404 Not Found
-YADIS_HEADER: URL_BASE/xrds
-
-EEk!
-
-404_with_meta
-Status: 404 Not Found
-Content-Type: text/html
-
-<html>
-<head>
-<meta http-equiv="YADIS_HEADER" content="URL_BASE/xrds">
-<title>Joe Schmoe's Homepage</title>
-</head>
-<body>
-<h1>Joe Schmoe's Homepage</h1>
-<p>Blah blah blah blah blah blah blah</p>
-</body>
-</html>

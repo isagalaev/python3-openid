@@ -85,15 +85,13 @@ class Discover(unittest.TestCase):
 @gentests
 class Failure(unittest.TestCase):
     data = [
-        ("404_server_response", ("404_server_response",)),
-        ("404_with_header",     ("404_with_header",)),
-        ("404_with_meta",       ("404_with_meta",)),
-        ("500_server_response", ("500_server_response",)),
+        ('404', ('/404',)),
+        ('500', ('/?status=500',)),
     ]
 
-    @mock.patch('openid.fetchers.fetch', fetch)
-    def _test(self, input_name):
-        url = urllib.parse.urljoin(BASE_URL, input_name)
+    @mock.patch('urllib.request.urlopen', support.urlopen)
+    def _test(self, path):
+        url = urllib.parse.urljoin('http://unittest/', path)
         self.assertRaises(urllib.error.HTTPError, discover, url)
 
 if __name__ == '__main__':
