@@ -27,9 +27,6 @@ class DiscoveryResult(object):
     # None if there was no XRDS document found)
     xrds_uri = None
 
-    # The content-type returned with the response_text
-    content_type = None
-
     # The document returned from the xrds_uri
     response_text = None
 
@@ -37,7 +34,7 @@ class DiscoveryResult(object):
         self.uri = uri
 
     def isXRDS(self):
-        return self.content_type.rsplit(';', 1)[0].lower() == YADIS_CONTENT_TYPE
+        return self.xrds_uri is not None
 
 
 def is_xrds(body):
@@ -59,18 +56,12 @@ def discover(uri):
     """
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
     result = DiscoveryResult(resp.url)
-
-    # Attempt to find out where to go to discover the document
-    # or if we already have it
-    result.content_type = resp.getheader('content-type')
     result.response_text = resp.read() # MAX_RESPONSE
     if is_xrds(result.response_text):
         result.xrds_uri = result.uri
         return result
     location = whereIsYadis(resp, result.response_text)
-    if not location:
-        return result
-    return discover(location)
+    return discover(location) if location else result
 
 def whereIsYadis(resp, body):
     """Given a HTTPResponse, return the location of the Yadis document.
