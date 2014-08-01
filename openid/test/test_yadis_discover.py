@@ -24,7 +24,7 @@ class XRDS(unittest.TestCase):
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 @support.gentests
-class YadisLocation(unittest.TestCase):
+class Location(unittest.TestCase):
     data = [
         ('header', ('/?' + urllib.parse.urlencode({'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
         ('lowercase', ('/?' + urllib.parse.urlencode({'header': 'x-xrds-location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
