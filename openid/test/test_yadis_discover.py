@@ -82,16 +82,10 @@ class Discover(unittest.TestCase):
             self.assertEqual(input_url, result.request_uri)
             self.assertEqual(result.__dict__, expected.__dict__)
 
-@gentests
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class Failure(unittest.TestCase):
-    data = [
-        ('404', ('/404',)),
-        ('500', ('/?status=500',)),
-    ]
-
-    @mock.patch('urllib.request.urlopen', support.urlopen)
-    def _test(self, path):
-        url = urllib.parse.urljoin('http://unittest/', path)
+    def test_exception(self):
+        url = 'http://unittest/404'
         self.assertRaises(urllib.error.HTTPError, discover, url)
 
 if __name__ == '__main__':
