@@ -21,17 +21,3 @@ Status: 200 OK
 Content-Type: text/html
 
 <XRDS Content>
-
-lowercase_header
-Status: 200 OK
-Content-Type: text/html
-x-xrds-location: URL_BASE/xrds
-
-<html>
-<head>
-<title>Joe Schmoe's Homepage</title>
-</head>
-<body>
-<h1>Joe Schmoe's Homepage</h1>
-<p>Blah blah blah blah blah blah blah</p>
-</body>

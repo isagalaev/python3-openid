@@ -43,7 +43,6 @@ def fetch(url, body=None, headers=None):
 class Discover(unittest.TestCase):
     data = [
         # args: success, input_name, id_name, result_name
-        ("lowercase_header",    (True, "lowercase_header", "lowercase_header" , "xrds")),
         ("xrds",                (True, "xrds", "xrds" , "xrds")),
         ("xrds_ctparam",        (True, "xrds_ctparam", "xrds_ctparam" , "xrds_ctparam")),
         ("xrds_ctcase",         (True, "xrds_ctcase", "xrds_ctcase" , "xrds_ctcase")),
@@ -69,6 +68,7 @@ class Discover(unittest.TestCase):
 class YadisLocation(unittest.TestCase):
     data = [
         ('header', ('/?' + urllib.parse.urlencode({'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
+        ('lowercase', ('/?' + urllib.parse.urlencode({'header': 'x-xrds-location: http://unittest/openid_1_and_2_xrds.xrds'}),)),
         ('http_equiv', ('/http_equiv.html',)),
     ]
     def _test(self, path):
