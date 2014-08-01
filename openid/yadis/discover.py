@@ -53,7 +53,7 @@ class DiscoveryResult(object):
     def isXRDS(self):
         """Is the response text supposed to be an XRDS document?"""
         return (self.usedYadisLocation() or
-                self.content_type == YADIS_CONTENT_TYPE)
+                self.content_type.rsplit(';', 1)[0].lower() == YADIS_CONTENT_TYPE)
 
 def discover(uri):
     """Discover services for a given URI.

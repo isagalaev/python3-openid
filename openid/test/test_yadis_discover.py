@@ -39,27 +39,19 @@ def fetch(url, body=None, headers=None):
         return response
 
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 @gentests
-class Discover(unittest.TestCase):
+class XRDS(unittest.TestCase):
     data = [
-        # args: success, input_name, id_name, result_name
-        ("xrds",                (True, "xrds", "xrds" , "xrds")),
-        ("xrds_ctparam",        (True, "xrds_ctparam", "xrds_ctparam" , "xrds_ctparam")),
-        ("xrds_ctcase",         (True, "xrds_ctcase", "xrds_ctcase" , "xrds_ctcase")),
+        ('xrds', ({},)),
+        ('content_type_param', ({'header': 'Content-type: application/xrds+xml; charset=UTF8'},)),
+        ('content_type_case', ({'header': 'Content-type: appliCATION/XRDS+xml'},)),
     ]
 
-    @mock.patch('openid.fetchers.fetch', fetch)
-    def _test(self, success, input_name, id_name, result_name):
-        input_url, expected = discoverdata.generateResult(
-            BASE_URL,
-            input_name,
-            id_name,
-            result_name,
-            success,
-        )
-        result = discover(input_url)
-        self.assertEqual(input_url, result.request_uri)
-        self.assertEqual(result.__dict__, expected.__dict__)
+    def _test(self, params):
+        url = 'http://unittest/openid_1_and_2_xrds.xrds?' + urllib.parse.urlencode(params)
+        result = discover(url)
+        self.assertTrue(result.isXRDS())
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
@@ -74,7 +66,6 @@ class YadisLocation(unittest.TestCase):
         url = urllib.parse.urljoin('http://unittest/', path)
         result = discover(url)
         self.assertTrue(result.usedYadisLocation())
-        self.assertEqual(result.content_type, 'application/xrds+xml')
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
