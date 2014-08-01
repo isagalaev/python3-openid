@@ -1,32 +1,3 @@
-equiv
-Status: 200 OK
-Content-Type: text/html
-
-<html>
-<head>
-<meta http-equiv="YADIS_HEADER" content="URL_BASE/xrds">
-<title>Joe Schmoe's Homepage</title>
-</head>
-<body>
-<h1>Joe Schmoe's Homepage</h1>
-<p>Blah blah blah blah blah blah blah</p>
-</body>
-</html>
-
-header
-Status: 200 OK
-Content-Type: text/html
-YADIS_HEADER: URL_BASE/xrds
-
-<html>
-<head>
-<title>Joe Schmoe's Homepage</title>
-</head>
-<body>
-<h1>Joe Schmoe's Homepage</h1>
-<p>Blah blah blah blah blah blah blah</p>
-</body>
-
 xrds
 Status: 200 OK
 Content-Type: application/xrds+xml
@@ -50,41 +21,6 @@ Status: 200 OK
 Content-Type: text/html
 
 <XRDS Content>
-
-redir_equiv
-Status: 302 Found
-Content-Type: text/plain
-Location: URL_BASE/equiv
-
-You are presently being redirected.
-
-redir_header
-Status: 302 Found
-Content-Type: text/plain
-Location: URL_BASE/header
-
-You are presently being redirected.
-
-redir_xrds
-Status: 302 Found
-Content-Type: application/xrds+xml
-Location: URL_BASE/xrds
-
-<XRDS Content>
-
-redir_xrds_html
-Status: 302 Found
-Content-Type: text/plain
-Location: URL_BASE/xrds_html
-
-You are presently being redirected.
-
-redir_redir_equiv
-Status: 302 Found
-Content-Type: text/plain
-Location: URL_BASE/redir_equiv
-
-You are presently being redirected.
 
 lowercase_header
 Status: 200 OK

@@ -48,11 +48,6 @@ class Discover(unittest.TestCase):
         ("xrds_ctparam",        (True, "xrds_ctparam", "xrds_ctparam" , "xrds_ctparam")),
         ("xrds_ctcase",         (True, "xrds_ctcase", "xrds_ctcase" , "xrds_ctcase")),
         ("xrds_html",           (False, "xrds_html", "xrds_html" , "xrds_html")),
-        ("redir_equiv",         (True, "redir_equiv", "equiv" , "xrds")),
-        ("redir_header",        (True, "redir_header", "header" , "xrds")),
-        ("redir_xrds",          (True, "redir_xrds", "xrds" , "xrds")),
-        ("redir_xrds_html",     (False, "redir_xrds_html", "xrds_html" , "xrds_html")),
-        ("redir_redir_equiv",   (True, "redir_redir_equiv", "equiv" , "xrds")),
     ]
 
     @mock.patch('openid.fetchers.fetch', fetch)
