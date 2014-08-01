@@ -16,15 +16,6 @@ STATUS_RE = re.compile(r'^Status: (\d+) .+\n')
 BASE_URL = 'http://invalid.unittest/'
 
 
-class TestSecondGet(unittest.TestCase):
-    def test_404(self):
-        with mock.patch('urllib.request.urlopen', support.urlopen):
-            params = {'header': 'X-XRDS-Location: http://unittest/404'}
-            url = 'http://unittest/?' + urllib.parse.urlencode(params)
-            self.assertRaises(urllib.error.HTTPError, discover, url)
-            self.assertEqual(support.urlopen.request.get_full_url(), 'http://unittest/404')
-
-
 def make_response(data, url):
     status = int(STATUS_RE.search(data).group(1))
     headers_str, body = data.split('\n\n', 1)
@@ -51,7 +42,7 @@ def fetch(url, body=None, headers=None):
 @gentests
 class Discover(unittest.TestCase):
     data = [
-        # args: success, id_name, result_name
+        # args: success, input_name, id_name, result_name
         ("equiv",               (True, "equiv", "equiv" , "xrds")),
         ("header",              (True, "header", "header" , "xrds")),
         ("lowercase_header",    (True, "lowercase_header", "lowercase_header" , "xrds")),
@@ -82,11 +73,19 @@ class Discover(unittest.TestCase):
             self.assertEqual(input_url, result.request_uri)
             self.assertEqual(result.__dict__, expected.__dict__)
 
+
 @mock.patch('urllib.request.urlopen', support.urlopen)
-class Failure(unittest.TestCase):
+class Special(unittest.TestCase):
+    def test_second_get(self):
+        params = {'header': 'X-XRDS-Location: http://unittest/404'}
+        url = 'http://unittest/?' + urllib.parse.urlencode(params)
+        self.assertRaises(urllib.error.HTTPError, discover, url)
+        self.assertEqual(support.urlopen.request.get_full_url(), 'http://unittest/404')
+
     def test_exception(self):
         url = 'http://unittest/404'
         self.assertRaises(urllib.error.HTTPError, discover, url)
+
 
 if __name__ == '__main__':
     unittest.main()
