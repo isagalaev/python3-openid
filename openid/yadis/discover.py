@@ -36,16 +36,8 @@ class DiscoveryResult(object):
     def __init__(self, uri):
         self.uri = uri
 
-    def usedYadisLocation(self):
-        """Was the Yadis protocol's indirection used?"""
-        if self.xrds_uri is None:
-            return False
-        return self.uri != self.xrds_uri
-
     def isXRDS(self):
-        """Is the response text supposed to be an XRDS document?"""
-        return (self.usedYadisLocation() or
-                self.content_type.rsplit(';', 1)[0].lower() == YADIS_CONTENT_TYPE)
+        return self.content_type.rsplit(';', 1)[0].lower() == YADIS_CONTENT_TYPE
 
 
 def is_xrds(body):
