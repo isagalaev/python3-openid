@@ -2,45 +2,13 @@ import unittest
 from unittest import mock
 import urllib.parse
 import urllib.error
-import re
-import types
-import io
 
 from openid.yadis.discover import discover
-
-from . import discoverdata, support
-from .support import gentests, HTTPResponse
-
-
-STATUS_RE = re.compile(r'^Status: (\d+) .+\n')
-BASE_URL = 'http://invalid.unittest/'
-
-
-def make_response(data, url):
-    status = int(STATUS_RE.search(data).group(1))
-    headers_str, body = data.split('\n\n', 1)
-    headers = dict(l.split(': ') for l in headers_str.split('\n'))
-    return HTTPResponse(url, status, headers=headers, body=body.encode('utf-8'))
-
-
-def fetch(url, body=None, headers=None):
-    path = urllib.parse.urlparse(url).path.lstrip('/')
-    try:
-        data = discoverdata.generateSample(path, BASE_URL)
-    except KeyError:
-        data = '404 Not found\n\nNot found'
-
-    response = make_response(data, url)
-    if 300 <= response.status < 400:
-        return fetch(response.getheader('location'))
-    elif 400 <= response.status:
-        raise urllib.error.HTTPError(url, response.status, 'Test request failed', {}, io.BytesIO())
-    else:
-        return response
+from . import support
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-@gentests
+@support.gentests
 class XRDS(unittest.TestCase):
     data = [
         ('xrds', ({},)),
@@ -55,7 +23,7 @@ class XRDS(unittest.TestCase):
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-@gentests
+@support.gentests
 class YadisLocation(unittest.TestCase):
     data = [
         ('header', ('/?' + urllib.parse.urlencode({'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'}),)),

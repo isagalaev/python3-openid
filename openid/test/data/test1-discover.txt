@@ -1,17 +1,0 @@
-xrds
-Status: 200 OK
-Content-Type: application/xrds+xml
-
-<XRDS Content>
-
-xrds_ctparam
-Status: 200 OK
-Content-Type: application/xrds+xml; charset=UTF8
-
-<XRDS Content>
-
-xrds_ctcase
-Status: 200 OK
-Content-Type: appliCATION/XRDS+xml
-
-<XRDS Content>
