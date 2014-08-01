@@ -1,6 +1,7 @@
 # -*- test-case-name: openid.test.test_yadis_discover -*-
 __all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
 
+import cgi
 from io import StringIO
 import urllib.error
 
@@ -77,40 +78,21 @@ def whereIsYadis(resp, body):
     if location:
         return location
 
-    # Parse as HTML if the header is missing.
-    #
-    # XXX: do we want to do something with content-type, like
-    # have a whitelist or a blacklist (for detecting that it's
-    # HTML)?
-
-    # Decode body by encoding of file
     content_type = resp.getheader('content-type') or ''
-    encoding = content_type.rsplit(';', 1)
-    if (len(encoding) == 2 and
-            encoding[1].strip().startswith('charset=')):
-        encoding = encoding[1].split('=', 1)[1].strip()
-    else:
-        encoding = 'utf-8'
-
-    try:
-        content = body.decode(encoding)
-    except UnicodeError:
-        # All right, the detected encoding has failed. Try with
-        # UTF-8 (even if there was no detected encoding and we've
-        # defaulted to UTF-8, it's not that expensive an operation)
-        try:
-            content = body.decode('utf-8')
-        except UnicodeError:
-            # At this point the content cannot be decoded to a str
-            # using the detected encoding or falling back to utf-8,
-            # so we have to resort to replacing undecodable chars.
-            # This *will* result in broken content but there isn't
-            # anything else that can be done.
-            content = body.decode(encoding, 'replace')
-
+    encoding = cgi.parse_header(content_type)[1].get('charset', 'utf-8')
+    content = body.decode(encoding, 'replace')
     try:
         return findHTMLMeta(StringIO(content))
-    except (MetaNotFound, UnicodeError):
-        # UnicodeError: Response body could not be encoded and xrds
-        # location could not be found before troubles occur.
+    except MetaNotFound:
         pass
+
+
+
+
+
+
+
+
+
+
+        ss
