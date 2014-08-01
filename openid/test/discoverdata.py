@@ -85,12 +85,6 @@ def generateSample(test_name, base_url,
 def generateResult(base_url, input_name, id_name, result_name, success):
     input_url = urllib.parse.urljoin(base_url, input_name)
 
-    # If the name is None then we expect the protocol to fail, which
-    # we represent by None
-    if id_name is None:
-        assert result_name is None
-        return input_url, None
-
     result = generateSample(result_name, base_url)
     headers, content = result.split('\n\n', 1)
     content = content.encode('utf-8')

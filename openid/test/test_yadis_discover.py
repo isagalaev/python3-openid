@@ -93,20 +93,8 @@ class Failure(unittest.TestCase):
 
     @mock.patch('openid.fetchers.fetch', fetch)
     def _test(self, input_name):
-        input_url, expected = discoverdata.generateResult(
-            BASE_URL,
-            input_name,
-            None,
-            None,
-            False,
-        )
-        if expected is None:
-            self.assertRaises(urllib.error.HTTPError, discover, input_url)
-        else:
-            result = discover(input_url)
-            self.assertEqual(input_url, result.request_uri)
-            self.assertEqual(result.__dict__, expected.__dict__)
-
+        url = urllib.parse.urljoin(BASE_URL, input_name)
+        self.assertRaises(urllib.error.HTTPError, discover, url)
 
 if __name__ == '__main__':
     unittest.main()
