@@ -73,11 +73,6 @@ def whereIsYadis(resp, body):
 
     @returns: str or None
     """
-    # Attempt to find out where to go to discover the document
-    # or if we already have it
-    content_type = resp.getheader('content-type')
-
-    # Try the header
     yadis_loc = resp.getheader(YADIS_HEADER_NAME)
 
     if not yadis_loc:
@@ -88,7 +83,7 @@ def whereIsYadis(resp, body):
         # HTML)?
 
         # Decode body by encoding of file
-        content_type = content_type or ''
+        content_type = resp.getheader('content-type') or ''
         encoding = content_type.rsplit(';', 1)
         if (len(encoding) == 2 and
                 encoding[1].strip().startswith('charset=')):
