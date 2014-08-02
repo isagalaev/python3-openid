@@ -54,6 +54,12 @@ class Discovery(unittest.TestCase):
         url, services = discover.discover('http://unittest/yadis_0entries.xrds')
         self.assertFalse(services)
 
+    def test_html_yadis_empty(self):
+        # The HTML document contains OpenID links but also refers to an empty Yadis
+        # document which we should prefer, by the Yadis spec.
+        url, services = discover.discover('http://unittest/openid_and_yadis.html')
+        self.assertFalse(services)
+
     def test_fragment(self):
         url = 'http://unittest/openid.html'
         id_url, services = discover.discover(url + '#fragment')
@@ -104,7 +110,6 @@ class Services(unittest.TestCase):
         ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], None, None, None, None)),
         ('html1', ('http://unittest/openid.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None, None)),
         ('html2', ('http://unittest/openid2.html', False, ['2.0'], None, 'http://smoker.myopenid.com/', None, None)),
-        ('html_empty_yadis', ('http://unittest/openid_and_yadis.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None, None)),
         ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', True, ['1.0'], None, None, None, None)),
         ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', True, ['2.0'], None, None, None, None)),
         ('yadis2', ('http://unittest/openid2_xrds.xrds', True, ['2.0'], None, 'http://smoker.myopenid.com/', None, None)),

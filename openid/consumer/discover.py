@@ -383,28 +383,11 @@ def discoverYadis(uri):
     """
     response = yadisDiscover(uri)
 
-    yadis_url = response.uri
-    body = response.response_text
-    try:
-        openid_services = OpenIDServiceEndpoint.fromXRDS(yadis_url, body)
-    except XRDSError:
-        # Does not parse as a Yadis XRDS file
-        openid_services = []
-
-    if not openid_services:
-        # Either not an XRDS or there are no OpenID services.
-
-        if response.isXRDS():
-            # if we got the Yadis content-type or followed the Yadis
-            # header, re-fetch the document without following the Yadis
-            # header, with no Accept header.
-            return discoverNoYadis(uri)
-
-        # Try to parse the response as HTML.
-        # <link rel="...">
-        openid_services = OpenIDServiceEndpoint.fromHTML(yadis_url, body)
-
-    return (yadis_url, getOPOrUserServices(openid_services))
+    if response.isXRDS():
+        openid_services = OpenIDServiceEndpoint.fromXRDS(response.uri, response.response_text)
+    else:
+        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.response_text)
+    return response.uri, getOPOrUserServices(openid_services)
 
 def discoverXRI(iname):
     endpoints = []
@@ -432,13 +415,6 @@ def discoverXRI(iname):
     # FIXME: returned xri should probably be in some normal form
     return iname, getOPOrUserServices(endpoints)
 
-
-def discoverNoYadis(uri):
-    http_resp = fetchers.fetch(uri)
-    claimed_id = http_resp.url
-    openid_services = OpenIDServiceEndpoint.fromHTML(
-        claimed_id, http_resp.read()) # MAX_RESPONSE
-    return claimed_id, openid_services
 
 def discoverURI(uri):
     parsed = urllib.parse.urlparse(uri)
