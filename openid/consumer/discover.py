@@ -197,27 +197,6 @@ class OpenIDServiceEndpoint(object):
     fromXRDS = classmethod(fromXRDS)
 
 
-    def fromDiscoveryResult(cls, discoveryResult):
-        """Create endpoints from a DiscoveryResult.
-
-        @type discoveryResult: L{DiscoveryResult}
-
-        @rtype: list of L{OpenIDServiceEndpoint}
-
-        @raises XRDSError: When the XRDS does not parse.
-
-        @since: 2.1.0
-        """
-        if discoveryResult.isXRDS():
-            method = cls.fromXRDS
-        else:
-            method = cls.fromHTML
-        return method(discoveryResult.uri,
-                      discoveryResult.response_text)
-
-    fromDiscoveryResult = classmethod(fromDiscoveryResult)
-
-
     def fromOPEndpointURL(cls, op_endpoint_url):
         """Construct an OP-Identifier OpenIDServiceEndpoint object for
         a given OP Endpoint URL
@@ -383,7 +362,7 @@ def discoverYadis(uri):
     """
     response = yadisDiscover(uri)
 
-    if response.isXRDS():
+    if response.xrds:
         openid_services = OpenIDServiceEndpoint.fromXRDS(response.uri, response.response_text)
     else:
         openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.response_text)

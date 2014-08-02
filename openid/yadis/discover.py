@@ -24,9 +24,8 @@ class DiscoveryResult(object):
     # Normalized request uri
     uri = None
 
-    # The URI from which the response text was returned (set to
-    # None if there was no XRDS document found)
-    xrds_uri = None
+    # Parsed XRDS document
+    xrds = None
 
     # The document returned from the xrds_uri
     response_text = None
@@ -34,16 +33,6 @@ class DiscoveryResult(object):
     def __init__(self, uri):
         self.uri = uri
 
-    def isXRDS(self):
-        return self.xrds_uri is not None
-
-
-def is_xrds(body):
-    try:
-        et = etxrd.parseXRDS(body)
-        return True
-    except etxrd.XRDSError:
-        return False
 
 def discover(uri, result=None):
     """Discover services for a given URI.
@@ -59,9 +48,11 @@ def discover(uri, result=None):
         result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
     result.response_text = resp.read() # MAX_RESPONSE
-    if is_xrds(result.response_text):
-        result.xrds_uri = uri
+    try:
+        result.xrds = etxrd.parseXRDS(result.response_text)
         return result
+    except etxrd.XRDSError:
+        pass
     location = whereIsYadis(resp, result.response_text)
     return discover(location, result) if location else result
 

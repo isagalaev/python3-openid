@@ -23,7 +23,7 @@ class XRDS(unittest.TestCase):
             path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
         result = discover(url)
-        self.assertTrue(result.isXRDS())
+        self.assertTrue(result.xrds)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
