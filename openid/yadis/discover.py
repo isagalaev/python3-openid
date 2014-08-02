@@ -1,14 +1,8 @@
-# -*- test-case-name: openid.test.test_yadis_discover -*-
-__all__ = ['discover', 'DiscoveryResult', 'DiscoveryFailure']
-
 import cgi
-from io import StringIO
-import urllib.error
+import io
 
 from openid import fetchers
 from openid.yadis import etxrd
-from openid.yadis.constants import \
-     YADIS_HEADER_NAME, YADIS_CONTENT_TYPE, YADIS_ACCEPT_HEADER
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
 class DiscoveryFailure(Exception):
@@ -39,14 +33,14 @@ def _yadis_location(response, body):
 
     Returns the location found or None.
     '''
-    location = response.getheader(YADIS_HEADER_NAME)
+    location = response.getheader('X-XRDS-Location')
     if location:
         return location
     content_type = response.getheader('content-type') or ''
     encoding = cgi.parse_header(content_type)[1].get('charset', 'utf-8')
     content = body.decode(encoding, 'replace')
     try:
-        return findHTMLMeta(StringIO(content))
+        return findHTMLMeta(io.StringIO(content))
     except MetaNotFound:
         pass
 
@@ -54,7 +48,7 @@ def _fetch_text(uri):
     '''
     Fetches the unparsed text of the Yadis document.
     '''
-    response = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
+    response = fetchers.fetch(uri, headers={'Accept': 'application/xrds+xml'})
     text = response.read() # MAX_RESPONSE
     location = _yadis_location(response, text)
     if location:
