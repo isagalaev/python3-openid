@@ -20,21 +20,20 @@ class DiscoveryFailure(Exception):
         self.http_response = http_response
 
 class DiscoveryResult(object):
-    """Contains the result of performing Yadis discovery on a URI"""
-    # Normalized request uri
-    uri = None
+    '''
+    Yadis discovery result:
 
-    # Parsed XRDS document
-    xrds = None
-
-    # The document returned from the xrds_uri
-    response_text = None
-
-    def __init__(self, uri):
+    - `uri`: original request uri
+    - `text`: full response text
+    - `xrds`: parsed tree, if `text` is an XRDS document
+    '''
+    def __init__(self, uri, text, xrds):
         self.uri = uri
+        self.text = text
+        self.xrds = xrds
 
 
-def discover(uri, result=None):
+def discover(uri, original_uri=None):
     '''
     Discovers an XRDS document using Yadis protocol.
 
@@ -43,18 +42,16 @@ def discover(uri, result=None):
 
     The `result` argument is used internally for recursion.
     '''
-    if result is None:
-        result = DiscoveryResult(uri)
-    resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
-    result.response_text = resp.read() # MAX_RESPONSE
-    location = whereIsYadis(resp, result.response_text)
+    response = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
+    text = response.read() # MAX_RESPONSE
+    location = whereIsYadis(response, text)
     if location:
-        return discover(location, result)
+        return discover(location, uri)
     try:
-        result.xrds = etxrd.parseXRDS(result.response_text)
+        xrds = etxrd.parseXRDS(text)
     except etxrd.XRDSError:
-        pass
-    return result
+        xrds = None
+    return DiscoveryResult(original_uri or uri, text, xrds)
 
 def whereIsYadis(resp, body):
     """Given a HTTPResponse, return the location of the Yadis document.

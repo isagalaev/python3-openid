@@ -48,9 +48,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
         services.discover = self.original_discover
 
     def mockDiscover(self, uri):
-        result = DiscoveryResult(uri)
-        result.response_text = self.data
-        return result
+        return DiscoveryResult(uri, self.data, None)
 
     def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
         self.failUnlessXRDSHasReturnURLs(open(filename).read(),

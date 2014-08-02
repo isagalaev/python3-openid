@@ -363,9 +363,9 @@ def discoverYadis(uri):
     response = yadisDiscover(uri)
 
     if response.xrds:
-        openid_services = OpenIDServiceEndpoint.fromXRDS(response.uri, response.response_text)
+        openid_services = OpenIDServiceEndpoint.fromXRDS(response.uri, response.text)
     else:
-        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.response_text)
+        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
     return response.uri, getOPOrUserServices(openid_services)
 
 def discoverXRI(iname):

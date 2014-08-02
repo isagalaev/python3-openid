@@ -24,8 +24,7 @@ def getServiceEndpoints(input_url, flt=None):
     """
     result = discover(input_url)
     try:
-        endpoints = applyFilter(result.uri,
-                                result.response_text, flt)
+        endpoints = applyFilter(result.uri, result.text, flt)
     except XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (result.uri, endpoints)
