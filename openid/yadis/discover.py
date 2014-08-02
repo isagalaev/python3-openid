@@ -48,13 +48,14 @@ def discover(uri, result=None):
         result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
     result.response_text = resp.read() # MAX_RESPONSE
+    location = whereIsYadis(resp, result.response_text)
+    if location:
+        return discover(location, result)
     try:
         result.xrds = etxrd.parseXRDS(result.response_text)
-        return result
     except etxrd.XRDSError:
         pass
-    location = whereIsYadis(resp, result.response_text)
-    return discover(location, result) if location else result
+    return result
 
 def whereIsYadis(resp, body):
     """Given a HTTPResponse, return the location of the Yadis document.

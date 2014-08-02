@@ -60,6 +60,15 @@ class Discovery(unittest.TestCase):
         url, services = discover.discover('http://unittest/openid_and_yadis.html')
         self.assertFalse(services)
 
+    def test_xrds_with_header(self):
+        # Even if we got a valid XRDS document but with a link to another XRDS
+        # location we should prefer that location, by the Yadis spec.
+        location_url = 'http://unittest/openid2_xrds.xrds'
+        params = {'header': 'X-XRDS-Location: %s' % location_url}
+        url = 'http://unittest/openid_1_and_2_xrds.xrds?' + urlencode(params)
+        url, services = discover.discover(url)
+        self.assertEqual(support.urlopen.request.get_full_url(), location_url)
+
     def test_fragment(self):
         url = 'http://unittest/openid.html'
         id_url, services = discover.discover(url + '#fragment')
