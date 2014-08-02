@@ -44,7 +44,7 @@ def discover(uri, original_uri=None):
     '''
     response = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
     text = response.read() # MAX_RESPONSE
-    location = whereIsYadis(response, text)
+    location = yadis_location(response, text)
     if location:
         return discover(location, uri)
     try:
@@ -53,7 +53,7 @@ def discover(uri, original_uri=None):
         xrds = None
     return DiscoveryResult(original_uri or uri, text, xrds)
 
-def whereIsYadis(resp, body):
+def yadis_location(response, body):
     """Given a HTTPResponse, return the location of the Yadis document.
 
     May be the URL just retrieved, another URL, or None if no suitable URL can
@@ -63,11 +63,11 @@ def whereIsYadis(resp, body):
 
     @returns: str or None
     """
-    location = resp.getheader(YADIS_HEADER_NAME)
+    location = response.getheader(YADIS_HEADER_NAME)
     if location:
         return location
 
-    content_type = resp.getheader('content-type') or ''
+    content_type = response.getheader('content-type') or ''
     encoding = cgi.parse_header(content_type)[1].get('charset', 'utf-8')
     content = body.decode(encoding, 'replace')
     try:
