@@ -32,41 +32,16 @@ class DiscoveryResult(object):
         self.text = text
         self.xrds = xrds
 
-
-def discover(uri, original_uri=None):
+def _yadis_location(response, body):
     '''
-    Discovers an XRDS document using Yadis protocol.
+    Checks if the HTTP response refers to a Yadis document in its
+    headers or in the HTML meta.
 
-    Returns DiscoveryResult with the original request uri, a response
-    text and a parsed instance of the document if it is indeed an XRDS.
-
-    The `result` argument is used internally for recursion.
+    Returns the location found or None.
     '''
-    response = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
-    text = response.read() # MAX_RESPONSE
-    location = yadis_location(response, text)
-    if location:
-        return discover(location, uri)
-    try:
-        xrds = etxrd.parseXRDS(text)
-    except etxrd.XRDSError:
-        xrds = None
-    return DiscoveryResult(original_uri or uri, text, xrds)
-
-def yadis_location(response, body):
-    """Given a HTTPResponse, return the location of the Yadis document.
-
-    May be the URL just retrieved, another URL, or None if no suitable URL can
-    be found.
-
-    [non-blocking]
-
-    @returns: str or None
-    """
     location = response.getheader(YADIS_HEADER_NAME)
     if location:
         return location
-
     content_type = response.getheader('content-type') or ''
     encoding = cgi.parse_header(content_type)[1].get('charset', 'utf-8')
     content = body.decode(encoding, 'replace')
@@ -74,3 +49,28 @@ def yadis_location(response, body):
         return findHTMLMeta(StringIO(content))
     except MetaNotFound:
         pass
+
+def _fetch_text(uri):
+    '''
+    Fetches the unparsed text of the Yadis document.
+    '''
+    response = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
+    text = response.read() # MAX_RESPONSE
+    location = _yadis_location(response, text)
+    if location:
+        return _fetch_text(location)
+    return text
+
+def discover(uri):
+    '''
+    Discovers an XRDS document using Yadis protocol.
+
+    Returns DiscoveryResult with the original request uri, a response
+    text and a parsed instance of the document if it is indeed an XRDS.
+    '''
+    text = _fetch_text(uri)
+    try:
+        xrds = etxrd.parseXRDS(text)
+    except etxrd.XRDSError:
+        xrds = None
+    return DiscoveryResult(uri, text, xrds)
