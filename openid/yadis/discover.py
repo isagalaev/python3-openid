@@ -35,15 +35,14 @@ class DiscoveryResult(object):
 
 
 def discover(uri, result=None):
-    """Discover services for a given URI.
+    '''
+    Discovers an XRDS document using Yadis protocol.
 
-    @param uri: The identity URI as a well-formed http or https
-        URI. The well-formedness and the protocol are not checked, but
-        the results of this function are undefined if those properties
-        do not hold.
+    Returns DiscoveryResult with the original request uri, a response
+    text and a parsed instance of the document if it is indeed an XRDS.
 
-    @return: DiscoveryResult object
-    """
+    The `result` argument is used internally for recursion.
+    '''
     if result is None:
         result = DiscoveryResult(uri)
     resp = fetchers.fetch(uri, headers={'Accept': YADIS_ACCEPT_HEADER})
