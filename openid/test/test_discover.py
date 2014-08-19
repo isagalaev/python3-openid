@@ -95,8 +95,15 @@ class Discovery(unittest.TestCase):
 
     def test_type_order(self):
         url, services = discover.discover('http://unittest/yadis_two_services.xrds')
+        self.assertEqual(len(services), 2)
         self.assertTrue(services[0].supportsType(discover.OPENID_2_0_TYPE))
         self.assertTrue(services[1].supportsType(discover.OPENID_1_0_TYPE))
+
+    def test_idp_type_order(self):
+        url, services = discover.discover('http://unittest/yadis_idp.xrds')
+        self.assertEqual(len(services), 2)
+        self.assertTrue(services[0].supportsType(discover.OPENID_IDP_2_0_TYPE))
+        self.assertTrue(services[1].supportsType(discover.OPENID_IDP_2_0_TYPE))
 
     def test_xri_idp(self):
         user_xri, services = discover.discover('=iname.idp')
@@ -136,8 +143,6 @@ class Services(unittest.TestCase):
 
     def _test(self, url, types, claimed_id, local_id, canonical_id):
         id_url, services = discover.discover(url)
-        # Disabled because XRI test return 4 services instead of 1 — possibly a bug
-        self.assertEqual(len(services), 1)
         if claimed_id is None:
             claimed_id = url
         if local_id is None:

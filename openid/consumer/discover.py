@@ -283,7 +283,7 @@ def getOPOrUserServices(services):
     '''
     services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
     if services and services[0].isOPIdentifier():
-        services = services[:1]
+        services = [s for s in services if s.isOPIdentifier()]
     return services
 
 def discoverYadis(uri):
