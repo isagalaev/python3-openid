@@ -35,6 +35,14 @@ OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
+# OpenID service type URIs, listed in order of preference.  The
+# ordering of this list affects yadis and XRI service discovery.
+SERVICE_TYPES = [
+    OPENID_IDP_2_0_TYPE,
+    OPENID_2_0_TYPE,
+    OPENID_1_1_TYPE,
+    OPENID_1_0_TYPE,
+]
 
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
@@ -42,16 +50,6 @@ class OpenIDServiceEndpoint(object):
     @ivar identity_url: the verified identifier.
     @ivar canonicalID: For XRI, the persistent identifier.
     """
-
-    # OpenID service type URIs, listed in order of preference.  The
-    # ordering of this list affects yadis and XRI service discovery.
-    openid_type_uris = [
-        OPENID_IDP_2_0_TYPE,
-
-        OPENID_2_0_TYPE,
-        OPENID_1_1_TYPE,
-        OPENID_1_0_TYPE,
-        ]
 
     def __init__(self):
         self.claimed_id = None
@@ -118,7 +116,7 @@ class OpenIDServiceEndpoint(object):
         object passed in.
 
         @return: None or OpenIDServiceEndpoint for this endpoint object"""
-        type_uris = endpoint.matchTypes(cls.openid_type_uris)
+        type_uris = endpoint.matchTypes(SERVICE_TYPES)
 
         # If any Type URIs match and there is an endpoint URI
         # specified, then this is an OpenID endpoint
@@ -315,8 +313,7 @@ def arrangeByType(service_list, preferred_types):
 
 def getOPOrUserServices(openid_services):
     """Extract OP Identifier services.  If none found, return the
-    rest, sorted with most preferred first according to
-    OpenIDServiceEndpoint.openid_type_uris.
+    rest, sorted with most preferred first according to SERVICE_TYPES.
 
     openid_services is a list of OpenIDServiceEndpoint objects.
 
@@ -324,8 +321,7 @@ def getOPOrUserServices(openid_services):
 
     op_services = arrangeByType(openid_services, [OPENID_IDP_2_0_TYPE])
 
-    openid_services = arrangeByType(openid_services,
-                                    OpenIDServiceEndpoint.openid_type_uris)
+    openid_services = arrangeByType(openid_services, SERVICE_TYPES)
 
     return op_services or openid_services
 
@@ -352,8 +348,7 @@ def discoverXRI(iname):
     if iname.startswith('xri://'):
         iname = iname[6:]
     try:
-        canonicalID, services = xrires.ProxyResolver().query(
-            iname, OpenIDServiceEndpoint.openid_type_uris)
+        canonicalID, services = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
 
         if canonicalID is None:
             raise XRDSError('No CanonicalID found for XRI %r' % (iname,))
