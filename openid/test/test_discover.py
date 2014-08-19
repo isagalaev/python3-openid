@@ -93,6 +93,11 @@ class Discovery(unittest.TestCase):
             self.assertEqual(s.local_id, 'http://smoker.myopenid.com/')
             self.assertEqual(s.claimed_id, url)
 
+    def test_type_order(self):
+        url, services = discover.discover('http://unittest/yadis_two_services.xrds')
+        self.assertTrue(services[0].supportsType(discover.OPENID_2_0_TYPE))
+        self.assertTrue(services[1].supportsType(discover.OPENID_1_0_TYPE))
+
     def test_xri_idp(self):
         user_xri, services = discover.discover('=iname.idp')
         self.assertTrue(services)
