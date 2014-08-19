@@ -272,47 +272,16 @@ def normalizeURL(url):
     else:
         return urllib.parse.urldefrag(normalized)[0]
 
-def arrangeByType(service_list, preferred_types):
-    """Rearrange service_list in a new list so services are ordered by
-    types listed in preferred_types.  Return the new list."""
-
-    def bestMatchingService(service):
-        """Return the index of the first matching type, or something
-        higher if no type matches.
-
-        This provides an ordering in which service elements that
-        contain a type that comes earlier in the preferred types list
-        come before service elements that come later. If a service
-        element has more than one type, the most preferred one wins.
-        """
-        for i, t in enumerate(preferred_types):
-            if preferred_types[i] in service.type_uris:
-                return i
-
-        return len(preferred_types)
-
-    # Build a list with the service elements in tuples whose
-    # comparison will prefer the one with the best matching service
-    prio_services = [(bestMatchingService(s), orig_index, s)
-                     for (orig_index, s) in enumerate(service_list)]
-    prio_services.sort()
-
-    # Now that the services are sorted by priority, remove the sort
-    # keys from the list.
-    for i in range(len(prio_services)):
-        prio_services[i] = prio_services[i][2]
-
-    return prio_services
-
-def getOPOrUserServices(openid_services):
-    """Extract OP Identifier services.  If none found, return the
+def getOPOrUserServices(services):
+    '''
+    Extract OP Identifier services.  If none found, return the
     rest, sorted with most preferred first according to SERVICE_TYPES.
 
-    openid_services is a list of OpenIDServiceEndpoint objects.
+    services is a list of OpenIDServiceEndpoint objects.
 
-    Returns a list of OpenIDServiceEndpoint objects."""
-
-    services = arrangeByType(openid_services, SERVICE_TYPES)
+    Returns a list of OpenIDServiceEndpoint objects.
+    '''
+    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
     if services and services[0].isOPIdentifier():
         services = services[:1]
     return services
