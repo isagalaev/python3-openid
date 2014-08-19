@@ -319,11 +319,10 @@ def getOPOrUserServices(openid_services):
 
     Returns a list of OpenIDServiceEndpoint objects."""
 
-    op_services = arrangeByType(openid_services, [OPENID_IDP_2_0_TYPE])
-
-    openid_services = arrangeByType(openid_services, SERVICE_TYPES)
-
-    return op_services or openid_services
+    services = arrangeByType(openid_services, SERVICE_TYPES)
+    if services and services[0].isOPIdentifier():
+        services = services[:1]
+    return services
 
 def discoverYadis(uri):
     """Discover OpenID services for a URI. Tries Yadis and falls back
