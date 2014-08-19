@@ -56,11 +56,10 @@ class OpenIDServiceEndpoint(object):
     def __init__(self):
         self.claimed_id = None
         self.server_url = None
-        self.type_uris = []
         self.local_id = None
         self.canonicalID = None
-        self.used_yadis = False # whether this came from an XRDS
         self.iname = None
+        self.type_uris = []
 
     def usesExtension(self, extension_uri):
         return extension_uri in self.type_uris
@@ -99,7 +98,6 @@ class OpenIDServiceEndpoint(object):
         service element."""
         self.type_uris = type_uris
         self.server_url = uri
-        self.used_yadis = True
 
         if not self.isOPIdentifier():
             # XXX: This has crappy implications for Service elements
@@ -206,14 +204,13 @@ class OpenIDServiceEndpoint(object):
                 "claimed_id=%r "
                 "local_id=%r "
                 "canonicalID=%r "
-                "used_yadis=%s "
                 ">"
                  % (self.__class__.__module__, self.__class__.__name__,
                     self.server_url,
                     self.claimed_id,
                     self.local_id,
                     self.canonicalID,
-                    self.used_yadis))
+                    ))
 
 
 

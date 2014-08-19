@@ -114,22 +114,22 @@ class Discovery(unittest.TestCase):
 @support.gentests
 class Services(unittest.TestCase):
     data = [
-        # arguments: url, used_yadis, types, claimed_id, local_id, canonical_id
+        # arguments: url, types, claimed_id, local_id, canonical_id
         # last four arguments can be None, in which case the url is used instead
-        ('no_delegate', ('http://unittest/openid_no_delegate.html', False, ['1.1'], None, None, None)),
-        ('html1', ('http://unittest/openid.html', False, ['1.1'], None, 'http://smoker.myopenid.com/', None)),
-        ('html2', ('http://unittest/openid2.html', False, ['2.0'], None, 'http://smoker.myopenid.com/', None)),
-        ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', True, ['1.0'], None, None, None)),
-        ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', True, ['2.0'], None, None, None)),
-        ('yadis2', ('http://unittest/openid2_xrds.xrds', True, ['2.0'], None, 'http://smoker.myopenid.com/', None)),
-        ('yadis2_op', ('http://unittest/yadis_idp.xrds', True, ['2.0 OP'], False, False, None)),
-        ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', True, ['2.0 OP'], False, False, None)),
-        ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', True, ['2.0', '1.1'], None, 'http://smoker.myopenid.com/', None)),
-        ('xri', ('=iname', True, ['1.0'], XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"))),
-        ('xri_normalize', ('xri://=iname', True, ['1.0'], XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'))),
+        ('no_delegate', ('http://unittest/openid_no_delegate.html', ['1.1'], None, None, None)),
+        ('html1', ('http://unittest/openid.html', ['1.1'], None, 'http://smoker.myopenid.com/', None)),
+        ('html2', ('http://unittest/openid2.html', ['2.0'], None, 'http://smoker.myopenid.com/', None)),
+        ('yadis1_no_delegate', ('http://unittest/yadis_no_delegate.xrds', ['1.0'], None, None, None)),
+        ('yadis2_no_local_id', ('http://unittest/openid2_xrds_no_local_id.xrds', ['2.0'], None, None, None)),
+        ('yadis2', ('http://unittest/openid2_xrds.xrds', ['2.0'], None, 'http://smoker.myopenid.com/', None)),
+        ('yadis2_op', ('http://unittest/yadis_idp.xrds', ['2.0 OP'], False, False, None)),
+        ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', ['2.0 OP'], False, False, None)),
+        ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', ['2.0', '1.1'], None, 'http://smoker.myopenid.com/', None)),
+        ('xri', ('=iname', ['1.0'], XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"))),
+        ('xri_normalize', ('xri://=iname', ['1.0'], XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'))),
     ]
 
-    def _test(self, url, used_yadis, types, claimed_id, local_id, canonical_id):
+    def _test(self, url, types, claimed_id, local_id, canonical_id):
         id_url, services = discover.discover(url)
         # Disabled because XRI test return 4 services instead of 1 — possibly a bug
         self.assertEqual(len(services), 1)
@@ -151,12 +151,6 @@ class Services(unittest.TestCase):
         else:
             self.assertEqual(claimed_id, s.claimed_id)
             self.assertEqual(local_id, s.getLocalID())
-
-        if used_yadis:
-            self.assertTrue(s.used_yadis, "Expected to use Yadis")
-        else:
-            self.assertFalse(s.used_yadis,
-                        "Expected to use old-style discovery")
 
         openid_types = {
             '1.1': discover.OPENID_1_1_TYPE,
