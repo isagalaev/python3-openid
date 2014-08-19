@@ -167,20 +167,6 @@ class OpenIDServiceEndpoint(object):
     fromHTML = classmethod(fromHTML)
 
 
-    def fromXRDS(cls, uri, xrds):
-        """Parse the given document as XRDS looking for OpenID services.
-
-        @rtype: [OpenIDServiceEndpoint]
-
-        @raises XRDSError: When the XRDS does not parse.
-
-        @since: 2.1.0
-        """
-        return extractServices(uri, xrds, cls)
-
-    fromXRDS = classmethod(fromXRDS)
-
-
     def fromOPEndpointURL(cls, op_endpoint_url):
         """Construct an OP-Identifier OpenIDServiceEndpoint object for
         a given OP Endpoint URL
@@ -299,7 +285,7 @@ def discoverYadis(uri):
     response = yadisDiscover(uri)
 
     if response.xrds:
-        openid_services = OpenIDServiceEndpoint.fromXRDS(response.uri, response.text)
+        openid_services = extractServices(response.uri, response.text, OpenIDServiceEndpoint)
     else:
         openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
     return response.uri, getOPOrUserServices(openid_services)
