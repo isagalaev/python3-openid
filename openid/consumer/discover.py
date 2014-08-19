@@ -20,7 +20,7 @@ from openid import fetchers, urinorm
 
 from openid import yadis
 from openid.yadis.etxrd import nsTag, XRDSError, XRD_NS_2_0
-from openid.yadis.services import applyFilter as extractServices
+from openid.yadis.services import applyFilter
 from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import xrires, filters
@@ -285,7 +285,7 @@ def discoverYadis(uri):
     response = yadisDiscover(uri)
 
     if response.xrds:
-        openid_services = extractServices(response.uri, response.text, OpenIDServiceEndpoint)
+        openid_services = applyFilter(response.uri, response.text, OpenIDServiceEndpoint)
     else:
         openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
     return response.uri, getOPOrUserServices(openid_services)

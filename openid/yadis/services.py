@@ -43,7 +43,7 @@ def applyFilter(uri, xrd_data, flt=None):
 
     """
     flt = mkFilter(flt)
-    et = parseXRDS(xrd_data)
+    et = parseXRDS(xrd_data) if not hasattr(xrd_data, 'root') else xrd_data
 
     endpoints = []
     for service_element in iterServices(et):
