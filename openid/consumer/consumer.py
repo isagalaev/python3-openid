@@ -1703,9 +1703,7 @@ class Response(object):
         Use the display identifier in your user interface.  Use
         L{identity_url} for querying your database or authorization server.
         """
-        if self.endpoint is not None:
-            return self.endpoint.getDisplayIdentifier()
-        return None
+        return self.endpoint and self.endpoint.display_id()
 
 
 class SuccessResponse(Response):

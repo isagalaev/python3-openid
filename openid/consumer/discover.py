@@ -60,7 +60,7 @@ class OpenIDServiceEndpoint(object):
         self.local_id = None
         self.canonicalID = None
         self.used_yadis = False # whether this came from an XRDS
-        self.display_identifier = None
+        self.iname = None
 
     def usesExtension(self, extension_uri):
         return extension_uri in self.type_uris
@@ -82,15 +82,11 @@ class OpenIDServiceEndpoint(object):
             (type_uri == OPENID_2_0_TYPE and self.isOPIdentifier())
             )
 
-    def getDisplayIdentifier(self):
-        """Return the display_identifier if set, else return the claimed_id.
-        """
-        if self.display_identifier is not None:
-            return self.display_identifier
-        if self.claimed_id is None:
-            return None
-        else:
-            return urllib.parse.urldefrag(self.claimed_id)[0]
+    def display_id(self):
+        '''
+        iname or claimed_id formatted for readability
+        '''
+        return self.iname or urllib.parse.urldefrag(self.claimed_id or '').url
 
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID2_NS
@@ -376,7 +372,7 @@ def discoverXRI(iname):
         # constructor instead of tacking it on after?
         endpoint.canonicalID = canonicalID
         endpoint.claimed_id = canonicalID
-        endpoint.display_identifier = iname
+        endpoint.iname = iname
 
     # FIXME: returned xri should probably be in some normal form
     return iname, getOPOrUserServices(endpoints)

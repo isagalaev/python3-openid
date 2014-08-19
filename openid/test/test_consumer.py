@@ -1416,14 +1416,7 @@ class TestSuccessResponse(unittest.TestCase):
 
     def test_displayIdentifierClaimedId(self):
         resp = mkSuccess(self.endpoint, {})
-        self.assertEqual(resp.getDisplayIdentifier(),
-                             resp.endpoint.claimed_id)
-
-    def test_displayIdentifierOverride(self):
-        self.endpoint.display_identifier = "http://input.url/"
-        resp = mkSuccess(self.endpoint, {})
-        self.assertEqual(resp.getDisplayIdentifier(),
-                             "http://input.url/")
+        self.assertEqual(resp.getDisplayIdentifier(), resp.endpoint.claimed_id)
 
 
 class StubConsumer(object):
