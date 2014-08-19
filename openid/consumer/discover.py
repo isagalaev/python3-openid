@@ -27,6 +27,7 @@ from openid.yadis import xrires, filters
 from openid.yadis import xri
 
 from openid.consumer import html_parse
+from openid.message import OPENID1_NS, OPENID2_NS
 
 OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
@@ -34,8 +35,6 @@ OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
 OPENID_1_0_TYPE = 'http://openid.net/signon/1.0'
 
-from openid.message import OPENID1_NS as OPENID_1_0_MESSAGE_NS
-from openid.message import OPENID2_NS as OPENID_2_0_MESSAGE_NS
 
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
@@ -69,9 +68,9 @@ class OpenIDServiceEndpoint(object):
     def preferredNamespace(self):
         if (OPENID_IDP_2_0_TYPE in self.type_uris or
             OPENID_2_0_TYPE in self.type_uris):
-            return OPENID_2_0_MESSAGE_NS
+            return OPENID2_NS
         else:
-            return OPENID_1_0_MESSAGE_NS
+            return OPENID1_NS
 
     def supportsType(self, type_uri):
         """Does this endpoint support this type?
@@ -94,7 +93,7 @@ class OpenIDServiceEndpoint(object):
             return urllib.parse.urldefrag(self.claimed_id)[0]
 
     def compatibilityMode(self):
-        return self.preferredNamespace() != OPENID_2_0_MESSAGE_NS
+        return self.preferredNamespace() != OPENID2_NS
 
     def isOPIdentifier(self):
         return OPENID_IDP_2_0_TYPE in self.type_uris

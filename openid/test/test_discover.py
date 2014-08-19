@@ -149,8 +149,7 @@ class Services(unittest.TestCase):
             self.assertFalse(s.getLocalID())
             self.assertFalse(s.compatibilityMode())
             self.assertTrue(s.isOPIdentifier())
-            self.assertEqual(s.preferredNamespace(),
-                                 discover.OPENID_2_0_MESSAGE_NS)
+            self.assertEqual(s.preferredNamespace(), discover.OPENID2_NS)
         else:
             self.assertEqual(claimed_id, s.claimed_id)
             self.assertEqual(local_id, s.getLocalID())
