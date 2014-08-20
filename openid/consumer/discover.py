@@ -248,16 +248,6 @@ def findOPLocalIdentifier(service_element, type_uris):
 
     return local_id
 
-def normalizeURL(url):
-    """Normalize a URL, converting normalization failures to
-    DiscoveryFailure"""
-    try:
-        normalized = urinorm.urinorm(url)
-    except ValueError as why:
-        raise DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
-    else:
-        return urllib.parse.urldefrag(normalized)[0]
-
 def getOPOrUserServices(services):
     '''
     Extract OP Identifier services.  If none found, return the
@@ -317,14 +307,25 @@ def discoverXRI(iname):
     return iname, getOPOrUserServices(endpoints)
 
 
-def discoverURI(uri):
-    parsed = urllib.parse.urlparse(uri)
+def normalizeURL(url):
+    '''
+    Normalize a URL, converting normalization failures to DiscoveryFailure
+    '''
+    parsed = urllib.parse.urlparse(url)
     if parsed[0] and parsed[1]:
         if parsed[0] not in ['http', 'https']:
             raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)
     else:
-        uri = 'http://' + uri
+        url = 'http://' + url
+    try:
+        normalized = urinorm.urinorm(url)
+    except ValueError as why:
+        raise DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
+    else:
+        return urllib.parse.urldefrag(normalized)[0]
 
+
+def discoverURI(uri):
     uri = normalizeURL(uri)
     claimed_id, openid_services = discoverYadis(uri)
     claimed_id = normalizeURL(claimed_id)
