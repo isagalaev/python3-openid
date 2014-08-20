@@ -80,6 +80,10 @@ class Discovery(unittest.TestCase):
         discover.discover(url)
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://' + url)
 
+    def test_wrong_protocol(self):
+        url = 'ssh://unittest/'
+        self.assertRaises(DiscoveryFailure, discover.discover, url)
+
     def test_localid_mismatch(self):
         with self.assertRaises(DiscoveryFailure):
             discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')

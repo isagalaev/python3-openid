@@ -311,18 +311,15 @@ def normalizeURL(url):
     '''
     Normalize a URL, converting normalization failures to DiscoveryFailure
     '''
-    parsed = urllib.parse.urlparse(url)
-    if parsed[0] and parsed[1]:
-        if parsed[0] not in ['http', 'https']:
-            raise DiscoveryFailure('URI scheme is not HTTP or HTTPS', None)
-    else:
-        url = 'http://' + url
     try:
-        normalized = urinorm.urinorm(url)
+        parsed = urllib.parse.urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            # checking both scheme and netloc as things like 'server:80/' put 'server' in scheme
+            url = 'http://' + url
+        url = urinorm.urinorm(url)
+        return urllib.parse.urldefrag(url)[0]
     except ValueError as why:
         raise DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
-    else:
-        return urllib.parse.urldefrag(normalized)[0]
 
 
 def discoverURI(uri):
