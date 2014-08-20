@@ -262,24 +262,6 @@ def getOPOrUserServices(services):
         services = [s for s in services if s.isOPIdentifier()]
     return services
 
-def discoverYadis(uri):
-    """Discover OpenID services for a URI. Tries Yadis and falls back
-    on old-style <link rel='...'> discovery if Yadis fails.
-
-    @param uri: normalized identity URL
-    @type uri: str
-
-    @return: (claimed_id, services)
-    @rtype: (str, list(OpenIDServiceEndpoint))
-    """
-    response = yadisDiscover(uri)
-
-    if response.xrds:
-        openid_services = applyFilter(response.uri, response.text, OpenIDServiceEndpoint)
-    else:
-        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
-    return response.uri, getOPOrUserServices(openid_services)
-
 def discoverXRI(iname):
     endpoints = []
     if iname.startswith('xri://'):
@@ -324,9 +306,12 @@ def normalizeURL(url):
 
 def discoverURI(uri):
     uri = normalizeURL(uri)
-    claimed_id, openid_services = discoverYadis(uri)
-    claimed_id = normalizeURL(claimed_id)
-    return claimed_id, openid_services
+    response = yadisDiscover(uri)
+    if response.xrds:
+        openid_services = applyFilter(response.uri, response.text, OpenIDServiceEndpoint)
+    else:
+        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
+    return normalizeURL(response.uri), getOPOrUserServices(openid_services)
 
 def discover(identifier):
     if xri.identifierScheme(identifier) == "XRI":
