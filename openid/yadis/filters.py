@@ -77,7 +77,7 @@ class TransformFilterMaker(object):
     functions to it until one of them returns a value.
     """
 
-    def __init__(self, filter_functions):
+    def __init__(self, filter_function):
         """Initialize the filter maker's state
 
         @param filter_functions: The endpoint transformer functions to
@@ -85,7 +85,7 @@ class TransformFilterMaker(object):
             until one of them does not return None, and the result of
             that transformer is returned.
         """
-        self.filter_functions = filter_functions
+        self.filter_function = filter_function
 
     def getServiceEndpoints(self, yadis_url, service_element):
         """Returns an iterator of endpoint objects produced by the
@@ -109,14 +109,7 @@ class TransformFilterMaker(object):
     def applyFilters(self, endpoint):
         """Apply filter functions to an endpoint until one of them
         returns non-None."""
-        for filter_function in self.filter_functions:
-            e = filter_function(endpoint)
-            if e is not None:
-                # Once one of the filters has returned an
-                # endpoint, do not apply any more.
-                return e
-
-        return None
+        return self.filter_function(endpoint)
 
 
 def mkFilter(source):
@@ -127,15 +120,16 @@ def mkFilter(source):
     if source is None:
         source = BasicServiceEndpoint
 
-    transformers = []
     if hasattr(source, 'fromBasicServiceEndpoint'):
         # It's an endpoint object, so put its endpoint
         # conversion attribute into the list of endpoint
         # transformers
-        transformers.append(source.fromBasicServiceEndpoint)
+        func = source.fromBasicServiceEndpoint
     elif isinstance(source, collections.Callable):
         # It's a simple callable, so add it to the list of
         # endpoint transformers
-        transformers.append(source)
+        func = source
+    else:
+        raise TypeError('Filter source is neither an endpoint nor a callable')
 
-    return TransformFilterMaker(transformers)
+    return TransformFilterMaker(func)
