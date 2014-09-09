@@ -149,21 +149,14 @@ filter_type_error = TypeError(
     'Expected a filter, an endpoint, a callable or a list of any of these.')
 
 
-def mkFilter(parts):
+def mkFilter(source):
     """Convert a filter-convertable thing into a filter
 
     @param parts: a filter, an endpoint, a callable, or a list of any of these.
     """
-    # Convert the parts into a list, and pass to mkCompoundFilter
-    if parts is None:
-        parts = [BasicServiceEndpoint]
-
-    try:
-        parts = list(parts)
-    except TypeError:
-        return mkCompoundFilter([parts])
-    else:
-        return mkCompoundFilter(parts)
+    if source is None:
+        source = BasicServiceEndpoint
+    return mkCompoundFilter([source])
 
 
 def mkCompoundFilter(parts):
