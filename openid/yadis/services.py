@@ -22,9 +22,9 @@ def getServiceEndpoints(url, flt=None):
 
     @raises DiscoveryFailure: when Yadis fails to obtain an XRDS document.
     """
-    text, xrds = discover(url)
     try:
-        endpoints = applyFilter(url, text, flt)
+        xrds = discover(url)
+        endpoints = applyFilter(url, xrds, flt)
     except XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
