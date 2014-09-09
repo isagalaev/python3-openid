@@ -77,15 +77,15 @@ class TransformFilterMaker(object):
     functions to it until one of them returns a value.
     """
 
-    def __init__(self, filter_function):
+    def __init__(self, func):
         """Initialize the filter maker's state
 
-        @param filter_functions: The endpoint transformer functions to
+        @param funcs: The endpoint transformer functions to
             apply to the basic endpoint. These are called in turn
             until one of them does not return None, and the result of
             that transformer is returned.
         """
-        self.filter_function = filter_function
+        self.func = func
 
     def getServiceEndpoints(self, yadis_url, service_element):
         """Returns an iterator of endpoint objects produced by the
@@ -100,17 +100,11 @@ class TransformFilterMaker(object):
             endpoint = BasicServiceEndpoint(
                 yadis_url, type_uris, uri, service_element)
 
-            e = self.applyFilters(endpoint)
+            e = self.func(endpoint)
             if e is not None:
                 endpoints.append(e)
 
         return endpoints
-
-    def applyFilters(self, endpoint):
-        """Apply filter functions to an endpoint until one of them
-        returns non-None."""
-        return self.filter_function(endpoint)
-
 
 def mkFilter(source):
     """Convert a filter-convertable thing into a filter
