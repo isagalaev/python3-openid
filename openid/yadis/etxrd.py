@@ -3,21 +3,6 @@
 ElementTree interface to an XRD document.
 """
 
-__all__ = [
-    'nsTag',
-    'mkXRDTag',
-    'isXRDS',
-    'parseXRDS',
-    'getCanonicalID',
-    'getYadisXRD',
-    'getPriorityStrict',
-    'getPriority',
-    'prioSort',
-    'iterServices',
-    'expandService',
-    'expandServices',
-    ]
-
 import sys
 import random
 import functools
@@ -50,6 +35,15 @@ class XRDSError(Exception):
     # The exception that triggered this exception
     reason = None
 
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class XRDSParseError(XRDSError):
+    def __init__(self, message, data):
+        super().__init__(message)
+        self.data = data
+
 
 class XRDSFraud(XRDSError):
     """Raised when there's an assertion in the XRDS that it does not have
@@ -68,13 +62,13 @@ def parseXRDS(text):
     try:
         element = ElementTree.XML(text)
     except XMLError as why:
-        exc = XRDSError('Error parsing document as XML')
+        exc = XRDSParseError('Error parsing document as XML', text)
         exc.reason = why
         raise exc
     else:
         tree = ElementTree.ElementTree(element)
         if not isXRDS(tree):
-            raise XRDSError('Not an XRDS document')
+            raise XRDSParseError('Not an XRDS document', text)
 
         return tree
 

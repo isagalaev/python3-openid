@@ -19,7 +19,8 @@ import logging
 from openid import fetchers, urinorm
 
 from openid import yadis
-from openid.yadis.etxrd import nsTag, XRDSError, XRD_NS_2_0
+from openid.yadis import etxrd
+from openid.yadis.etxrd import nsTag, XRD_NS_2_0
 from openid.yadis.services import applyFilter
 from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
@@ -270,13 +271,13 @@ def discoverXRI(iname):
         canonicalID, services = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
 
         if canonicalID is None:
-            raise XRDSError('No CanonicalID found for XRI %r' % (iname,))
+            raise etxrd.XRDSError('No CanonicalID found for XRI %r' % iname)
 
         flt = filters.mkFilter(OpenIDServiceEndpoint)
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
-    except XRDSError:
-        logging.exception('xrds error on ' + iname)
+    except etxrd.XRDSError:
+        logging.exception('xrds error on %s' % iname)
 
     for endpoint in endpoints:
         # Is there a way to pass this through the filter to the endpoint
@@ -306,11 +307,11 @@ def normalizeURL(url):
 
 def discoverURI(uri):
     uri = normalizeURL(uri)
-    text, xrds = yadisDiscover(uri)
-    if xrds:
+    try:
+        xrds = yadisDiscover(uri)
         openid_services = applyFilter(uri, xrds, OpenIDServiceEndpoint)
-    else:
-        openid_services = OpenIDServiceEndpoint.fromHTML(uri, text)
+    except etxrd.XRDSParseError as e:
+        openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)
 
 def discover(identifier):

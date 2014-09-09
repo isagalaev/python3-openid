@@ -49,9 +49,4 @@ def discover(uri):
     Returns DiscoveryResult with the original request uri, a response
     text and a parsed instance of the document if it is indeed an XRDS.
     '''
-    text = _fetch_text(uri)
-    try:
-        xrds = etxrd.parseXRDS(text)
-    except etxrd.XRDSError:
-        xrds = None
-    return text, xrds
+    return etxrd.parseXRDS(_fetch_text(uri))
