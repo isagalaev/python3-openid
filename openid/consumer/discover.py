@@ -306,12 +306,12 @@ def normalizeURL(url):
 
 def discoverURI(uri):
     uri = normalizeURL(uri)
-    response = yadisDiscover(uri)
-    if response.xrds:
-        openid_services = applyFilter(response.uri, response.text, OpenIDServiceEndpoint)
+    text, xrds = yadisDiscover(uri)
+    if xrds:
+        openid_services = applyFilter(uri, text, OpenIDServiceEndpoint)
     else:
-        openid_services = OpenIDServiceEndpoint.fromHTML(response.uri, response.text)
-    return normalizeURL(response.uri), getOPOrUserServices(openid_services)
+        openid_services = OpenIDServiceEndpoint.fromHTML(uri, text)
+    return uri, getOPOrUserServices(openid_services)
 
 def discover(identifier):
     if xri.identifierScheme(identifier) == "XRI":

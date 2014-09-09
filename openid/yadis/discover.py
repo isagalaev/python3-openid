@@ -13,19 +13,6 @@ class DiscoveryFailure(Exception):
         Exception.__init__(self, message)
         self.http_response = http_response
 
-class DiscoveryResult(object):
-    '''
-    Yadis discovery result:
-
-    - `uri`: original request uri
-    - `text`: full response text
-    - `xrds`: parsed tree, if `text` is an XRDS document
-    '''
-    def __init__(self, uri, text, xrds):
-        self.uri = uri
-        self.text = text
-        self.xrds = xrds
-
 def _yadis_location(response, body):
     '''
     Checks if the HTTP response refers to a Yadis document in its
@@ -67,4 +54,4 @@ def discover(uri):
         xrds = etxrd.parseXRDS(text)
     except etxrd.XRDSError:
         xrds = None
-    return DiscoveryResult(uri, text, xrds)
+    return text, xrds

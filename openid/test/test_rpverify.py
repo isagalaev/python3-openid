@@ -3,7 +3,7 @@
 
 __all__ = ['TestBuildDiscoveryURL']
 
-from openid.yadis.discover import DiscoveryResult, DiscoveryFailure
+from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import services
 from openid.server import trustroot
 from openid.test.support import CatchLogs
@@ -48,7 +48,7 @@ class TestExtractReturnToURLs(unittest.TestCase):
         services.discover = self.original_discover
 
     def mockDiscover(self, uri):
-        return DiscoveryResult(uri, self.data, None)
+        return self.data, None
 
     def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
         self.failUnlessXRDSHasReturnURLs(open(filename).read(),

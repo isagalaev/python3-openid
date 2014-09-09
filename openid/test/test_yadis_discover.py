@@ -22,18 +22,12 @@ class XRDS(unittest.TestCase):
         if params:
             path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
-        result = discover(url)
-        self.assertTrue(result.xrds)
+        text, xrds = discover(url)
+        self.assertTrue(xrds)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Special(unittest.TestCase):
-    def test_source_uri(self):
-        params = {'header': 'X-XRDS-Location: http://unittest/openid_1_and_2_xrds.xrds'}
-        url = 'http://unittest/?' + urllib.parse.urlencode(params)
-        result = discover(url)
-        self.assertEqual(result.uri, url)
-
     def test_second_get(self):
         params = {'header': 'X-XRDS-Location: http://unittest/404'}
         url = 'http://unittest/?' + urllib.parse.urlencode(params)
