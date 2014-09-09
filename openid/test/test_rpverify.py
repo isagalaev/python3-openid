@@ -46,15 +46,16 @@ class TestExtractReturnToURLs(unittest.TestCase):
         self.assertEqual(expected_return_urls, actual_return_urls)
 
     def test_no_entries(self):
+
         self.failUnlessXRDSHasReturnURLs('http://unittest/yadis_0entries.xrds', [])
 
     def test_success(self):
         self.failUnlessXRDSHasReturnURLs(
-          'http://unittest/return_to.xrds',
-          [
-            'http://rp.example.com/return',
-            'http://mirror.rp.example.com/return',
-          ]
+            'http://unittest/return_to.xrds',
+            [
+                'http://rp.example.com/return',
+                'http://mirror.rp.example.com/return',
+            ]
         )
 
 
