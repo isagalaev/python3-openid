@@ -128,27 +128,6 @@ class TransformFilterMaker(object):
         return None
 
 
-class CompoundFilter(object):
-    """Create a new filter that applies a set of filters to an endpoint
-    and collects their results.
-    """
-    def __init__(self, subfilters):
-        self.subfilters = subfilters
-
-    def getServiceEndpoints(self, yadis_url, service_element):
-        """Generate all endpoint objects for all of the subfilters of
-        this filter and return their concatenation."""
-        endpoints = []
-        for subfilter in self.subfilters:
-            endpoints.extend(
-                subfilter.getServiceEndpoints(yadis_url, service_element))
-        return endpoints
-
-# Exception raised when something is not able to be turned into a filter
-filter_type_error = TypeError(
-    'Expected a filter, an endpoint, a callable or a list of any of these.')
-
-
 def mkFilter(source):
     """Convert a filter-convertable thing into a filter
 
