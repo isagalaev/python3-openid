@@ -4,7 +4,6 @@ from html.parser import HTMLParser, HTMLParseError
 import html.entities
 import re
 
-from openid.yadis.constants import YADIS_HEADER_NAME
 
 # Size of the chunks to search at a time (also the amount that gets
 # read at a time)
@@ -143,7 +142,7 @@ class YadisHTMLParser(HTMLParser):
             if tag == 'meta':
                 attrs_d = dict(attrs)
                 http_equiv = attrs_d.get('http-equiv', '').lower()
-                if http_equiv == YADIS_HEADER_NAME.lower():
+                if http_equiv == 'x-xrds-location':
                     raw_attr = attrs_d.get('content')
                     yadis_loc = substituteEntities(raw_attr)
                     # [6]
