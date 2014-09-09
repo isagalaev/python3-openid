@@ -1,7 +1,7 @@
 # -*- test-case-name: openid.test.test_services -*-
 
 from openid.yadis.filters import mkFilter
-from openid.yadis.discover import discover, DiscoveryFailure
+from openid.yadis.discover import fetch_data, DiscoveryFailure
 from openid.yadis.etxrd import parseXRDS, iterServices, XRDSError
 
 def getServiceEndpoints(url, flt=None):
@@ -23,7 +23,7 @@ def getServiceEndpoints(url, flt=None):
     @raises DiscoveryFailure: when Yadis fails to obtain an XRDS document.
     """
     try:
-        xrds = discover(url)
+        xrds = parseXRDS(fetch_data(url))
         endpoints = applyFilter(url, xrds, flt)
     except XRDSError as err:
         raise DiscoveryFailure(str(err), None)

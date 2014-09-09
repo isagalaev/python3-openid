@@ -2,7 +2,6 @@ import cgi
 import io
 
 from openid import fetchers
-from openid.yadis import etxrd
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
 class DiscoveryFailure(Exception):
@@ -31,7 +30,7 @@ def _yadis_location(response, body):
     except MetaNotFound:
         pass
 
-def _fetch_text(uri):
+def fetch_data(uri):
     '''
     Fetches the unparsed text of the Yadis document.
     '''
@@ -39,14 +38,5 @@ def _fetch_text(uri):
     text = response.read() # MAX_RESPONSE
     location = _yadis_location(response, text)
     if location:
-        return _fetch_text(location)
+        return fetch_data(location)
     return text
-
-def discover(uri):
-    '''
-    Discovers an XRDS document using Yadis protocol.
-
-    Returns DiscoveryResult with the original request uri, a response
-    text and a parsed instance of the document if it is indeed an XRDS.
-    '''
-    return etxrd.parseXRDS(_fetch_text(uri))

@@ -1,24 +1,19 @@
 import unittest
+from unittest import mock
 
-from openid.yadis import services, etxrd
+from openid.yadis import services
 from openid.yadis.discover import DiscoveryFailure
 
+from . import support
 
+
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestGetServiceEndpoints(unittest.TestCase):
-    def setUp(self):
-        self.orig_discover = services.discover
-        services.discover = self.discover
-
-    def tearDown(self):
-        services.discover = self.orig_discover
-
-    def discover(self, input_url):
-        return etxrd.parseXRDS('This is not XRDS text.')
 
     def test_catchXRDSError(self):
         self.assertRaises(DiscoveryFailure,
                               services.getServiceEndpoints,
-                              "http://example.invalid/sometest")
+                              'http://unittest/junk.txt')
 
 
 if __name__ == '__main__':

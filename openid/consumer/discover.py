@@ -21,7 +21,7 @@ from openid import fetchers, urinorm
 from openid import yadis
 from openid.yadis import etxrd
 from openid.yadis.services import applyFilter
-from openid.yadis.discover import discover as yadisDiscover
+from openid.yadis.discover import fetch_data
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import xrires, filters
 from openid.yadis import xri
@@ -307,7 +307,7 @@ def normalizeURL(url):
 def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
-        xrds = yadisDiscover(uri)
+        xrds = fetch_data(uri)
         openid_services = applyFilter(uri, xrds, OpenIDServiceEndpoint)
     except etxrd.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
