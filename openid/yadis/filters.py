@@ -135,31 +135,25 @@ def mkFilter(source):
     """
     if source is None:
         source = BasicServiceEndpoint
-    return mkCompoundFilter([source])
+    return mkCompoundFilter(source)
 
 
-def mkCompoundFilter(parts):
+def mkCompoundFilter(source):
     """Create a filter out of a list of filter-like things
 
     Used by mkFilter
 
     @param parts: list of filter, endpoint, callable or list of any of these
     """
-    # Separate into a list of callables and a list of filter objects
     transformers = []
-    for subfilter in parts:
-        try:
-            subfilter = list(subfilter)
-        except TypeError:
-            # If it's not an iterable
-            if hasattr(subfilter, 'fromBasicServiceEndpoint'):
-                # It's an endpoint object, so put its endpoint
-                # conversion attribute into the list of endpoint
-                # transformers
-                transformers.append(subfilter.fromBasicServiceEndpoint)
-            elif isinstance(subfilter, collections.Callable):
-                # It's a simple callable, so add it to the list of
-                # endpoint transformers
-                transformers.append(subfilter)
+    if hasattr(source, 'fromBasicServiceEndpoint'):
+        # It's an endpoint object, so put its endpoint
+        # conversion attribute into the list of endpoint
+        # transformers
+        transformers.append(source.fromBasicServiceEndpoint)
+    elif isinstance(source, collections.Callable):
+        # It's a simple callable, so add it to the list of
+        # endpoint transformers
+        transformers.append(source)
 
     return TransformFilterMaker(transformers)
