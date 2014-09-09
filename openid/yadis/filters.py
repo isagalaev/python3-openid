@@ -56,15 +56,6 @@ class BasicServiceEndpoint(object):
     fromBasicServiceEndpoint = staticmethod(fromBasicServiceEndpoint)
 
 
-class IFilter(object):
-    """Interface for Yadis filter objects. Other filter-like things
-    are convertable to this class."""
-
-    def getServiceEndpoints(self, yadis_url, service_element):
-        """Returns an iterator of endpoint objects"""
-        raise NotImplementedError
-
-
 def filter_endpoints(pred, yadis_url, service_element):
     """Returns an iterator of endpoint objects produced by the
     filter functions."""
