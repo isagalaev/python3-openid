@@ -40,18 +40,14 @@ class TestBuildDiscoveryURL(unittest.TestCase):
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestExtractReturnToURLs(unittest.TestCase):
-
-    def failUnlessXRDSHasReturnURLs(self, url, expected_return_urls):
-        actual_return_urls = list(trustroot.getAllowedReturnURLs(url))
-        self.assertEqual(expected_return_urls, actual_return_urls)
-
     def test_no_entries(self):
-
-        self.failUnlessXRDSHasReturnURLs('http://unittest/yadis_0entries.xrds', [])
+        urls = trustroot.getAllowedReturnURLs('http://unittest/yadis_0entries.xrds')
+        self.assertEqual(urls, [])
 
     def test_success(self):
-        self.failUnlessXRDSHasReturnURLs(
-            'http://unittest/return_to.xrds',
+        urls = trustroot.getAllowedReturnURLs('http://unittest/return_to.xrds')
+        self.assertEqual(
+            urls,
             [
                 'http://rp.example.com/return',
                 'http://mirror.rp.example.com/return',
