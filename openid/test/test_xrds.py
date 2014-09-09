@@ -1,11 +1,13 @@
 import unittest
-from openid.yadis import services, etxrd, xri
 import os.path
+
+from openid import xrds, xri
+from openid.yadis import services
 
 
 def datapath(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(module_directory, 'data', 'test_etxrd', filename)
+    return os.path.join(module_directory, 'data', 'test_xrds', filename)
 
 XRD_FILE = datapath('valid-populated-xrds.xml')
 NOXRDS_FILE = datapath('not-xrds.xml')
@@ -107,7 +109,7 @@ class TestServiceParser(unittest.TestCase):
         with open(NOXRDS_FILE, 'rb') as f:
             self.xmldoc = f.read()
         self.assertRaises(
-            etxrd.XRDSError,
+            xrds.XRDSError,
             services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testEmpty(self):
@@ -115,7 +117,7 @@ class TestServiceParser(unittest.TestCase):
         not present"""
         self.xmldoc = ''
         self.assertRaises(
-            etxrd.XRDSError,
+            xrds.XRDSError,
             services.applyFilter, self.yadis_url, self.xmldoc, None)
 
     def testNoXRD(self):
@@ -124,7 +126,7 @@ class TestServiceParser(unittest.TestCase):
         with open(NOXRD_FILE, 'rb') as f:
             self.xmldoc = f.read()
         self.assertRaises(
-            etxrd.XRDSError,
+            xrds.XRDSError,
             services.applyFilter, self.yadis_url, self.xmldoc, None)
 
 
@@ -138,8 +140,8 @@ class TestCanonicalID(unittest.TestCase):
 
         def test(self):
             with open(filename, 'rb') as f:
-                xrds = etxrd.parseXRDS(f.read())
-            self._getCanonicalID(iname, xrds, expectedID)
+                et = xrds.parseXRDS(f.read())
+            self._getCanonicalID(iname, et, expectedID)
         return test
 
     test_delegated = mkTest(
@@ -162,11 +164,11 @@ class TestCanonicalID(unittest.TestCase):
         "@ootao*test1", "prefixsometimes.xrds",
         "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
 
-    test_spoof1 = mkTest("=keturn*isDrummond", "spoof1.xrds", etxrd.XRDSFraud)
+    test_spoof1 = mkTest("=keturn*isDrummond", "spoof1.xrds", xrds.XRDSFraud)
 
-    test_spoof2 = mkTest("=keturn*isDrummond", "spoof2.xrds", etxrd.XRDSFraud)
+    test_spoof2 = mkTest("=keturn*isDrummond", "spoof2.xrds", xrds.XRDSFraud)
 
-    test_spoof3 = mkTest("@keturn*is*drummond", "spoof3.xrds", etxrd.XRDSFraud)
+    test_spoof3 = mkTest("@keturn*is*drummond", "spoof3.xrds", xrds.XRDSFraud)
 
     test_status222 = mkTest("=x", "status222.xrds", None)
 
@@ -175,7 +177,7 @@ class TestCanonicalID(unittest.TestCase):
                                    '=!E117.EF2F.454B.C707!0000.0000.3B9A.CA01')
 
     test_iri_auth_not_allowed = mkTest(
-        "phreak.example.com", "delegated-20060809-r2.xrds", etxrd.XRDSFraud)
+        "phreak.example.com", "delegated-20060809-r2.xrds", xrds.XRDSFraud)
     test_iri_auth_not_allowed.__doc__ = \
         "Don't let IRI authorities be canonical for the GCS."
 
@@ -186,13 +188,13 @@ class TestCanonicalID(unittest.TestCase):
     # TODO: Add test cases with real examples of multiple CanonicalIDs
     #   somewhere in the resolution chain.
 
-    def _getCanonicalID(self, iname, xrds, expectedID):
+    def _getCanonicalID(self, iname, et, expectedID):
         if isinstance(expectedID, (str, type(None))):
-            cid = etxrd.getCanonicalID(iname, xrds)
+            cid = xrds.getCanonicalID(iname, et)
             self.assertEqual(cid, expectedID and xri.XRI(expectedID))
-        elif issubclass(expectedID, etxrd.XRDSError):
-            self.assertRaises(expectedID, etxrd.getCanonicalID,
-                                  iname, xrds)
+        elif issubclass(expectedID, xrds.XRDSError):
+            self.assertRaises(expectedID, xrds.getCanonicalID,
+                                  iname, et)
         else:
             self.fail("Don't know how to test for expected value %r"
                       % (expectedID,))

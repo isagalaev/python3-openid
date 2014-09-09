@@ -1,5 +1,5 @@
 from unittest import TestCase
-from openid.yadis import xri
+from openid import xri
 
 
 class XriDiscoveryTestCase(TestCase):

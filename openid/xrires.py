@@ -1,16 +1,15 @@
 # -*- test-case-name: openid.test.test_xrires -*-
 """XRI resolution.
 """
-
 from urllib.parse import urlencode
 import urllib.error
-from openid import fetchers
-from openid.yadis import etxrd
-from openid.yadis.xri import toURINormal
-from openid.yadis.etxrd import iterServices, getTypeURIs
 import logging
 
+from openid import fetchers, xri, xrds
+
+
 DEFAULT_PROXY = 'http://proxy.xri.net/'
+
 
 class ProxyResolver(object):
     """Python interface to a remote XRI proxy resolver.
@@ -19,7 +18,7 @@ class ProxyResolver(object):
         self.proxy_url = proxy_url
 
 
-    def queryURL(self, xri, service_type=None):
+    def queryURL(self, url, service_type=None):
         """Build a URL to query the proxy resolver.
 
         @param xri: An XRI to resolve.
@@ -35,7 +34,7 @@ class ProxyResolver(object):
         # Trim off the xri:// prefix.  The proxy resolver didn't accept it
         # when this code was written, but that may (or may not) change for
         # XRI Resolution 2.0 Working Draft 11.
-        qxri = toURINormal(xri)[6:]
+        qxri = xri.toURINormal(url)[6:]
         hxri = self.proxy_url + qxri
         args = {
             # XXX: If the proxy resolver will ensure that it doesn't return
@@ -56,7 +55,7 @@ class ProxyResolver(object):
     def query(self, xri, service_types):
         """Resolve some services for an XRI.
 
-        May raise urllib.error.URLError or L{etxrd.XRDSError} if
+        May raise urllib.error.URLError or L{xrds.XRDSError} if
         the fetching or parsing don't go so well.
 
         @param xri: An XRI to resolve.
@@ -81,10 +80,10 @@ class ProxyResolver(object):
             url = self.queryURL(xri, service_type)
             try:
                 response = fetchers.fetch(url)
-                et = etxrd.parseXRDS(response.read()) # MAX_RESPONSE
-                canonicalID = etxrd.getCanonicalID(xri, et)
-                some_services = iterServices(et)
-                some_services = [s for s in some_services if service_type in getTypeURIs(s)]
+                et = xrds.parseXRDS(response.read()) # MAX_RESPONSE
+                canonicalID = xrds.getCanonicalID(xri, et)
+                some_services = xrds.iterServices(et)
+                some_services = [s for s in some_services if service_type in xrds.getTypeURIs(s)]
                 services.extend(some_services)
             except urllib.error.HTTPError as e:
                 logging.warning(str(e))

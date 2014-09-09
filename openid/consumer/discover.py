@@ -18,13 +18,11 @@ import logging
 
 from openid import fetchers, urinorm
 
-from openid import yadis
-from openid.yadis import etxrd
+from openid import yadis, xri, xrires, xrds
 from openid.yadis.services import applyFilter
 from openid.yadis.discover import fetch_data
 from openid.yadis.discover import DiscoveryFailure
-from openid.yadis import xrires, filters
-from openid.yadis import xri
+from openid.yadis import filters
 
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
@@ -229,10 +227,10 @@ def findOPLocalIdentifier(service_element, type_uris):
     local_id_tags = []
     if (OPENID_1_1_TYPE in type_uris or
         OPENID_1_0_TYPE in type_uris):
-        local_id_tags.append(etxrd.nsTag(OPENID_1_0_NS, 'Delegate'))
+        local_id_tags.append(xrds.nsTag(OPENID_1_0_NS, 'Delegate'))
 
     if OPENID_2_0_TYPE in type_uris:
-        local_id_tags.append(etxrd.nsTag(etxrd.XRD_NS_2_0, 'LocalID'))
+        local_id_tags.append(xrds.nsTag(xrds.XRD_NS_2_0, 'LocalID'))
 
     # Walk through all the matching tags and make sure that they all
     # have the same value
@@ -270,12 +268,12 @@ def discoverXRI(iname):
         canonicalID, services = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
 
         if canonicalID is None:
-            raise etxrd.XRDSError('No CanonicalID found for XRI %r' % iname)
+            raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
         flt = filters.mkFilter(OpenIDServiceEndpoint)
         for service_element in services:
             endpoints.extend(flt.getServiceEndpoints(iname, service_element))
-    except etxrd.XRDSError:
+    except xrds.XRDSError:
         logging.exception('xrds error on %s' % iname)
 
     for endpoint in endpoints:
@@ -307,9 +305,9 @@ def normalizeURL(url):
 def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
-        xrds = fetch_data(uri)
-        openid_services = applyFilter(uri, xrds, OpenIDServiceEndpoint)
-    except etxrd.XRDSParseError as e:
+        data = fetch_data(uri)
+        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint)
+    except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)
 

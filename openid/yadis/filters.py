@@ -11,7 +11,7 @@ __all__ = [
     'CompoundFilter',
     ]
 
-from openid.yadis.etxrd import expandService
+from openid import xrds
 import collections
 
 
@@ -102,7 +102,7 @@ class TransformFilterMaker(object):
         endpoints = []
 
         # Do an expansion of the service element by xrd:Type and xrd:URI
-        for type_uris, uri, _ in expandService(service_element):
+        for type_uris, uri, _ in xrds.expandService(service_element):
 
             # Create a basic endpoint object to represent this
             # yadis_url, Service, Type, URI combination

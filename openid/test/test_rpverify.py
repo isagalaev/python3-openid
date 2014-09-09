@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from openid.yadis.discover import DiscoveryFailure
-from openid.yadis import services, etxrd
+from openid.yadis import services
 from openid.server import trustroot
 from openid.test.support import CatchLogs
 

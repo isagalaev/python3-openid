@@ -52,7 +52,7 @@ def pyUnitTests():
         'consumer',
         'message',
         'symbol',
-        'etxrd',
+        'xrds',
         'xri',
         'xrires',
         'association_response',

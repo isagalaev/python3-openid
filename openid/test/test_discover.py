@@ -8,8 +8,7 @@ from urllib.parse import urlsplit, urlencode, urljoin
 from . import support
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer import discover
-from openid.yadis.xri import XRI
-from openid import message
+from openid import xri, message
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
@@ -141,8 +140,8 @@ class Services(unittest.TestCase):
         ('yadis2_op', ('http://unittest/yadis_idp.xrds', ['2.0 OP'], False, False, None)),
         ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', ['2.0 OP'], False, False, None)),
         ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', ['2.0', '1.1'], None, 'http://smoker.myopenid.com/', None)),
-        ('xri', ('=iname', ['1.0'], XRI("=!1000"), 'http://smoker.myopenid.com/', XRI("=!1000"))),
-        ('xri_normalize', ('xri://=iname', ['1.0'], XRI('=!1000'), 'http://smoker.myopenid.com/', XRI('=!1000'))),
+        ('xri', ('=iname', ['1.0'], xri.XRI("=!1000"), 'http://smoker.myopenid.com/', xri.XRI("=!1000"))),
+        ('xri_normalize', ('xri://=iname', ['1.0'], xri.XRI('=!1000'), 'http://smoker.myopenid.com/', xri.XRI('=!1000'))),
     ]
 
     def _test(self, url, types, claimed_id, local_id, canonical_id):
@@ -253,9 +252,9 @@ class Endpoint(unittest.TestCase):
         """When there is no delegate, the CanonicalID should be used with XRI.
         """
         endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = XRI("=!1000")
-        endpoint.canonicalID = XRI("=!1000")
-        self.assertEqual(endpoint.getLocalID(), XRI("=!1000"))
+        endpoint.claimed_id = xri.XRI("=!1000")
+        endpoint.canonicalID = xri.XRI("=!1000")
+        self.assertEqual(endpoint.getLocalID(), xri.XRI("=!1000"))
 
 
 @support.gentests

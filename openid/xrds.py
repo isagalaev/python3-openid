@@ -1,4 +1,3 @@
-# -*- test-case-name: yadis.test.test_etxrd -*-
 """
 ElementTree interface to an XRD document.
 """
@@ -10,6 +9,7 @@ import functools
 from datetime import datetime
 from time import strptime
 
+from openid import xri
 from openid.oidutil import importElementTree
 ElementTree = importElementTree()
 
@@ -25,8 +25,6 @@ except (SystemExit, MemoryError, AssertionError, ImportError):
     raise
 except:
     XMLError = sys.exc_info()[0]
-
-from openid.yadis import xri
 
 
 class XRDSError(Exception):

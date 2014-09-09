@@ -1,8 +1,7 @@
-# -*- test-case-name: openid.test.test_services -*-
-
+from openid import xrds
 from openid.yadis.filters import mkFilter
 from openid.yadis.discover import fetch_data, DiscoveryFailure
-from openid.yadis.etxrd import parseXRDS, iterServices, XRDSError
+
 
 def getServiceEndpoints(url, flt=None):
     """Perform the Yadis protocol on the input URL and return an
@@ -23,13 +22,13 @@ def getServiceEndpoints(url, flt=None):
     @raises DiscoveryFailure: when Yadis fails to obtain an XRDS document.
     """
     try:
-        xrds = parseXRDS(fetch_data(url))
-        endpoints = applyFilter(url, xrds, flt)
-    except XRDSError as err:
+        et = xrds.parseXRDS(fetch_data(url))
+        endpoints = applyFilter(url, et, flt)
+    except xrds.XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
 
-def applyFilter(uri, xrd_data, flt=None):
+def applyFilter(uri, et, flt=None):
     """Generate an iterable of endpoint objects given this input data,
     presumably from the result of performing the Yadis protocol.
 
@@ -37,16 +36,17 @@ def applyFilter(uri, xrd_data, flt=None):
         as in the Yadis protocol.
 
 
-    @param xrd_data: The XML text the XRDS file fetched from the
+    @param et: The XML text the XRDS file fetched from the
         normalized URI.
-    @type xrd_data: str
+    @type et: str
 
     """
     flt = mkFilter(flt)
-    et = parseXRDS(xrd_data) if not hasattr(xrd_data, 'getroot') else xrd_data
+    if not hasattr(et, 'getroot'):
+        et = xrds.parseXRDS(et)
 
     endpoints = []
-    for service_element in iterServices(et):
+    for service_element in xrds.iterServices(et):
         endpoints.extend(
             flt.getServiceEndpoints(uri, service_element))
 

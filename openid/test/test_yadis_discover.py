@@ -3,8 +3,8 @@ from unittest import mock
 import urllib.parse
 import urllib.error
 
+from openid import xrds
 from openid.yadis.discover import fetch_data
-from openid.yadis import etxrd
 from . import support
 
 
@@ -23,8 +23,8 @@ class XRDS(unittest.TestCase):
         if params:
             path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
-        xrds = etxrd.parseXRDS(fetch_data(url))
-        self.assertTrue(xrds)
+        doc = xrds.parseXRDS(fetch_data(url))
+        self.assertTrue(doc)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
