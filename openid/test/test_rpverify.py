@@ -50,10 +50,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
     def mockDiscover(self, uri):
         return etxrd.parseXRDS(self.data)
 
-    def failUnlessFileHasReturnURLs(self, filename, expected_return_urls):
-        self.failUnlessXRDSHasReturnURLs(open(filename).read(),
-                                         expected_return_urls)
-
     def failUnlessXRDSHasReturnURLs(self, data, expected_return_urls):
         self.data = data
         actual_return_urls = list(trustroot.getAllowedReturnURLs(
