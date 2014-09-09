@@ -168,16 +168,12 @@ def mkCompoundFilter(parts):
     """
     # Separate into a list of callables and a list of filter objects
     transformers = []
-    filters = []
     for subfilter in parts:
         try:
             subfilter = list(subfilter)
         except TypeError:
             # If it's not an iterable
-            if hasattr(subfilter, 'getServiceEndpoints'):
-                # It's a full filter
-                filters.append(subfilter)
-            elif hasattr(subfilter, 'fromBasicServiceEndpoint'):
+            if hasattr(subfilter, 'fromBasicServiceEndpoint'):
                 # It's an endpoint object, so put its endpoint
                 # conversion attribute into the list of endpoint
                 # transformers
@@ -186,15 +182,5 @@ def mkCompoundFilter(parts):
                 # It's a simple callable, so add it to the list of
                 # endpoint transformers
                 transformers.append(subfilter)
-            else:
-                raise filter_type_error
-        else:
-            filters.append(mkCompoundFilter(subfilter))
 
-    if transformers:
-        filters.append(TransformFilterMaker(transformers))
-
-    if len(filters) == 1:
-        return filters[0]
-    else:
-        return CompoundFilter(filters)
+    return TransformFilterMaker(transformers)
