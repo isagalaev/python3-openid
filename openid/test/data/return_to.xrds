@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds"
+           xmlns="xri://$xrd*($v*2.0)"
+           >
+  <XRD>
+    <Service priority="10">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://rp.example.com/return</URI>
+    </Service>
+    <Service priority="20">
+      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
+      <URI>http://mirror.rp.example.com/return</URI>
+    </Service>
+    <Service priority="10">
+      <Type>http://example.com/unknown_type</Type>
+      <URI>http://rp.example.com/unknown</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>

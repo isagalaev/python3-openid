@@ -1,13 +1,15 @@
 """Unit tests for verification of return_to URLs for a realm
 """
-
-__all__ = ['TestBuildDiscoveryURL']
+import unittest
+from unittest import mock
 
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import services, etxrd
 from openid.server import trustroot
 from openid.test.support import CatchLogs
-import unittest
+
+from . import support
+
 
 # Too many methods does not apply to unit test objects
 #pylint:disable-msg=R0904
@@ -36,107 +38,24 @@ class TestBuildDiscoveryURL(unittest.TestCase):
         self.failUnlessDiscoURL('http://*.example.com/foo',
                                 'http://www.example.com/foo')
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestExtractReturnToURLs(unittest.TestCase):
-    disco_url = 'http://example.com/'
 
-    def setUp(self):
-        self.original_discover = services.discover
-        services.discover = self.mockDiscover
-        self.data = None
-
-    def tearDown(self):
-        services.discover = self.original_discover
-
-    def mockDiscover(self, uri):
-        return etxrd.parseXRDS(self.data)
-
-    def failUnlessXRDSHasReturnURLs(self, data, expected_return_urls):
-        self.data = data
-        actual_return_urls = list(trustroot.getAllowedReturnURLs(
-            self.disco_url))
-
+    def failUnlessXRDSHasReturnURLs(self, url, expected_return_urls):
+        actual_return_urls = list(trustroot.getAllowedReturnURLs(url))
         self.assertEqual(expected_return_urls, actual_return_urls)
 
-    def test_noEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-  </XRD>
-</xrds:XRDS>
-''', [])
+    def test_no_entries(self):
+        self.failUnlessXRDSHasReturnURLs('http://unittest/yadis_0entries.xrds', [])
 
-    def test_noReturnToEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-    <Service priority="10">
-      <Type>http://specs.openid.net/auth/2.0/server</Type>
-      <URI>http://www.myopenid.com/server</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-''', [])
-
-    def test_oneEntry(self):
-        self.failUnlessXRDSHasReturnURLs('''\
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-    <Service>
-      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
-      <URI>http://rp.example.com/return</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-''', ['http://rp.example.com/return'])
-
-    def test_twoEntries(self):
-        self.failUnlessXRDSHasReturnURLs('''\
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-    <Service priority="0">
-      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
-      <URI>http://rp.example.com/return</URI>
-    </Service>
-    <Service priority="1">
-      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
-      <URI>http://other.rp.example.com/return</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-''', ['http://rp.example.com/return',
-      'http://other.rp.example.com/return'])
-
-    def test_twoEntries_withOther(self):
-        self.failUnlessXRDSHasReturnURLs('''\
-<xrds:XRDS xmlns:xrds="xri://$xrds"
-           xmlns="xri://$xrd*($v*2.0)"
-           >
-  <XRD>
-    <Service priority="0">
-      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
-      <URI>http://rp.example.com/return</URI>
-    </Service>
-    <Service priority="1">
-      <Type>http://specs.openid.net/auth/2.0/return_to</Type>
-      <URI>http://other.rp.example.com/return</URI>
-    </Service>
-    <Service priority="0">
-      <Type>http://example.com/LOLCATS</Type>
-      <URI>http://example.com/invisible+uri</URI>
-    </Service>
-  </XRD>
-</xrds:XRDS>
-''', ['http://rp.example.com/return',
-      'http://other.rp.example.com/return'])
-
+    def test_success(self):
+        self.failUnlessXRDSHasReturnURLs(
+          'http://unittest/return_to.xrds',
+          [
+            'http://rp.example.com/return',
+            'http://mirror.rp.example.com/return',
+          ]
+        )
 
 
 class TestReturnToMatches(unittest.TestCase):
