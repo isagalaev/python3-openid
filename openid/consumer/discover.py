@@ -308,7 +308,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     text, xrds = yadisDiscover(uri)
     if xrds:
-        openid_services = applyFilter(uri, text, OpenIDServiceEndpoint)
+        openid_services = applyFilter(uri, xrds, OpenIDServiceEndpoint)
     else:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, text)
     return uri, getOPOrUserServices(openid_services)
