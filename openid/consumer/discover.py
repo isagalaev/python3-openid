@@ -20,7 +20,6 @@ from openid import fetchers, urinorm
 
 from openid import yadis
 from openid.yadis import etxrd
-from openid.yadis.etxrd import nsTag, XRD_NS_2_0
 from openid.yadis.services import applyFilter
 from openid.yadis.discover import discover as yadisDiscover
 from openid.yadis.discover import DiscoveryFailure
@@ -230,10 +229,10 @@ def findOPLocalIdentifier(service_element, type_uris):
     local_id_tags = []
     if (OPENID_1_1_TYPE in type_uris or
         OPENID_1_0_TYPE in type_uris):
-        local_id_tags.append(nsTag(OPENID_1_0_NS, 'Delegate'))
+        local_id_tags.append(etxrd.nsTag(OPENID_1_0_NS, 'Delegate'))
 
     if OPENID_2_0_TYPE in type_uris:
-        local_id_tags.append(nsTag(XRD_NS_2_0, 'LocalID'))
+        local_id_tags.append(etxrd.nsTag(etxrd.XRD_NS_2_0, 'LocalID'))
 
     # Walk through all the matching tags and make sure that they all
     # have the same value
