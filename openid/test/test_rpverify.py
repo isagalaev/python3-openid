@@ -39,7 +39,7 @@ class TestBuildDiscoveryURL(unittest.TestCase):
                                 'http://www.example.com/foo')
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-class TestExtractReturnToURLs(unittest.TestCase):
+class ReturnTo(unittest.TestCase):
     def test_no_entries(self):
         urls = trustroot.getAllowedReturnURLs('http://unittest/yadis_0entries.xrds')
         self.assertEqual(urls, [])
