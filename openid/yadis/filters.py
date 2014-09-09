@@ -90,21 +90,13 @@ class TransformFilterMaker(object):
     def getServiceEndpoints(self, yadis_url, service_element):
         """Returns an iterator of endpoint objects produced by the
         filter functions."""
-        endpoints = []
+        endpoints = [
+            BasicServiceEndpoint(yadis_url, types, uri, service_element)
+            for types, uri, _ in xrds.expandService(service_element)
+        ]
+        endpoints = [self.func(e) for e in endpoints]
+        return [e for e in endpoints if e is not None]
 
-        # Do an expansion of the service element by xrd:Type and xrd:URI
-        for type_uris, uri, _ in xrds.expandService(service_element):
-
-            # Create a basic endpoint object to represent this
-            # yadis_url, Service, Type, URI combination
-            endpoint = BasicServiceEndpoint(
-                yadis_url, type_uris, uri, service_element)
-
-            e = self.func(endpoint)
-            if e is not None:
-                endpoints.append(e)
-
-        return endpoints
 
 def mkFilter(source):
     """Convert a filter-convertable thing into a filter
