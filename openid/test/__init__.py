@@ -96,7 +96,6 @@ def pyUnitTests():
         'linkparse',
         'oidutil',
         'storetest',
-        'test_accept',
         'test_association',
         'test_htmldiscover',
         'test_nonce',
