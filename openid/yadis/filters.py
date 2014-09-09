@@ -2,15 +2,6 @@
 endpoint information out of a Yadis XRD file using the ElementTree XML
 parser.
 """
-
-__all__ = [
-    'BasicServiceEndpoint',
-    'mkFilter',
-    'IFilter',
-    'TransformFilterMaker',
-    'CompoundFilter',
-    ]
-
 from openid import xrds
 import collections
 
@@ -131,20 +122,11 @@ class TransformFilterMaker(object):
 def mkFilter(source):
     """Convert a filter-convertable thing into a filter
 
-    @param parts: a filter, an endpoint, a callable, or a list of any of these.
+    @param source: an endpoint or a callable
     """
     if source is None:
         source = BasicServiceEndpoint
-    return mkCompoundFilter(source)
 
-
-def mkCompoundFilter(source):
-    """Create a filter out of a list of filter-like things
-
-    Used by mkFilter
-
-    @param parts: list of filter, endpoint, callable or list of any of these
-    """
     transformers = []
     if hasattr(source, 'fromBasicServiceEndpoint'):
         # It's an endpoint object, so put its endpoint
