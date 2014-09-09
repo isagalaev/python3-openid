@@ -48,6 +48,6 @@ def applyFilter(uri, et, flt=None):
     endpoints = []
     for service_element in xrds.iterServices(et):
         endpoints.extend(
-            flt.getServiceEndpoints(uri, service_element))
+            flt(uri, service_element))
 
     return endpoints

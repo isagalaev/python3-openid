@@ -272,7 +272,7 @@ def discoverXRI(iname):
 
         flt = filters.mkFilter(OpenIDServiceEndpoint)
         for service_element in services:
-            endpoints.extend(flt.getServiceEndpoints(iname, service_element))
+            endpoints.extend(flt(iname, service_element))
     except xrds.XRDSError:
         logging.exception('xrds error on %s' % iname)
 

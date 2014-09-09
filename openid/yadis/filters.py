@@ -2,8 +2,10 @@
 endpoint information out of a Yadis XRD file using the ElementTree XML
 parser.
 """
-from openid import xrds
 import collections
+from functools import partial
+
+from openid import xrds
 
 
 class BasicServiceEndpoint(object):
@@ -63,39 +65,15 @@ class IFilter(object):
         raise NotImplementedError
 
 
-class TransformFilterMaker(object):
-    """Take a list of basic filters and makes a filter that transforms
-    the basic filter into a top-level filter. This is mostly useful
-    for the implementation of mkFilter, which should only be needed
-    for special cases or internal use by this library.
-
-    This object is useful for creating simple filters for services
-    that use one URI and are specified by one Type (we expect most
-    Types will fit this paradigm).
-
-    Creates a BasicServiceEndpoint object and apply the filter
-    functions to it until one of them returns a value.
-    """
-
-    def __init__(self, func):
-        """Initialize the filter maker's state
-
-        @param funcs: The endpoint transformer functions to
-            apply to the basic endpoint. These are called in turn
-            until one of them does not return None, and the result of
-            that transformer is returned.
-        """
-        self.func = func
-
-    def getServiceEndpoints(self, yadis_url, service_element):
-        """Returns an iterator of endpoint objects produced by the
-        filter functions."""
-        endpoints = [
-            BasicServiceEndpoint(yadis_url, types, uri, service_element)
-            for types, uri, _ in xrds.expandService(service_element)
-        ]
-        endpoints = [self.func(e) for e in endpoints]
-        return [e for e in endpoints if e is not None]
+def filter_endpoints(pred, yadis_url, service_element):
+    """Returns an iterator of endpoint objects produced by the
+    filter functions."""
+    endpoints = [
+        BasicServiceEndpoint(yadis_url, types, uri, service_element)
+        for types, uri, _ in xrds.expandService(service_element)
+    ]
+    endpoints = [pred(e) for e in endpoints]
+    return [e for e in endpoints if e is not None]
 
 
 def mkFilter(source):
@@ -118,4 +96,4 @@ def mkFilter(source):
     else:
         raise TypeError('Filter source is neither an endpoint nor a callable')
 
-    return TransformFilterMaker(func)
+    return partial(filter_endpoints, func)
