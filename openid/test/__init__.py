@@ -70,6 +70,7 @@ def pyUnitTests():
         'yadis_discover',
         'fetchers',
         'discover',
+        'services',
     ]
 
     test_modules = [

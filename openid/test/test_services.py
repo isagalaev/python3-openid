@@ -1,7 +1,7 @@
 import unittest
 
-from openid.yadis import services
-from openid.yadis.discover import DiscoveryFailure, DiscoveryResult
+from openid.yadis import services, etxrd
+from openid.yadis.discover import DiscoveryFailure
 
 
 class TestGetServiceEndpoints(unittest.TestCase):
@@ -13,11 +13,13 @@ class TestGetServiceEndpoints(unittest.TestCase):
         services.discover = self.orig_discover
 
     def discover(self, input_url):
-        result = DiscoveryResult(input_url)
-        result.response_text = "This is not XRDS text."
-        return result
+        return etxrd.parseXRDS('This is not XRDS text.')
 
     def test_catchXRDSError(self):
         self.assertRaises(DiscoveryFailure,
                               services.getServiceEndpoints,
                               "http://example.invalid/sometest")
+
+
+if __name__ == '__main__':
+    unittest.main()

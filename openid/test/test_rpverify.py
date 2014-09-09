@@ -57,17 +57,6 @@ class TestExtractReturnToURLs(unittest.TestCase):
 
         self.assertEqual(expected_return_urls, actual_return_urls)
 
-    def failUnlessDiscoveryFailure(self, text):
-        self.data = text
-        self.assertRaises(
-            DiscoveryFailure, trustroot.getAllowedReturnURLs, self.disco_url)
-
-    def test_empty(self):
-        self.failUnlessDiscoveryFailure('')
-
-    def test_badXML(self):
-        self.failUnlessDiscoveryFailure('>')
-
     def test_noEntries(self):
         self.failUnlessXRDSHasReturnURLs('''\
 <xrds:XRDS xmlns:xrds="xri://$xrds"
