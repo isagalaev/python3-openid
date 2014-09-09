@@ -30,16 +30,16 @@ from openid.yadis import xri
 
 
 class XRDSError(Exception):
-    """An error with the XRDS document."""
-
-    # The exception that triggered this exception
-    reason = None
-
-    def __init__(self, message):
-        super().__init__(message)
+    '''
+    General error with the XRDS document.
+    '''
+    pass
 
 
 class XRDSParseError(XRDSError):
+    '''
+    Error during parsing of data as XRDS. Retains original data for re-parsing.
+    '''
     def __init__(self, message, data):
         super().__init__(message)
         self.data = data
@@ -61,10 +61,8 @@ def parseXRDS(text):
     """
     try:
         element = ElementTree.XML(text)
-    except XMLError as why:
-        exc = XRDSParseError('Error parsing document as XML', text)
-        exc.reason = why
-        raise exc
+    except XMLError:
+        raise XRDSParseError('Error parsing document as XML', text)
     else:
         tree = ElementTree.ElementTree(element)
         if not isXRDS(tree):
