@@ -30,20 +30,13 @@ def getServiceEndpoints(url, flt=None):
     return (url, endpoints)
 
 
-def filter_endpoints(pred, yadis_url, service_element):
-    """Returns an iterator of endpoint objects produced by the
-    filter functions."""
-    service_uris = xrds.sortedURIs(service_element) or [None]
-    endpoints = [pred(uri, yadis_url, service_element) for uri in service_uris]
-    return [e for e in endpoints if e is not None]
-
-
-def filter_services(filter, uri, elements):
-    endpoints = []
+def filter_services(filter, yadis_url, elements):
+    result = []
     for service_element in elements:
-        endpoints.extend(
-            filter_endpoints(filter, uri, service_element))
-    return endpoints
+        service_uris = xrds.sortedURIs(service_element) or [None]
+        endpoints = [filter(uri, yadis_url, service_element) for uri in service_uris]
+        result.extend([e for e in endpoints if e is not None])
+    return result
 
 
 def applyFilter(uri, et, func):
