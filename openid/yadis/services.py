@@ -38,20 +38,11 @@ def filter_endpoints(pred, yadis_url, service_element):
     return [e for e in endpoints if e is not None]
 
 
-def mkFilter(func):
-    """Convert a filter-convertable thing into a filter
-
-    @param func: a callable returning an endpoint or None from a service endpoint
-    """
-    return partial(filter_endpoints, func)
-
-
 def filter_services(filter, uri, elements):
-    filter = mkFilter(filter)
     endpoints = []
     for service_element in elements:
         endpoints.extend(
-            filter(uri, service_element))
+            filter_endpoints(filter, uri, service_element))
     return endpoints
 
 
