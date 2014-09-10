@@ -358,25 +358,11 @@ class TrustRoot(object):
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
 
-def _extractReturnURL(uri, yadis_url, service_element):
-    """If the endpoint is a relying party OpenID return_to endpoint,
-    return the endpoint URL. Otherwise, return None.
+def is_return_type(service_element):
+    return RP_RETURN_TO_URL_TYPE in xrds.getTypeURIs(service_element)
 
-    This function is intended to be used as a filter for the Yadis
-    filtering interface.
-
-    @see: C{L{openid.yadis.services}}
-    @see: C{L{openid.yadis.filters}}
-
-    @param endpoint: An XRDS BasicServiceEndpoint, as returned by
-        performing Yadis dicovery.
-
-    @returns: The endpoint URL or None if the endpoint is not a
-        relying party endpoint.
-    @rtype: str or NoneType
-    """
-    types = xrds.getTypeURIs(service_element)
-    return uri if RP_RETURN_TO_URL_TYPE in types else None
+def url_endpoint(uri, yadis_url, service_element):
+    return uri
 
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
@@ -412,7 +398,7 @@ def getAllowedReturnURLs(relying_party_url):
     @since: 2.1.0
     """
     (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
-        relying_party_url, _extractReturnURL)
+        relying_party_url, is_return_type, url_endpoint)
 
     if rp_url_after_redirects != relying_party_url:
         # Verification caused a redirect

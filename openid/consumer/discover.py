@@ -41,6 +41,10 @@ SERVICE_TYPES = [
     OPENID_1_0_TYPE,
 ]
 
+def is_openid_type(service_element):
+    type_uris = xrds.getTypeURIs(service_element)
+    return set(type_uris).intersection(set(SERVICE_TYPES))
+
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
 
@@ -88,10 +92,10 @@ class OpenIDServiceEndpoint(object):
     def isOPIdentifier(self):
         return OPENID_IDP_2_0_TYPE in self.type_uris
 
-    def parseService(self, yadis_url, uri, type_uris, service_element):
+    def parseService(self, yadis_url, uri, service_element):
         """Set the state of this object based on the contents of the
         service element."""
-        self.type_uris = type_uris
+        self.type_uris = xrds.getTypeURIs(service_element)
         self.server_url = uri
 
         if not self.isOPIdentifier():
@@ -110,13 +114,8 @@ class OpenIDServiceEndpoint(object):
 
     @classmethod
     def fromServiceElement(cls, uri, yadis_url, service_element):
-        type_uris = xrds.getTypeURIs(service_element)
-
-        if not set(type_uris).intersection(set(SERVICE_TYPES)) or uri is None:
-            return None
-
         openid_endpoint = cls()
-        openid_endpoint.parseService(yadis_url, uri, type_uris, service_element)
+        openid_endpoint.parseService(yadis_url, uri, service_element)
         return openid_endpoint
 
     def fromHTML(cls, uri, html):
@@ -257,6 +256,7 @@ def discoverXRI(iname):
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
         endpoints = services.filter_services(
+            is_openid_type,
             OpenIDServiceEndpoint.fromServiceElement,
             iname,
             service_elements,
@@ -295,7 +295,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = services.parse_services(uri, data, OpenIDServiceEndpoint.fromServiceElement)
+        openid_services = services.parse_services(uri, data, is_openid_type, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)

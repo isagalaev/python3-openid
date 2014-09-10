@@ -13,7 +13,9 @@ class TestGetServiceEndpoints(unittest.TestCase):
     def test_catchXRDSError(self):
         self.assertRaises(DiscoveryFailure,
                               services.getServiceEndpoints,
-                              'http://unittest/junk.txt')
+                              'http://unittest/junk.txt',
+                              bool, bool, # filter and constructor, should not be called
+                              )
 
 
 if __name__ == '__main__':

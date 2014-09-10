@@ -1,6 +1,6 @@
 import unittest
 from openid.consumer.discover import \
-     OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
+     is_openid_type, OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
 from openid.yadis import services
 
@@ -121,7 +121,7 @@ class OpenIDYadisTest(unittest.TestCase):
     def runTest(self):
         # Parse into endpoint objects that we will check
         endpoints = services.parse_services(
-            self.yadis_url, self.xrds, OpenIDServiceEndpoint.fromServiceElement)
+            self.yadis_url, self.xrds, is_openid_type, OpenIDServiceEndpoint.fromServiceElement)
 
         # make sure there are the same number of endpoints as
         # URIs. This assumes that the type_uris contains at least one

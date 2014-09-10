@@ -17,21 +17,22 @@ NOXRD_FILE = datapath('no-xrd.xml')
 # sanctioned by the owners of that piece of URL-space)
 
 LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
-TYPEKEY_1_0 = "http://typekey.com/services/1.0"
 
 
-def simpleOpenIDTransformer(uri, yadis_url, service_element):
-    """Function to extract information from an OpenID service element"""
-    if 'http://openid.net/signon/1.0' not in xrds.getTypeURIs(service_element):
-        return None
+def simple_filter(service_element):
+    return 'http://openid.net/signon/1.0' in xrds.getTypeURIs(service_element)
 
+def simple_constructor(uri, yadis_url, service_element):
     delegates = list(service_element.findall(
         '{http://openid.net/xmlns/1.0}Delegate'))
     assert len(delegates) == 1
     delegate = delegates[0].text
     return (uri, delegate)
 
-def no_op_filter(*args):
+def no_op_filter(service_element):
+    return True
+
+def no_op_constructor(*args):
     return args
 
 class TestServiceParser(unittest.TestCase):
@@ -40,8 +41,8 @@ class TestServiceParser(unittest.TestCase):
             self.xmldoc = f.read()
         self.yadis_url = 'http://unittest.url/'
 
-    def _getServices(self, flt=no_op_filter):
-        return list(services.parse_services(self.yadis_url, self.xmldoc, flt))
+    def _getServices(self, filter=no_op_filter, constructor=no_op_constructor):
+        return list(services.parse_services(self.yadis_url, self.xmldoc, filter, constructor))
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -49,7 +50,7 @@ class TestServiceParser(unittest.TestCase):
 
     def testParseOpenID(self):
         """Parse for OpenID services with a transformer function"""
-        services = self._getServices(simpleOpenIDTransformer)
+        services = self._getServices(simple_filter, simple_constructor)
 
         expectedServices = [
             ("http://www.myopenid.com/server", "http://josh.myopenid.com/"),
@@ -83,7 +84,6 @@ class TestServiceParser(unittest.TestCase):
         """Get some services in order"""
         expectedServices = [
             # type, URL
-            (TYPEKEY_1_0, None),
             (LID_2_0, "http://mylid.net/josh"),
             ]
 
@@ -112,7 +112,7 @@ class TestServiceParser(unittest.TestCase):
             self.xmldoc = f.read()
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter, no_op_constructor)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
@@ -120,7 +120,7 @@ class TestServiceParser(unittest.TestCase):
         self.xmldoc = ''
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter, no_op_constructor)
 
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
@@ -129,7 +129,7 @@ class TestServiceParser(unittest.TestCase):
             self.xmldoc = f.read()
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter, no_op_constructor)
 
 
 class TestCanonicalID(unittest.TestCase):
