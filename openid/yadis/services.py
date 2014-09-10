@@ -22,11 +22,8 @@ def getServiceEndpoints(url, types, constructor):
 
     @raises DiscoveryFailure: when Yadis fails to obtain an XRDS document.
     """
-    try:
-        et = xrds.parseXRDS(fetch_data(url))
-        endpoints = parse_services(url, et, types, constructor)
-    except xrds.XRDSError as err:
-        raise DiscoveryFailure(str(err), None)
+    et = xrds.parseXRDS(fetch_data(url))
+    endpoints = parse_services(url, et, types, constructor)
     return (url, endpoints)
 
 
