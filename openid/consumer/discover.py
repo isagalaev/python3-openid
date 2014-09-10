@@ -248,7 +248,6 @@ def getOPOrUserServices(services):
     return services
 
 def discoverXRI(iname):
-    endpoints = []
     if iname.startswith('xri://'):
         iname = iname[6:]
     try:
@@ -257,11 +256,14 @@ def discoverXRI(iname):
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
-        flt = services.mkFilter(OpenIDServiceEndpoint.fromServiceElement)
-        for service_element in service_elements:
-            endpoints.extend(flt(iname, service_element))
+        endpoints = services.filter_services(
+            OpenIDServiceEndpoint.fromServiceElement,
+            iname,
+            service_elements,
+        )
     except xrds.XRDSError:
         logging.exception('xrds error on %s' % iname)
+        endpoints = []
 
     for endpoint in endpoints:
         # Is there a way to pass this through the filter to the endpoint

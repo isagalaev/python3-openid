@@ -46,6 +46,15 @@ def mkFilter(func):
     return partial(filter_endpoints, func)
 
 
+def filter_services(filter, uri, elements):
+    filter = mkFilter(filter)
+    endpoints = []
+    for service_element in elements:
+        endpoints.extend(
+            filter(uri, service_element))
+    return endpoints
+
+
 def applyFilter(uri, et, func):
     """Generate an iterable of endpoint objects given this input data,
     presumably from the result of performing the Yadis protocol.
@@ -59,13 +68,6 @@ def applyFilter(uri, et, func):
     @type et: str
 
     """
-    flt = mkFilter(func)
     if not hasattr(et, 'getroot'):
         et = xrds.parseXRDS(et)
-
-    endpoints = []
-    for service_element in xrds.iterServices(et):
-        endpoints.extend(
-            flt(uri, service_element))
-
-    return endpoints
+    return filter_services(func, uri, xrds.iterServices(et))
