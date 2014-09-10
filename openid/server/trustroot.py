@@ -358,9 +358,6 @@ class TrustRoot(object):
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
 
-def url_endpoint(uri, yadis_url, service_element):
-    return uri
-
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed
     return_to URLs?
@@ -399,7 +396,7 @@ def getAllowedReturnURLs(url):
         raise RealmVerificationRedirected(url, final_url)
 
     elements = xrds.iterServices(xrds.parseXRDS(data))
-    return yadis.endpoints([RP_RETURN_TO_URL_TYPE], url_endpoint, final_url, elements)
+    return [url for url, _, _ in yadis.endpoints([RP_RETURN_TO_URL_TYPE], final_url, elements)]
 
 # _vrfy parameter is there to make testing easier
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):

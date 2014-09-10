@@ -60,27 +60,23 @@ def matches_types(element, types):
            set(types).intersection(set(xrds.getTypeURIs(element)))
 
 
-def endpoints(types, constructor, yadis_url, elements):
+def endpoints(types, yadis_url, elements):
     '''
-    Generates endpoint objects from service elements of given types.
-
-    The `constructor` parameter is a callable that creates an endpoint
-    from the element uri, the yadis_url and the element.
+    Generates endpoint data from service elements of given types in
+    the form of (service_uri, yadis_url, service_element).
     '''
     elements = [e for e in elements if matches_types(e, types)]
     for element in elements:
         uris = xrds.sortedURIs(element)
-        yield from (constructor(uri, yadis_url, element) for uri in uris)
+        yield from ((uri, yadis_url, element) for uri in uris)
 
 
-def parse(url, types, constructor):
+def parse(url, types):
     '''
     Fetches and parses an XRDS document from url and returns a list
     of endpoints.
 
-    The `constructor` parameter is a callable that creates an endpoint
-    from the element uri, the yadis_url and the element.
     '''
     final_url, data = fetch_data(url)
     et = xrds.parseXRDS(data)
-    return list(endpoints(types, constructor, final_url, xrds.iterServices(et)))
+    return list(endpoints(types, final_url, xrds.iterServices(et)))
