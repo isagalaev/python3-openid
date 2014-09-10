@@ -19,10 +19,9 @@ import logging
 from openid import fetchers, urinorm
 
 from openid import yadis, xri, xrires, xrds
-from openid.yadis.services import applyFilter
+from openid.yadis import services
 from openid.yadis.discover import fetch_data
 from openid.yadis.discover import DiscoveryFailure
-from openid.yadis import filters
 
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
@@ -253,13 +252,13 @@ def discoverXRI(iname):
     if iname.startswith('xri://'):
         iname = iname[6:]
     try:
-        canonicalID, services = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
+        canonicalID, service_elements = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
 
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
-        flt = filters.mkFilter(OpenIDServiceEndpoint.fromServiceElement)
-        for service_element in services:
+        flt = services.mkFilter(OpenIDServiceEndpoint.fromServiceElement)
+        for service_element in service_elements:
             endpoints.extend(flt(iname, service_element))
     except xrds.XRDSError:
         logging.exception('xrds error on %s' % iname)
@@ -294,7 +293,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint.fromServiceElement)
+        openid_services = services.applyFilter(uri, data, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)

@@ -1,5 +1,6 @@
+from functools import partial
+
 from openid import xrds
-from openid.yadis.filters import mkFilter
 from openid.yadis.discover import fetch_data, DiscoveryFailure
 
 
@@ -27,6 +28,23 @@ def getServiceEndpoints(url, flt=None):
     except xrds.XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
+
+
+def filter_endpoints(pred, yadis_url, service_element):
+    """Returns an iterator of endpoint objects produced by the
+    filter functions."""
+    service_uris = xrds.sortedURIs(service_element) or [None]
+    endpoints = [pred(uri, yadis_url, service_element) for uri in service_uris]
+    return [e for e in endpoints if e is not None]
+
+
+def mkFilter(func):
+    """Convert a filter-convertable thing into a filter
+
+    @param func: a callable returning an endpoint or None from a service endpoint
+    """
+    return partial(filter_endpoints, func)
+
 
 def applyFilter(uri, et, func):
     """Generate an iterable of endpoint objects given this input data,
