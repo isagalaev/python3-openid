@@ -28,7 +28,7 @@ def getServiceEndpoints(url, flt=None):
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
 
-def applyFilter(uri, et, flt=None):
+def applyFilter(uri, et, func=None):
     """Generate an iterable of endpoint objects given this input data,
     presumably from the result of performing the Yadis protocol.
 
@@ -41,7 +41,7 @@ def applyFilter(uri, et, flt=None):
     @type et: str
 
     """
-    flt = mkFilter(flt)
+    flt = mkFilter(func)
     if not hasattr(et, 'getroot'):
         et = xrds.parseXRDS(et)
 

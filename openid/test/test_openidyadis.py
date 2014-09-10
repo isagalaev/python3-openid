@@ -121,7 +121,7 @@ class OpenIDYadisTest(unittest.TestCase):
     def runTest(self):
         # Parse into endpoint objects that we will check
         endpoints = applyFilter(
-            self.yadis_url, self.xrds, OpenIDServiceEndpoint)
+            self.yadis_url, self.xrds, OpenIDServiceEndpoint.fromBasicServiceEndpoint)
 
         # make sure there are the same number of endpoints as
         # URIs. This assumes that the type_uris contains at least one

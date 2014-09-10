@@ -41,20 +41,6 @@ class BasicServiceEndpoint(object):
         """
         return [uri for uri in type_uris if uri in self.type_uris]
 
-    def fromBasicServiceEndpoint(endpoint):
-        """Trivial transform from a basic endpoint to itself. This
-        method exists to allow BasicServiceEndpoint to be used as a
-        filter.
-
-        If you are subclassing this object, re-implement this function.
-
-        @param endpoint: An instance of BasicServiceEndpoint
-        @return: The object that was passed in, with no processing.
-        """
-        return endpoint
-
-    fromBasicServiceEndpoint = staticmethod(fromBasicServiceEndpoint)
-
 
 def filter_endpoints(pred, yadis_url, service_element):
     """Returns an iterator of endpoint objects produced by the
@@ -67,24 +53,11 @@ def filter_endpoints(pred, yadis_url, service_element):
     return [e for e in endpoints if e is not None]
 
 
-def mkFilter(source):
+def mkFilter(func):
     """Convert a filter-convertable thing into a filter
 
-    @param source: an endpoint or a callable
+    @param func: a callable returning an endpoint or None from a service endpoint
     """
-    if source is None:
-        source = BasicServiceEndpoint
-
-    if hasattr(source, 'fromBasicServiceEndpoint'):
-        # It's an endpoint object, so put its endpoint
-        # conversion attribute into the list of endpoint
-        # transformers
-        func = source.fromBasicServiceEndpoint
-    elif isinstance(source, collections.Callable):
-        # It's a simple callable, so add it to the list of
-        # endpoint transformers
-        func = source
-    else:
-        raise TypeError('Filter source is neither an endpoint nor a callable')
-
+    if func is None:
+        func = lambda x: x
     return partial(filter_endpoints, func)

@@ -270,7 +270,7 @@ def discoverXRI(iname):
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
-        flt = filters.mkFilter(OpenIDServiceEndpoint)
+        flt = filters.mkFilter(OpenIDServiceEndpoint.fromBasicServiceEndpoint)
         for service_element in services:
             endpoints.extend(flt(iname, service_element))
     except xrds.XRDSError:
@@ -306,7 +306,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint)
+        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint.fromBasicServiceEndpoint)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)
