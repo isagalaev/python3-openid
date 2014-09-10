@@ -10,7 +10,9 @@ __version__ = ".".join(str(x) for x in version_info)
 
 
 class DiscoveryFailure(Exception):
-    """Raised when a YADIS protocol error occurs in the discovery process"""
+    '''
+    Raised when a YADIS protocol error occurs in the discovery process.
+    '''
     identity_url = None
 
     def __init__(self, message, http_response):
@@ -39,7 +41,8 @@ def _yadis_location(response, body):
 
 def fetch_data(uri):
     '''
-    Fetches the unparsed text of the Yadis document.
+    Fetches unparsed text of the Yadis document.
+    Returns the URL after redirects and the text
     '''
     response = fetchers.fetch(uri, headers={'Accept': 'application/xrds+xml'})
     text = response.read() # MAX_RESPONSE
@@ -50,11 +53,20 @@ def fetch_data(uri):
 
 
 def matches_types(element, types):
+    '''
+    Checks if the service element supports any of the types.
+    '''
     return not types or \
            set(types).intersection(set(xrds.getTypeURIs(element)))
 
 
 def endpoints(types, constructor, yadis_url, elements):
+    '''
+    Generates endpoint objects from service elements of given types.
+
+    The `constructor` parameter is a callable that creates an endpoint
+    from the element uri, the yadis_url and the element.
+    '''
     elements = [e for e in elements if matches_types(e, types)]
     for element in elements:
         uris = xrds.sortedURIs(element)
@@ -62,6 +74,13 @@ def endpoints(types, constructor, yadis_url, elements):
 
 
 def parse(url, types, constructor):
+    '''
+    Fetches and parses an XRDS document from url and returns a list
+    of endpoints.
+
+    The `constructor` parameter is a callable that creates an endpoint
+    from the element uri, the yadis_url and the element.
+    '''
     final_url, data = fetch_data(url)
     et = xrds.parseXRDS(data)
     return list(endpoints(types, constructor, final_url, xrds.iterServices(et)))
