@@ -120,12 +120,12 @@ class OpenIDYadisTest(unittest.TestCase):
         self.xrds = mkXRDS(services)
 
     def runTest(self):
-        endpoints = services.filter_services(
+        endpoints = list(services.endpoints(
             SERVICE_TYPES,
             OpenIDServiceEndpoint.fromServiceElement,
             self.yadis_url,
             xrds.iterServices(xrds.parseXRDS(self.xrds))
-        )
+        ))
 
         # make sure there are the same number of endpoints as
         # URIs. This assumes that the type_uris contains at least one

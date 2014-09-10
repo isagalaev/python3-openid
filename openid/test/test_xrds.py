@@ -32,7 +32,7 @@ def no_op_constructor(*args):
 class TestServiceParser(unittest.TestCase):
     def _getServices(self, types=[], constructor=no_op_constructor):
         url = 'http://unittest/test_xrds/valid-populated-xrds.xml'
-        return list(services.parse_services(url, types, constructor))
+        return services.parse(url, types, constructor)
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -98,19 +98,19 @@ class TestServiceParser(unittest.TestCase):
     def testNoXRDS(self):
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, 'http://unittest/test_xrds/not-xrds.xml', [], no_op_constructor)
+            services.parse, 'http://unittest/test_xrds/not-xrds.xml', [], no_op_constructor)
 
     def testNoXRD(self):
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, 'http://unittest/test_xrds/no-xrd.xml', [], no_op_constructor)
+            services.parse, 'http://unittest/test_xrds/no-xrd.xml', [], no_op_constructor)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, 'http://unittest/200.txt', [], no_op_constructor)
+            services.parse, 'http://unittest/200.txt', [], no_op_constructor)
 
 
 class TestCanonicalID(unittest.TestCase):

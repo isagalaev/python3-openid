@@ -399,7 +399,7 @@ def getAllowedReturnURLs(url):
         raise RealmVerificationRedirected(url, final_url)
 
     elements = xrds.iterServices(xrds.parseXRDS(data))
-    return services.filter_services([RP_RETURN_TO_URL_TYPE], url_endpoint, final_url, elements)
+    return services.endpoints([RP_RETURN_TO_URL_TYPE], url_endpoint, final_url, elements)
 
 # _vrfy parameter is there to make testing easier
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):

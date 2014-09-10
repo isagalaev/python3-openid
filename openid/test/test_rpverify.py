@@ -43,12 +43,12 @@ class TestBuildDiscoveryURL(unittest.TestCase):
 class ReturnTo(unittest.TestCase):
     def test_no_entries(self):
         urls = trustroot.getAllowedReturnURLs('http://unittest/yadis_0entries.xrds')
-        self.assertEqual(urls, [])
+        self.assertEqual(list(urls), [])
 
     def test_success(self):
         urls = trustroot.getAllowedReturnURLs('http://unittest/return_to.xrds')
         self.assertEqual(
-            urls,
+            list(urls),
             [
                 'http://rp.example.com/return',
                 'http://mirror.rp.example.com/return',
