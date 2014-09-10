@@ -1,17 +1,16 @@
 import unittest
+from unittest import mock
 import os.path
 
 from openid import xrds, xri
 from openid.yadis import services
 
+from . import support
+
 
 def datapath(filename):
     module_directory = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(module_directory, 'data', 'test_xrds', filename)
-
-XRD_FILE = datapath('valid-populated-xrds.xml')
-NOXRDS_FILE = datapath('not-xrds.xml')
-NOXRD_FILE = datapath('no-xrd.xml')
 
 # None of the namespaces or service URIs below are official (or even
 # sanctioned by the owners of that piece of URL-space)
@@ -29,14 +28,11 @@ def simple_constructor(uri, yadis_url, service_element):
 def no_op_constructor(*args):
     return args
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestServiceParser(unittest.TestCase):
-    def setUp(self):
-        with open(XRD_FILE, 'rb') as f:
-            self.xmldoc = f.read()
-        self.yadis_url = 'http://unittest.url/'
-
     def _getServices(self, types=[], constructor=no_op_constructor):
-        return list(services.parse_services(self.yadis_url, self.xmldoc, types, constructor))
+        url = 'http://unittest/test_xrds/valid-populated-xrds.xml'
+        return list(services.parse_services(url, types, constructor))
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -100,30 +96,21 @@ class TestServiceParser(unittest.TestCase):
             self.fail('Did not find service with expected types and uris')
 
     def testNoXRDS(self):
-        """Make sure that we get an exception when an XRDS element is
-        not present"""
-        with open(NOXRDS_FILE, 'rb') as f:
-            self.xmldoc = f.read()
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, [], no_op_constructor)
+            services.parse_services, 'http://unittest/test_xrds/not-xrds.xml', [], no_op_constructor)
+
+    def testNoXRD(self):
+        self.assertRaises(
+            xrds.XRDSError,
+            services.parse_services, 'http://unittest/test_xrds/no-xrd.xml', [], no_op_constructor)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        self.xmldoc = ''
         self.assertRaises(
             xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, [], no_op_constructor)
-
-    def testNoXRD(self):
-        """Make sure that we get an exception when there is no XRD
-        element present."""
-        with open(NOXRD_FILE, 'rb') as f:
-            self.xmldoc = f.read()
-        self.assertRaises(
-            xrds.XRDSError,
-            services.parse_services, self.yadis_url, self.xmldoc, [], no_op_constructor)
+            services.parse_services, 'http://unittest/200.txt', [], no_op_constructor)
 
 
 class TestCanonicalID(unittest.TestCase):

@@ -22,8 +22,7 @@ def getServiceEndpoints(url, types, constructor):
 
     @raises DiscoveryFailure: when Yadis fails to obtain an XRDS document.
     """
-    et = xrds.parseXRDS(fetch_data(url))
-    endpoints = parse_services(url, et, types, constructor)
+    endpoints = parse_services(url, types, constructor)
     return (url, endpoints)
 
 
@@ -42,7 +41,6 @@ def filter_services(types, constructor, yadis_url, elements):
     return result
 
 
-def parse_services(uri, et, types, constructor):
-    if not hasattr(et, 'getroot'):
-        et = xrds.parseXRDS(et)
-    return filter_services(types, constructor, uri, xrds.iterServices(et))
+def parse_services(url, types, constructor):
+    et = xrds.parseXRDS(fetch_data(url))
+    return filter_services(types, constructor, url, xrds.iterServices(et))
