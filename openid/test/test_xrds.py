@@ -41,7 +41,7 @@ class TestServiceParser(unittest.TestCase):
         self.yadis_url = 'http://unittest.url/'
 
     def _getServices(self, flt=no_op_filter):
-        return list(services.applyFilter(self.yadis_url, self.xmldoc, flt))
+        return list(services.parse_services(self.yadis_url, self.xmldoc, flt))
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -112,7 +112,7 @@ class TestServiceParser(unittest.TestCase):
             self.xmldoc = f.read()
         self.assertRaises(
             xrds.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
@@ -120,7 +120,7 @@ class TestServiceParser(unittest.TestCase):
         self.xmldoc = ''
         self.assertRaises(
             xrds.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
 
     def testNoXRD(self):
         """Make sure that we get an exception when there is no XRD
@@ -129,7 +129,7 @@ class TestServiceParser(unittest.TestCase):
             self.xmldoc = f.read()
         self.assertRaises(
             xrds.XRDSError,
-            services.applyFilter, self.yadis_url, self.xmldoc, no_op_filter)
+            services.parse_services, self.yadis_url, self.xmldoc, no_op_filter)
 
 
 class TestCanonicalID(unittest.TestCase):

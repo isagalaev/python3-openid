@@ -2,7 +2,7 @@ import unittest
 from openid.consumer.discover import \
      OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
-from openid.yadis.services import applyFilter
+from openid.yadis import services
 
 
 XRDS_BOILERPLATE = '''\
@@ -120,7 +120,7 @@ class OpenIDYadisTest(unittest.TestCase):
 
     def runTest(self):
         # Parse into endpoint objects that we will check
-        endpoints = applyFilter(
+        endpoints = services.parse_services(
             self.yadis_url, self.xrds, OpenIDServiceEndpoint.fromServiceElement)
 
         # make sure there are the same number of endpoints as

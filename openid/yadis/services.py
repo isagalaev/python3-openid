@@ -24,7 +24,7 @@ def getServiceEndpoints(url, flt=None):
     """
     try:
         et = xrds.parseXRDS(fetch_data(url))
-        endpoints = applyFilter(url, et, flt)
+        endpoints = parse_services(url, et, flt)
     except xrds.XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
@@ -39,19 +39,7 @@ def filter_services(filter, yadis_url, elements):
     return result
 
 
-def applyFilter(uri, et, func):
-    """Generate an iterable of endpoint objects given this input data,
-    presumably from the result of performing the Yadis protocol.
-
-    @param uri: The input URL, after following redirects,
-        as in the Yadis protocol.
-
-
-    @param et: The XML text the XRDS file fetched from the
-        normalized URI.
-    @type et: str
-
-    """
+def parse_services(uri, et, filter):
     if not hasattr(et, 'getroot'):
         et = xrds.parseXRDS(et)
-    return filter_services(func, uri, xrds.iterServices(et))
+    return filter_services(filter, uri, xrds.iterServices(et))

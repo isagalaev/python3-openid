@@ -295,7 +295,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = services.applyFilter(uri, data, OpenIDServiceEndpoint.fromServiceElement)
+        openid_services = services.parse_services(uri, data, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)
