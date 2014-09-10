@@ -2,6 +2,7 @@
 """
 import unittest
 from unittest import mock
+from urllib.parse import urlencode
 
 from openid.yadis.discover import DiscoveryFailure
 from openid.yadis import services
@@ -52,6 +53,13 @@ class ReturnTo(unittest.TestCase):
                 'http://rp.example.com/return',
                 'http://mirror.rp.example.com/return',
             ]
+        )
+
+    def test_redirect(self):
+        self.assertRaises(
+            trustroot.RealmVerificationRedirected,
+            trustroot.getAllowedReturnURLs,
+            'http://unittest/?' + urlencode({'redirect': 'http://unittest/200.txt'}),
         )
 
 

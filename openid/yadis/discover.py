@@ -39,4 +39,4 @@ def fetch_data(uri):
     location = _yadis_location(response, text)
     if location:
         return fetch_data(location)
-    return text
+    return response.url, text

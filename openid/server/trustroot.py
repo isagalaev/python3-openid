@@ -18,7 +18,7 @@ __all__ = [
     ]
 
 from openid import urinorm, xrds
-from openid.yadis import services
+from openid.yadis import services, discover
 
 from urllib.parse import urlparse, urlunparse
 import re
@@ -389,20 +389,17 @@ def returnToMatches(allowed_return_to_urls, return_to):
     # No URL in the list matched
     return False
 
-def getAllowedReturnURLs(relying_party_url):
+def getAllowedReturnURLs(url):
     """Given a relying party discovery URL return a list of return_to URLs.
 
     @since: 2.1.0
     """
-    (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
-        relying_party_url, [RP_RETURN_TO_URL_TYPE], url_endpoint)
+    final_url, data = discover.fetch_data(url)
+    if final_url != url:
+        raise RealmVerificationRedirected(url, final_url)
 
-    if rp_url_after_redirects != relying_party_url:
-        # Verification caused a redirect
-        raise RealmVerificationRedirected(
-            relying_party_url, rp_url_after_redirects)
-
-    return return_to_urls
+    elements = xrds.iterServices(xrds.parseXRDS(data))
+    return services.filter_services([RP_RETURN_TO_URL_TYPE], url_endpoint, final_url, elements)
 
 # _vrfy parameter is there to make testing easier
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):

@@ -23,7 +23,7 @@ class XRDS(unittest.TestCase):
         if params:
             path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
-        doc = xrds.parseXRDS(fetch_data(url))
+        doc = xrds.parseXRDS(fetch_data(url)[1])
         self.assertTrue(doc)
 
 

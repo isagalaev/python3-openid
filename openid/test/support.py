@@ -139,6 +139,11 @@ def urlopen(request, data=None):
     if parts.netloc.split(':')[0] not in ['unittest', 'proxy.xri.net']:
         raise urllib.error.URLError('Wrong host: %s' % parts.netloc)
 
+    query = urllib.parse.parse_qs(parts.query)
+
+    if 'redirect' in query:
+        return urlopen(query['redirect'][0])
+
     try:
         path = parts.path.lstrip('/') or '200.txt'
         if parts.netloc == 'proxy.xri.net':
@@ -147,8 +152,6 @@ def urlopen(request, data=None):
             body = f.read()
     except FileNotFoundError:
         raise urllib.error.HTTPError(url, 404, '%s not found' % path, {}, io.BytesIO())
-
-    query = urllib.parse.parse_qs(parts.query)
 
     status = int(query.get('status', ['200'])[0])
     if 300 <= status < 400:

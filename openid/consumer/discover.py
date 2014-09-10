@@ -20,7 +20,6 @@ from openid import fetchers, urinorm
 
 from openid import yadis, xri, xrires, xrds
 from openid.yadis import services
-from openid.yadis.discover import fetch_data
 from openid.yadis.discover import DiscoveryFailure
 
 from openid.consumer import html_parse
