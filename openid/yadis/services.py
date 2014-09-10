@@ -28,7 +28,7 @@ def getServiceEndpoints(url, flt=None):
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
 
-def applyFilter(uri, et, func=None):
+def applyFilter(uri, et, func):
     """Generate an iterable of endpoint objects given this input data,
     presumably from the result of performing the Yadis protocol.
 

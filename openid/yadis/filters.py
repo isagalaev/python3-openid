@@ -21,6 +21,4 @@ def mkFilter(func):
 
     @param func: a callable returning an endpoint or None from a service endpoint
     """
-    if func is None:
-        func = lambda *x: tuple(x)
     return partial(filter_endpoints, func)
