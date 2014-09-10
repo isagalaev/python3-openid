@@ -358,9 +358,6 @@ class TrustRoot(object):
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
 
-def is_return_type(service_element):
-    return RP_RETURN_TO_URL_TYPE in xrds.getTypeURIs(service_element)
-
 def url_endpoint(uri, yadis_url, service_element):
     return uri
 
@@ -398,7 +395,7 @@ def getAllowedReturnURLs(relying_party_url):
     @since: 2.1.0
     """
     (rp_url_after_redirects, return_to_urls) = services.getServiceEndpoints(
-        relying_party_url, is_return_type, url_endpoint)
+        relying_party_url, [RP_RETURN_TO_URL_TYPE], url_endpoint)
 
     if rp_url_after_redirects != relying_party_url:
         # Verification caused a redirect

@@ -41,10 +41,6 @@ SERVICE_TYPES = [
     OPENID_1_0_TYPE,
 ]
 
-def is_openid_type(service_element):
-    type_uris = xrds.getTypeURIs(service_element)
-    return set(type_uris).intersection(set(SERVICE_TYPES))
-
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
 
@@ -256,7 +252,7 @@ def discoverXRI(iname):
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
         endpoints = services.filter_services(
-            is_openid_type,
+            SERVICE_TYPES,
             OpenIDServiceEndpoint.fromServiceElement,
             iname,
             service_elements,
@@ -295,7 +291,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = services.parse_services(uri, data, is_openid_type, OpenIDServiceEndpoint.fromServiceElement)
+        openid_services = services.parse_services(uri, data, SERVICE_TYPES, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)

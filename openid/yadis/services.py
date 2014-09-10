@@ -4,7 +4,7 @@ from openid import xrds
 from openid.yadis.discover import fetch_data, DiscoveryFailure
 
 
-def getServiceEndpoints(url, filter, constructor):
+def getServiceEndpoints(url, types, constructor):
     """Perform the Yadis protocol on the input URL and return an
     iterable of resulting endpoint objects.
 
@@ -24,14 +24,19 @@ def getServiceEndpoints(url, filter, constructor):
     """
     try:
         et = xrds.parseXRDS(fetch_data(url))
-        endpoints = parse_services(url, et, filter, constructor)
+        endpoints = parse_services(url, et, types, constructor)
     except xrds.XRDSError as err:
         raise DiscoveryFailure(str(err), None)
     return (url, endpoints)
 
 
-def filter_services(filter, constructor, yadis_url, elements):
-    elements = [e for e in elements if filter(e)]
+def matches_types(element, types):
+    return not types or \
+           set(types).intersection(set(xrds.getTypeURIs(element)))
+
+
+def filter_services(types, constructor, yadis_url, elements):
+    elements = [e for e in elements if matches_types(e, types)]
     result = []
     for element in elements:
         uris = xrds.sortedURIs(element)
@@ -40,7 +45,7 @@ def filter_services(filter, constructor, yadis_url, elements):
     return result
 
 
-def parse_services(uri, et, filter, constructor):
+def parse_services(uri, et, types, constructor):
     if not hasattr(et, 'getroot'):
         et = xrds.parseXRDS(et)
-    return filter_services(filter, constructor, uri, xrds.iterServices(et))
+    return filter_services(types, constructor, uri, xrds.iterServices(et))
