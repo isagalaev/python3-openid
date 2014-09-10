@@ -2,8 +2,7 @@ import unittest
 from openid.consumer.discover import \
      SERVICE_TYPES, OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
-from openid import xrds
-from openid.yadis import services
+from openid import xrds, yadis
 
 
 XRDS_BOILERPLATE = '''\
@@ -120,7 +119,7 @@ class OpenIDYadisTest(unittest.TestCase):
         self.xrds = mkXRDS(services)
 
     def runTest(self):
-        endpoints = list(services.endpoints(
+        endpoints = list(yadis.endpoints(
             SERVICE_TYPES,
             OpenIDServiceEndpoint.fromServiceElement,
             self.yadis_url,

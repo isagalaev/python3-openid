@@ -5,10 +5,9 @@ import os.path
 import urllib.error
 from urllib.parse import urlsplit, urlencode, urljoin
 
-from . import support
-from openid.yadis.discover import DiscoveryFailure
+from openid import xri, message, yadis
 from openid.consumer import discover
-from openid import xri, message
+from . import support
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
@@ -81,10 +80,10 @@ class Discovery(unittest.TestCase):
 
     def test_wrong_protocol(self):
         url = 'ssh://unittest/'
-        self.assertRaises(DiscoveryFailure, discover.discover, url)
+        self.assertRaises(yadis.DiscoveryFailure, discover.discover, url)
 
     def test_localid_mismatch(self):
-        with self.assertRaises(DiscoveryFailure):
+        with self.assertRaises(yadis.DiscoveryFailure):
             discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
 
     def test_html1And2(self):

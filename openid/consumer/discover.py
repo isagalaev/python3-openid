@@ -2,25 +2,12 @@
 """Functions to discover OpenID endpoints from identifiers.
 """
 
-__all__ = [
-    'DiscoveryFailure',
-    'OPENID_1_0_NS',
-    'OPENID_1_0_TYPE',
-    'OPENID_1_1_TYPE',
-    'OPENID_2_0_TYPE',
-    'OPENID_IDP_2_0_TYPE',
-    'OpenIDServiceEndpoint',
-    'discover',
-    ]
-
 import urllib.parse
 import logging
 
 from openid import fetchers, urinorm
 
 from openid import yadis, xri, xrires, xrds
-from openid.yadis import services
-from openid.yadis.discover import DiscoveryFailure
 
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
@@ -223,7 +210,7 @@ def findOPLocalIdentifier(service_element, type_uris):
             elif local_id != local_id_element.text:
                 format = 'More than one %r tag found in one service element'
                 message = format % (local_id_tag,)
-                raise DiscoveryFailure(message, None)
+                raise yadis.DiscoveryFailure(message, None)
 
     return local_id
 
@@ -250,7 +237,7 @@ def discoverXRI(iname):
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
-        endpoints = list(services.endpoints(
+        endpoints = list(yadis.endpoints(
             SERVICE_TYPES,
             OpenIDServiceEndpoint.fromServiceElement,
             iname,
@@ -283,13 +270,13 @@ def normalizeURL(url):
         url = urinorm.urinorm(url)
         return urllib.parse.urldefrag(url)[0]
     except ValueError as why:
-        raise DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
+        raise yadis.DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
 
 
 def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
-        openid_services = services.parse(uri, SERVICE_TYPES, OpenIDServiceEndpoint.fromServiceElement)
+        openid_services = yadis.parse(uri, SERVICE_TYPES, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)

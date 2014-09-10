@@ -4,11 +4,8 @@ import unittest
 from unittest import mock
 from urllib.parse import urlencode
 
-from openid.yadis.discover import DiscoveryFailure
-from openid.yadis import services
 from openid.server import trustroot
 from openid.test.support import CatchLogs
-
 from . import support
 
 

@@ -21,8 +21,8 @@ from openid.consumer.consumer import \
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
+from openid.yadis import DiscoveryFailure
 from openid.yadis.manager import Discovery
-from openid.yadis.discover import DiscoveryFailure
 from openid.dh import DiffieHellman
 
 from openid import fetchers

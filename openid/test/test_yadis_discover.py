@@ -3,8 +3,7 @@ from unittest import mock
 import urllib.parse
 import urllib.error
 
-from openid import xrds
-from openid.yadis.discover import fetch_data
+from openid import xrds, yadis
 from . import support
 
 
@@ -23,7 +22,7 @@ class XRDS(unittest.TestCase):
         if params:
             path += '?' + urllib.parse.urlencode(params)
         url = urllib.parse.urljoin('http://unittest/', path)
-        doc = xrds.parseXRDS(fetch_data(url)[1])
+        doc = xrds.parseXRDS(yadis.fetch_data(url)[1])
         self.assertTrue(doc)
 
 
@@ -32,12 +31,12 @@ class Special(unittest.TestCase):
     def test_second_get(self):
         params = {'header': 'X-XRDS-Location: http://unittest/404'}
         url = 'http://unittest/?' + urllib.parse.urlencode(params)
-        self.assertRaises(urllib.error.HTTPError, fetch_data, url)
+        self.assertRaises(urllib.error.HTTPError, yadis.fetch_data, url)
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://unittest/404')
 
     def test_exception(self):
         url = 'http://unittest/404'
-        self.assertRaises(urllib.error.HTTPError, fetch_data, url)
+        self.assertRaises(urllib.error.HTTPError, yadis.fetch_data, url)
 
 
 if __name__ == '__main__':
