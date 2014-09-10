@@ -109,28 +109,16 @@ class OpenIDServiceEndpoint(object):
         openid.identity parameter to the server."""
         return self.local_id or self.canonicalID or self.claimed_id
 
-    def fromBasicServiceEndpoint(cls, endpoint):
-        """Create a new instance of this class from the endpoint
-        object passed in.
+    @classmethod
+    def fromServiceElement(cls, uri, yadis_url, service_element):
+        type_uris = xrds.getTypeURIs(service_element)
 
-        @return: None or OpenIDServiceEndpoint for this endpoint object"""
-        type_uris = endpoint.matchTypes(SERVICE_TYPES)
+        if not set(type_uris).intersection(set(SERVICE_TYPES)) or uri is None:
+            return None
 
-        # If any Type URIs match and there is an endpoint URI
-        # specified, then this is an OpenID endpoint
-        if type_uris and endpoint.uri is not None:
-            openid_endpoint = cls()
-            openid_endpoint.parseService(
-                endpoint.yadis_url,
-                endpoint.uri,
-                endpoint.type_uris,
-                endpoint.service_element)
-        else:
-            openid_endpoint = None
-
+        openid_endpoint = cls()
+        openid_endpoint.parseService(yadis_url, uri, type_uris, service_element)
         return openid_endpoint
-
-    fromBasicServiceEndpoint = classmethod(fromBasicServiceEndpoint)
 
     def fromHTML(cls, uri, html):
         """Parse the given document as HTML looking for an OpenID <link
@@ -270,7 +258,7 @@ def discoverXRI(iname):
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
 
-        flt = filters.mkFilter(OpenIDServiceEndpoint.fromBasicServiceEndpoint)
+        flt = filters.mkFilter(OpenIDServiceEndpoint.fromServiceElement)
         for service_element in services:
             endpoints.extend(flt(iname, service_element))
     except xrds.XRDSError:
@@ -306,7 +294,7 @@ def discoverURI(uri):
     uri = normalizeURL(uri)
     try:
         data = fetch_data(uri)
-        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint.fromBasicServiceEndpoint)
+        openid_services = applyFilter(uri, data, OpenIDServiceEndpoint.fromServiceElement)
     except xrds.XRDSParseError as e:
         openid_services = OpenIDServiceEndpoint.fromHTML(uri, e.data)
     return uri, getOPOrUserServices(openid_services)

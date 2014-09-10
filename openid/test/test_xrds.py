@@ -20,17 +20,16 @@ LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
 TYPEKEY_1_0 = "http://typekey.com/services/1.0"
 
 
-def simpleOpenIDTransformer(endpoint):
+def simpleOpenIDTransformer(uri, yadis_url, service_element):
     """Function to extract information from an OpenID service element"""
-    if 'http://openid.net/signon/1.0' not in endpoint.type_uris:
+    if 'http://openid.net/signon/1.0' not in xrds.getTypeURIs(service_element):
         return None
 
-    delegates = list(endpoint.service_element.findall(
+    delegates = list(service_element.findall(
         '{http://openid.net/xmlns/1.0}Delegate'))
     assert len(delegates) == 1
     delegate = delegates[0].text
-    return (endpoint.uri, delegate)
-
+    return (uri, delegate)
 
 class TestServiceParser(unittest.TestCase):
     def setUp(self):
@@ -69,10 +68,10 @@ class TestServiceParser(unittest.TestCase):
         """Check to make sure that the expected services are found in
         that order in the parsed document."""
         it = iter(self._getServices())
-        for (type_uri, uri) in expectedServices:
-            for service in it:
-                if type_uri in service.type_uris:
-                    self.assertEqual(service.uri, uri)
+        for (type_uri, service_uri) in expectedServices:
+            for uri, yadis_url, element in it:
+                if type_uri in xrds.getTypeURIs(element):
+                    self.assertEqual(uri, service_uri)
                     break
             else:
                 self.fail('Did not find %r service' % (type_uri,))
@@ -93,11 +92,11 @@ class TestServiceParser(unittest.TestCase):
                  'http://lid.netmesh.org/2.0b5'
                 ]
 
-        uri = "http://mylid.net/josh"
+        reference_uri = "http://mylid.net/josh"
 
-        for service in self._getServices():
-            if service.uri == uri:
-                found_types = service.matchTypes(types)
+        for uri, yadis_url, element in self._getServices():
+            if uri == reference_uri:
+                found_types = xrds.getTypeURIs(element)
                 if found_types == types:
                     break
         else:

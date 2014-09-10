@@ -17,7 +17,7 @@ __all__ = [
     'verifyReturnTo',
     ]
 
-from openid import urinorm
+from openid import urinorm, xrds
 from openid.yadis import services
 
 from urllib.parse import urlparse, urlunparse
@@ -358,7 +358,7 @@ class TrustRoot(object):
 # openid.consumer or openid.yadis somewhere)
 RP_RETURN_TO_URL_TYPE = 'http://specs.openid.net/auth/2.0/return_to'
 
-def _extractReturnURL(endpoint):
+def _extractReturnURL(uri, yadis_url, service_element):
     """If the endpoint is a relying party OpenID return_to endpoint,
     return the endpoint URL. Otherwise, return None.
 
@@ -375,10 +375,8 @@ def _extractReturnURL(endpoint):
         relying party endpoint.
     @rtype: str or NoneType
     """
-    if endpoint.matchTypes([RP_RETURN_TO_URL_TYPE]):
-        return endpoint.uri
-    else:
-        return None
+    types = xrds.getTypeURIs(service_element)
+    return uri if RP_RETURN_TO_URL_TYPE in types else None
 
 def returnToMatches(allowed_return_to_urls, return_to):
     """Is the return_to URL under one of the supplied allowed

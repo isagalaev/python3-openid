@@ -269,38 +269,3 @@ def getTypeURIs(service_element):
     Type tags"""
     return [type_element.text for type_element
             in service_element.findall(type_tag)]
-
-
-def expandService(service_element):
-    """Take a service element and expand it into an iterator of:
-    ([type_uri], uri, service_element)
-    """
-    uris = sortedURIs(service_element)
-    if not uris:
-        uris = [None]
-
-    expanded = []
-    for uri in uris:
-        type_uris = getTypeURIs(service_element)
-        expanded.append((type_uris, uri, service_element))
-
-    return expanded
-
-
-def expandServices(service_elements):
-    """Take a sorted iterator of service elements and expand it into a
-    sorted iterator of:
-    ([type_uri], uri, service_element)
-
-    There may be more than one item in the resulting list for each
-    service element if there is more than one URI or type for a
-    service, but each triple will be unique.
-
-    If there is no URI or Type for a Service element, it will not
-    appear in the result.
-    """
-    expanded = []
-    for service_element in service_elements:
-        expanded.extend(expandService(service_element))
-
-    return expanded
