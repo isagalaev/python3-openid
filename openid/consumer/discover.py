@@ -232,21 +232,21 @@ def discoverXRI(iname):
     if iname.startswith('xri://'):
         iname = iname[6:]
     try:
-        canonicalID, service_elements = xrires.ProxyResolver().query(iname, SERVICE_TYPES)
-
+        url = xrires.ProxyResolver().queryURL(iname)
+        final_url, data = yadis.fetch_data(url)
+        et = xrds.parseXRDS(data)
+        services = xrds.iterServices(et)
+        endpoints = [OpenIDServiceEndpoint.fromServiceElement(*args)
+            for args in yadis.endpoints(SERVICE_TYPES, iname, services)
+        ]
+        canonicalID = xrds.getCanonicalID(iname, et)
         if canonicalID is None:
             raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
-
-        endpoints = [OpenIDServiceEndpoint.fromServiceElement(*args)
-            for args in yadis.endpoints(SERVICE_TYPES, iname, service_elements)
-        ]
     except xrds.XRDSError:
         logging.exception('xrds error on %s' % iname)
         endpoints = []
 
     for endpoint in endpoints:
-        # Is there a way to pass this through the filter to the endpoint
-        # constructor instead of tacking it on after?
         endpoint.canonicalID = canonicalID
         endpoint.claimed_id = canonicalID
         endpoint.iname = iname
