@@ -7,7 +7,7 @@ import logging
 
 from openid import fetchers, urinorm
 
-from openid import yadis, xri, xrires, xrds
+from openid import yadis, xri, xrds
 
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
@@ -228,12 +228,24 @@ def getOPOrUserServices(services):
         services = [s for s in services if s.isOPIdentifier()]
     return services
 
+
+def xri_url(iname, proxy_url='http://proxy.xri.net/'):
+    url = proxy_url + xri.toURINormal(iname)[6:]
+    args = {
+        # XXX: If the proxy resolver will ensure that it doesn't return
+        # bogus CanonicalIDs (as per Steve's message of 15 Aug 2006
+        # 11:13:42), then we could ask for application/xrd+xml instead,
+        # which would give us a bit less to process.
+        '_xrd_r': 'application/xrds+xml;sep=false',
+    }
+    return url + '?' + urllib.parse.urlencode(args)
+
+
 def discoverXRI(iname):
     if iname.startswith('xri://'):
         iname = iname[6:]
     try:
-        url = xrires.ProxyResolver().queryURL(iname)
-        final_url, data = yadis.fetch_data(url)
+        url, data = yadis.fetch_data(xri_url(iname))
         et = xrds.parseXRDS(data)
         services = xrds.iterServices(et)
         endpoints = [OpenIDServiceEndpoint.fromServiceElement(*args)
