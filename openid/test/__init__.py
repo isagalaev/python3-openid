@@ -54,7 +54,6 @@ def pyUnitTests():
         'symbol',
         'xrds',
         'xri',
-        'xrires',
         'association_response',
         'auth_request',
         'negotiation',
