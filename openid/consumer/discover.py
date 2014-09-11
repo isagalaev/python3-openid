@@ -27,6 +27,8 @@ SERVICE_TYPES = [
     OPENID_1_0_TYPE,
 ]
 
+PROXY_URL = 'http://proxy.xri.net/'
+
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
 
@@ -229,23 +231,19 @@ def getOPOrUserServices(services):
     return services
 
 
-def xri_url(iname, proxy_url='http://proxy.xri.net/'):
-    url = proxy_url + xri.toURINormal(iname)[6:]
-    args = {
+def discoverXRI(iname):
+    if iname.startswith('xri://'):
+        iname = iname[6:]
+    query = {
         # XXX: If the proxy resolver will ensure that it doesn't return
         # bogus CanonicalIDs (as per Steve's message of 15 Aug 2006
         # 11:13:42), then we could ask for application/xrd+xml instead,
         # which would give us a bit less to process.
         '_xrd_r': 'application/xrds+xml;sep=false',
     }
-    return url + '?' + urllib.parse.urlencode(args)
-
-
-def discoverXRI(iname):
-    if iname.startswith('xri://'):
-        iname = iname[6:]
+    url = PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
     try:
-        url, data = yadis.fetch_data(xri_url(iname))
+        url, data = yadis.fetch_data(url)
         et = xrds.parseXRDS(data)
         services = xrds.iterServices(et)
         endpoints = [OpenIDServiceEndpoint.fromServiceElement(*args)
