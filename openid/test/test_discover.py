@@ -5,7 +5,7 @@ import os.path
 import urllib.error
 from urllib.parse import urlsplit, urlencode, urljoin
 
-from openid import xri, message, yadis
+from openid import xri, message
 from openid.consumer import discover
 from . import support
 
@@ -80,10 +80,10 @@ class Discovery(unittest.TestCase):
 
     def test_wrong_protocol(self):
         url = 'ssh://unittest/'
-        self.assertRaises(yadis.DiscoveryFailure, discover.discover, url)
+        self.assertRaises(discover.DiscoveryFailure, discover.discover, url)
 
     def test_localid_mismatch(self):
-        with self.assertRaises(yadis.DiscoveryFailure):
+        with self.assertRaises(discover.DiscoveryFailure):
             discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
 
     def test_html1And2(self):

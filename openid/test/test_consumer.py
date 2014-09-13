@@ -11,7 +11,7 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
 from openid import cryptutil, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
-     OPENID_1_1_TYPE
+     DiscoveryFailure, OPENID_1_1_TYPE
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
@@ -21,7 +21,6 @@ from openid.consumer.consumer import \
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
-from openid.yadis import DiscoveryFailure
 from openid.yadis.manager import Discovery
 from openid.dh import DiffieHellman
 

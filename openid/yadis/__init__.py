@@ -5,10 +5,6 @@ from openid import fetchers, xrds
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
 
-class DiscoveryFailure(Exception):
-    pass
-
-
 def _yadis_location(response, body):
     '''
     Checks if the HTTP response refers to a Yadis document in its
