@@ -5,10 +5,6 @@ from openid import fetchers, xrds
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
 
-version_info = (2, 0, 0)
-__version__ = ".".join(str(x) for x in version_info)
-
-
 class DiscoveryFailure(Exception):
     pass
 
