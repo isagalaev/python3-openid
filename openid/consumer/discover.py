@@ -77,21 +77,6 @@ class OpenIDServiceEndpoint(object):
     def isOPIdentifier(self):
         return OPENID_IDP_2_0_TYPE in self.type_uris
 
-    def parseService(self, yadis_url, uri, service_element):
-        """Set the state of this object based on the contents of the
-        service element."""
-        self.type_uris = xrds.getTypeURIs(service_element)
-        self.server_url = uri
-
-        if not self.isOPIdentifier():
-            # XXX: This has crappy implications for Service elements
-            # that contain both 'server' and 'signon' Types.  But
-            # that's a pathological configuration anyway, so I don't
-            # think I care.
-            self.local_id = findOPLocalIdentifier(service_element,
-                                                  self.type_uris)
-            self.claimed_id = yadis_url
-
     def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
@@ -99,9 +84,21 @@ class OpenIDServiceEndpoint(object):
 
     @classmethod
     def fromServiceElement(cls, uri, yadis_url, service_element):
-        openid_endpoint = cls()
-        openid_endpoint.parseService(yadis_url, uri, service_element)
-        return openid_endpoint
+        obj = cls()
+
+        obj.type_uris = xrds.getTypeURIs(service_element)
+        obj.server_url = uri
+
+        if not obj.isOPIdentifier():
+            # XXX: This has crappy implications for Service elements
+            # that contain both 'server' and 'signon' Types.  But
+            # that's a pathological configuration anyway, so I don't
+            # think I care.
+            obj.local_id = findOPLocalIdentifier(service_element,
+                                                  obj.type_uris)
+            obj.claimed_id = yadis_url
+
+        return obj
 
     def fromHTML(cls, uri, html):
         """Parse the given document as HTML looking for an OpenID <link
