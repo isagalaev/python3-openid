@@ -107,6 +107,12 @@ class Discovery(unittest.TestCase):
         self.assertTrue(services[0].supportsType(discover.OPENID_IDP_2_0_TYPE))
         self.assertTrue(services[1].supportsType(discover.OPENID_IDP_2_0_TYPE))
 
+    def test_redirected_claimed_id(self):
+        claimed_id = 'http://unittest/openid2_xrds.xrds'
+        url = 'http://unittest/200.txt?' + urlencode({'redirect': claimed_id})
+        final_url, services = discover.discover(url)
+        self.assertEqual(claimed_id, final_url)
+
     def test_xri_idp(self):
         user_xri, services = discover.discover('=iname.idp')
         self.assertTrue(services)

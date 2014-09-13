@@ -119,9 +119,9 @@ class OpenIDYadisTest(unittest.TestCase):
         self.xrds = mkXRDS(services)
 
     def runTest(self):
-        services = xrds.iterServices(xrds.parseXRDS(self.xrds))
-        endpoints = [OpenIDServiceEndpoint.fromServiceElement(*args)
-            for args in yadis.endpoints(SERVICE_TYPES, self.yadis_url, services)
+        endpoints = [
+            OpenIDServiceEndpoint.fromServiceElement(uri, self.yadis_url, element)
+            for uri, element in yadis.parse(self.xrds, SERVICE_TYPES)
         ]
 
         # make sure there are the same number of endpoints as

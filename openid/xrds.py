@@ -34,15 +34,6 @@ class XRDSError(Exception):
     pass
 
 
-class XRDSParseError(XRDSError):
-    '''
-    Error during parsing of data as XRDS. Retains original data for re-parsing.
-    '''
-    def __init__(self, message, data):
-        super().__init__(message)
-        self.data = data
-
-
 class XRDSFraud(XRDSError):
     """Raised when there's an assertion in the XRDS that it does not have
     the authority to make.
@@ -60,11 +51,11 @@ def parseXRDS(text):
     try:
         element = ElementTree.XML(text)
     except XMLError:
-        raise XRDSParseError('Error parsing document as XML', text)
+        raise XRDSError('Error parsing document as XML', text)
     else:
         tree = ElementTree.ElementTree(element)
         if not isXRDS(tree):
-            raise XRDSParseError('Not an XRDS document', text)
+            raise XRDSError('Not an XRDS document', text)
 
         return tree
 

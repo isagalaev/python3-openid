@@ -17,7 +17,7 @@ __all__ = [
     'verifyReturnTo',
     ]
 
-from openid import urinorm, xrds
+from openid import urinorm
 from openid import yadis
 
 from urllib.parse import urlparse, urlunparse
@@ -395,8 +395,7 @@ def getAllowedReturnURLs(url):
     if final_url != url:
         raise RealmVerificationRedirected(url, final_url)
 
-    elements = xrds.iterServices(xrds.parseXRDS(data))
-    return [url for url, _, _ in yadis.endpoints([RP_RETURN_TO_URL_TYPE], final_url, elements)]
+    return [uri for uri, element in yadis.parse(data, [RP_RETURN_TO_URL_TYPE])]
 
 # _vrfy parameter is there to make testing easier
 def verifyReturnTo(realm_str, return_to, _vrfy=getAllowedReturnURLs):

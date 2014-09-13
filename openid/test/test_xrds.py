@@ -16,7 +16,7 @@ def datapath(filename):
 LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
 
 
-def simple_constructor(uri, yadis_url, service_element):
+def simple_constructor(uri, service_element):
     delegates = list(service_element.findall(
         '{http://openid.net/xmlns/1.0}Delegate'))
     assert len(delegates) == 1
@@ -29,8 +29,8 @@ def no_op_constructor(*args):
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestServiceParser(unittest.TestCase):
     def _getServices(self, types=[], constructor=no_op_constructor):
-        url = 'http://unittest/test_xrds/valid-populated-xrds.xml'
-        return [constructor(*args) for args in yadis.parse(url, types)]
+        url, data = yadis.fetch_data('http://unittest/test_xrds/valid-populated-xrds.xml')
+        return [constructor(*args) for args in yadis.parse(data, types)]
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -61,7 +61,7 @@ class TestServiceParser(unittest.TestCase):
         that order in the parsed document."""
         it = iter(self._getServices())
         for (type_uri, service_uri) in expectedServices:
-            for uri, yadis_url, element in it:
+            for uri, element in it:
                 if type_uri in xrds.getTypeURIs(element):
                     self.assertEqual(uri, service_uri)
                     break
@@ -85,7 +85,7 @@ class TestServiceParser(unittest.TestCase):
 
         reference_uri = "http://mylid.net/josh"
 
-        for uri, yadis_url, element in self._getServices():
+        for uri, element in self._getServices():
             if uri == reference_uri:
                 found_types = xrds.getTypeURIs(element)
                 if found_types == types:
@@ -94,21 +94,24 @@ class TestServiceParser(unittest.TestCase):
             self.fail('Did not find service with expected types and uris')
 
     def testNoXRDS(self):
+        url, data = yadis.fetch_data('http://unittest/test_xrds/not-xrds.xml')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, 'http://unittest/test_xrds/not-xrds.xml', [])
+            yadis.parse, data, [])
 
     def testNoXRD(self):
+        url, data = yadis.fetch_data('http://unittest/test_xrds/no-xrd.xml')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, 'http://unittest/test_xrds/no-xrd.xml', [])
+            yadis.parse, data, [])
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
+        url, data = yadis.fetch_data('http://unittest/200.txt')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, 'http://unittest/200.txt', [])
+            yadis.parse, data, [])
 
 
 class TestCanonicalID(unittest.TestCase):

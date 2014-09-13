@@ -48,7 +48,7 @@ def fetch_data(uri):
     text = response.read() # MAX_RESPONSE
     location = _yadis_location(response, text)
     if location:
-        return fetch_data(location)
+        text = fetchers.fetch(location).read() # MAX_RESPONSE
     return response.url, text
 
 
@@ -60,7 +60,7 @@ def matches_types(element, types):
            set(types).intersection(set(xrds.getTypeURIs(element)))
 
 
-def endpoints(types, yadis_url, elements):
+def _service_uris(elements, types):
     '''
     Generates endpoint data from service elements of given types in
     the form of (service_uri, yadis_url, service_element).
@@ -68,15 +68,14 @@ def endpoints(types, yadis_url, elements):
     elements = [e for e in elements if matches_types(e, types)]
     for element in elements:
         uris = xrds.sortedURIs(element)
-        yield from ((uri, yadis_url, element) for uri in uris)
+        yield from ((uri, element) for uri in uris)
 
 
-def parse(url, types):
+def parse(data, types):
     '''
     Fetches and parses an XRDS document from url and returns a list
     of endpoints.
 
     '''
-    final_url, data = fetch_data(url)
-    et = xrds.parseXRDS(data)
-    return list(endpoints(types, final_url, xrds.iterServices(et)))
+    elements = xrds.iterServices(xrds.parseXRDS(data))
+    return list(_service_uris(elements, types))
