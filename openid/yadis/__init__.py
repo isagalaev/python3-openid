@@ -10,14 +10,7 @@ __version__ = ".".join(str(x) for x in version_info)
 
 
 class DiscoveryFailure(Exception):
-    '''
-    Raised when a YADIS protocol error occurs in the discovery process.
-    '''
-    identity_url = None
-
-    def __init__(self, message, http_response):
-        Exception.__init__(self, message)
-        self.http_response = http_response
+    pass
 
 
 def _yadis_location(response, body):

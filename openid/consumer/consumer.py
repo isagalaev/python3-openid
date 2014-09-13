@@ -320,12 +320,10 @@ class Consumer(object):
         try:
             service = disco.getNextService(self._discover)
         except urllib.error.URLError as why:
-            raise DiscoveryFailure(
-                'Error fetching XRDS document: %s' % why, None)
+            raise DiscoveryFailure('Error fetching XRDS document: %s' % why)
 
         if service is None:
-            raise DiscoveryFailure(
-                'No usable OpenID services found for %s' % (user_url,), None)
+            raise DiscoveryFailure('No usable OpenID services found for %s' % user_url)
         else:
             return self.beginWithoutDiscovery(service, anonymous)
 
@@ -1039,8 +1037,7 @@ class GenericConsumer(object):
         logging.info('Performing discovery on %s' % (claimed_id,))
         _, services = self._discover(claimed_id)
         if not services:
-            raise DiscoveryFailure('No OpenID information found at %s' %
-                                   (claimed_id,), None)
+            raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
         return self._verifyDiscoveredServices(claimed_id, services,
                                               to_match_endpoints)
 
@@ -1067,9 +1064,7 @@ class GenericConsumer(object):
             for failure_message in failure_messages:
                 logging.error(' * Endpoint mismatch: ' + failure_message)
 
-            raise DiscoveryFailure(
-                'No matching endpoint found after discovering %s'
-                % (claimed_id,), None)
+            raise DiscoveryFailure('No matching endpoint found after discovering %s' % claimed_id)
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.

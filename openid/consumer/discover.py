@@ -209,7 +209,7 @@ def findOPLocalIdentifier(service_element, type_uris):
             elif local_id != local_id_element.text:
                 format = 'More than one %r tag found in one service element'
                 message = format % (local_id_tag,)
-                raise yadis.DiscoveryFailure(message, None)
+                raise yadis.DiscoveryFailure(message)
 
     return local_id
 
@@ -273,7 +273,7 @@ def normalizeURL(url):
         url = urinorm.urinorm(url)
         return urllib.parse.urldefrag(url)[0]
     except ValueError as why:
-        raise yadis.DiscoveryFailure('Normalizing identifier: %s' % (why,), None)
+        raise yadis.DiscoveryFailure('Normalizing identifier: %s' % why)
 
 
 def discoverURI(url):
