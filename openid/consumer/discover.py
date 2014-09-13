@@ -1,14 +1,10 @@
-# -*- test-case-name: openid.test.test_discover -*-
-"""Functions to discover OpenID endpoints from identifiers.
-"""
-
+'''
+Functions to discover OpenID endpoints from identifiers.
+'''
 import urllib.parse
 import logging
 
-from openid import fetchers, urinorm
-
-from openid import yadis, xri, xrds
-
+from openid import urinorm, yadis, xri, xrds
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
 
@@ -28,6 +24,7 @@ SERVICE_TYPES = [
 ]
 
 PROXY_URL = 'http://proxy.xri.net/'
+
 
 class OpenIDServiceEndpoint(object):
     """Object representing an OpenID service endpoint.
