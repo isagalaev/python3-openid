@@ -41,7 +41,6 @@ class OpenIDServiceEndpoint(object):
         self.claimed_id = None
         self.server_url = None
         self.local_id = None
-        self.canonicalID = None
         self.iname = None
         self.type_uris = []
 
@@ -80,7 +79,7 @@ class OpenIDServiceEndpoint(object):
     def getLocalID(self):
         """Return the identifier that should be sent as the
         openid.identity parameter to the server."""
-        return self.local_id or self.canonicalID or self.claimed_id
+        return self.local_id or self.claimed_id
 
     @classmethod
     def fromServiceElement(cls, yadis_url, service_element):
@@ -153,13 +152,11 @@ class OpenIDServiceEndpoint(object):
                 "server_url=%r "
                 "claimed_id=%r "
                 "local_id=%r "
-                "canonicalID=%r "
                 ">"
                  % (self.__class__.__module__, self.__class__.__name__,
                     self.server_url,
                     self.claimed_id,
                     self.local_id,
-                    self.canonicalID,
                     ))
 
 
@@ -254,7 +251,6 @@ def discoverXRI(iname):
         endpoints = []
 
     for endpoint in endpoints:
-        endpoint.canonicalID = canonicalID
         endpoint.claimed_id = canonicalID
         endpoint.iname = iname
 
