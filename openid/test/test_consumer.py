@@ -1413,10 +1413,6 @@ class TestSuccessResponse(unittest.TestCase):
         resp = mkSuccess(self.endpoint, {'return_to': 'return_to'})
         self.assertEqual(resp.getReturnTo(), 'return_to')
 
-    def test_displayIdentifierClaimedId(self):
-        resp = mkSuccess(self.endpoint, {})
-        self.assertEqual(resp.getDisplayIdentifier(), resp.endpoint.claimed_id)
-
 
 class StubConsumer(object):
     def __init__(self):

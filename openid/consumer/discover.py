@@ -64,12 +64,6 @@ class OpenIDServiceEndpoint(object):
             (type_uri == OPENID_2_0_TYPE and self.isOPIdentifier())
             )
 
-    def display_id(self):
-        '''
-        iname or claimed_id formatted for readability
-        '''
-        return self.iname or urllib.parse.urldefrag(self.claimed_id or '').url
-
     def compatibilityMode(self):
         return self.preferredNamespace() != OPENID2_NS
 

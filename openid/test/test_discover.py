@@ -231,23 +231,6 @@ class Endpoint(unittest.TestCase):
         endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
         self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
 
-    def test_uri_display_id(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        self.assertEqual(endpoint.display_id(), '')
-        endpoint.claimed_id = 'http://unittest/'
-        self.assertEqual(endpoint.display_id(), 'http://unittest/')
-
-    def test_xri_display_id(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = '=iname'
-        endpoint.canonicalID = '=!1000'
-        self.assertEqual(endpoint.display_id(), '=iname')
-
-    def test_strip_fragment(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = 'http://unittest/#123'
-        self.assertEqual(endpoint.display_id(), 'http://unittest/')
-
     def test_useCanonicalID(self):
         """When there is no delegate, the CanonicalID should be used with XRI.
         """
