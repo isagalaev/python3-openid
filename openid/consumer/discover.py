@@ -50,16 +50,6 @@ class OpenIDServiceEndpoint(object):
     def preferredNamespace(self):
         return OPENID1_NS if self.compatibilityMode() else OPENID2_NS
 
-    def supportsType(self, type_uri):
-        """Does this endpoint support this type?
-
-        I consider C{/server} endpoints to implicitly support C{/signon}.
-        """
-        return (
-            (type_uri in self.type_uris) or
-            (type_uri == OPENID_2_0_TYPE and self.isOPIdentifier())
-            )
-
     def compatibilityMode(self):
         return not (OPENID_IDP_2_0_TYPE in self.type_uris or OPENID_2_0_TYPE in self.type_uris)
 

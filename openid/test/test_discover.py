@@ -98,14 +98,14 @@ class Discovery(unittest.TestCase):
     def test_type_order(self):
         url, services = discover.discover('http://unittest/yadis_two_services.xrds')
         self.assertEqual(len(services), 2)
-        self.assertTrue(services[0].supportsType(discover.OPENID_2_0_TYPE))
-        self.assertTrue(services[1].supportsType(discover.OPENID_1_0_TYPE))
+        self.assertTrue(discover.OPENID_2_0_TYPE in services[0].type_uris)
+        self.assertTrue(discover.OPENID_1_0_TYPE in services[1].type_uris)
 
     def test_idp_type_order(self):
         url, services = discover.discover('http://unittest/yadis_idp.xrds')
         self.assertEqual(len(services), 2)
-        self.assertTrue(services[0].supportsType(discover.OPENID_IDP_2_0_TYPE))
-        self.assertTrue(services[1].supportsType(discover.OPENID_IDP_2_0_TYPE))
+        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[0].type_uris)
+        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[1].type_uris)
 
     def test_redirected_claimed_id(self):
         claimed_id = 'http://unittest/openid2_xrds.xrds'
@@ -221,15 +221,6 @@ class Endpoint(unittest.TestCase):
         self.assertEqual(endpoint.claimed_id, None)
         self.assertFalse(endpoint.compatibilityMode())
         self.assertEqual(endpoint.server_url, url)
-
-    def test_supportsType(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        self.assertFalse(endpoint.supportsType(discover.OPENID_2_0_TYPE))
-        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-        self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
-        # Should implicitly support this:
-        endpoint.type_uris = [discover.OPENID_IDP_2_0_TYPE]
-        self.assertTrue(endpoint.supportsType(discover.OPENID_2_0_TYPE))
 
     def test_useCanonicalID(self):
         """When there is no delegate, the CanonicalID should be used with XRI.
