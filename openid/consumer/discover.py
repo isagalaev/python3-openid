@@ -48,11 +48,7 @@ class OpenIDServiceEndpoint(object):
         return extension_uri in self.type_uris
 
     def preferredNamespace(self):
-        if (OPENID_IDP_2_0_TYPE in self.type_uris or
-            OPENID_2_0_TYPE in self.type_uris):
-            return OPENID2_NS
-        else:
-            return OPENID1_NS
+        return OPENID1_NS if self.compatibilityMode() else OPENID2_NS
 
     def supportsType(self, type_uri):
         """Does this endpoint support this type?
@@ -65,7 +61,7 @@ class OpenIDServiceEndpoint(object):
             )
 
     def compatibilityMode(self):
-        return self.preferredNamespace() != OPENID2_NS
+        return not (OPENID_IDP_2_0_TYPE in self.type_uris or OPENID_2_0_TYPE in self.type_uris)
 
     def isOPIdentifier(self):
         return OPENID_IDP_2_0_TYPE in self.type_uris
