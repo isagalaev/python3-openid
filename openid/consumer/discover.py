@@ -83,11 +83,11 @@ class OpenIDServiceEndpoint(object):
         return self.local_id or self.canonicalID or self.claimed_id
 
     @classmethod
-    def fromServiceElement(cls, uri, yadis_url, service_element):
+    def fromServiceElement(cls, yadis_url, service_element):
         obj = cls()
 
         obj.type_uris = xrds.getTypeURIs(service_element)
-        obj.server_url = uri
+        obj.server_url = xrds.getURI(service_element)
 
         if not obj.isOPIdentifier():
             # XXX: This has crappy implications for Service elements
@@ -243,8 +243,8 @@ def discoverXRI(iname):
     try:
         url, data = yadis.fetch_data(url)
         et = xrds.parseXRDS(data)
-        endpoints = [OpenIDServiceEndpoint.fromServiceElement(uri, iname, element)
-            for uri, element in yadis.parse(data, SERVICE_TYPES)
+        endpoints = [OpenIDServiceEndpoint.fromServiceElement(iname, element)
+            for element in yadis.parse(data, SERVICE_TYPES)
         ]
         canonicalID = xrds.getCanonicalID(iname, et)
         if canonicalID is None:
@@ -281,8 +281,8 @@ def discoverURI(url):
     url, data = yadis.fetch_data(normalizeURL(url))
     try:
         openid_services = [
-            OpenIDServiceEndpoint.fromServiceElement(service_uri, url, element)
-            for service_uri, element in yadis.parse(data, SERVICE_TYPES)]
+            OpenIDServiceEndpoint.fromServiceElement(url, element)
+            for element in yadis.parse(data, SERVICE_TYPES)]
     except xrds.XRDSError:
         openid_services = OpenIDServiceEndpoint.fromHTML(url, data)
     return url, getOPOrUserServices(openid_services)

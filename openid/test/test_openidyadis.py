@@ -50,11 +50,8 @@ server_url_options = [
     [], # This case should not generate an endpoint object
     ['http://server.url/'],
     ['https://server.url/'],
-    ['https://server.url/', 'http://server.url/'],
-    ['https://server.url/',
-     'http://server.url/',
-     'http://example.server.url/'],
-    ]
+    ['http://server.url/', 'http://example.server.url/'],
+]
 
 # Used for generating test data
 def subsets(l):
@@ -120,23 +117,19 @@ class OpenIDYadisTest(unittest.TestCase):
 
     def runTest(self):
         endpoints = [
-            OpenIDServiceEndpoint.fromServiceElement(uri, self.yadis_url, element)
-            for uri, element in yadis.parse(self.xrds, SERVICE_TYPES)
+            OpenIDServiceEndpoint.fromServiceElement(self.yadis_url, element)
+            for element in yadis.parse(self.xrds, SERVICE_TYPES)
         ]
 
         # make sure there are the same number of endpoints as
         # URIs. This assumes that the type_uris contains at least one
         # OpenID type.
-        self.assertEqual(len(self.uris), len(endpoints))
+        self.assertEqual(len(endpoints), 1 if self.uris else 0)
 
         # So that we can check equality on the endpoint types
-        type_uris = list(self.type_uris)
-        type_uris.sort()
+        type_uris = sorted(self.type_uris)
 
-        seen_uris = []
         for endpoint in endpoints:
-            seen_uris.append(endpoint.server_url)
-
             # All endpoints will have same yadis_url
             self.assertEqual(self.yadis_url, endpoint.claimed_id)
 
@@ -148,14 +141,7 @@ class OpenIDYadisTest(unittest.TestCase):
             actual_types.sort()
             self.assertEqual(actual_types, type_uris)
 
-        # So that they will compare equal, because we don't care what
-        # order they are in
-        seen_uris.sort()
-        uris = list(self.uris)
-        uris.sort()
-
-        # Make sure we saw all URIs, and saw each one once
-        self.assertEqual(uris, seen_uris)
+        self.assertTrue(set(self.uris).issuperset({e.server_url for e in endpoints}))
 
 def pyUnitTests():
     cases = []

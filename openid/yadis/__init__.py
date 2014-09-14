@@ -45,21 +45,10 @@ def matches_types(element, types):
            set(types).intersection(set(xrds.getTypeURIs(element)))
 
 
-def _service_uris(elements, types):
-    '''
-    Internal generator for yadis.parse producing flattened sequence of
-    uris with their parent service elements.
-    '''
-    elements = [e for e in elements if matches_types(e, types)]
-    for element in elements:
-        uris = xrds.sortedURIs(element)
-        yield from ((uri, element) for uri in uris)
-
-
 def parse(data, types):
     '''
     Parses an XRDS document and returns a list of endpoints in the form of
     (service_uri, service_element).
     '''
     elements = xrds.iterServices(xrds.parseXRDS(data))
-    return list(_service_uris(elements, types))
+    return [e for e in elements if matches_types(e, types) and xrds.getURI(e) is not None]

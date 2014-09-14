@@ -16,21 +16,19 @@ def datapath(filename):
 LID_2_0 = "http://lid.netmesh.org/sso/2.0b5"
 
 
-def simple_constructor(uri, service_element):
+def simple_constructor(service_element):
     delegates = list(service_element.findall(
         '{http://openid.net/xmlns/1.0}Delegate'))
     assert len(delegates) == 1
     delegate = delegates[0].text
-    return (uri, delegate)
+    return (xrds.getURI(service_element), delegate)
 
-def no_op_constructor(*args):
-    return args
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestServiceParser(unittest.TestCase):
-    def _getServices(self, types=[], constructor=no_op_constructor):
+    def _getServices(self, types=[], constructor=lambda x: x):
         url, data = yadis.fetch_data('http://unittest/test_xrds/valid-populated-xrds.xml')
-        return [constructor(*args) for args in yadis.parse(data, types)]
+        return [constructor(e) for e in yadis.parse(data, types)]
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -61,9 +59,9 @@ class TestServiceParser(unittest.TestCase):
         that order in the parsed document."""
         it = iter(self._getServices())
         for (type_uri, service_uri) in expectedServices:
-            for uri, element in it:
+            for element in it:
                 if type_uri in xrds.getTypeURIs(element):
-                    self.assertEqual(uri, service_uri)
+                    self.assertEqual(xrds.getURI(element), service_uri)
                     break
             else:
                 self.fail('Did not find %r service' % (type_uri,))
@@ -85,11 +83,10 @@ class TestServiceParser(unittest.TestCase):
 
         reference_uri = "http://mylid.net/josh"
 
-        for uri, element in self._getServices():
-            if uri == reference_uri:
-                found_types = xrds.getTypeURIs(element)
-                if found_types == types:
-                    break
+        for element in self._getServices():
+            if xrds.getURI(element) == reference_uri and \
+               xrds.getTypeURIs(element) == types:
+                break
         else:
             self.fail('Did not find service with expected types and uris')
 

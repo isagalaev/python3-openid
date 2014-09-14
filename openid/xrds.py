@@ -248,11 +248,12 @@ def iterServices(xrd_tree):
     return prioSort(xrd.findall(service_tag))
 
 
-def sortedURIs(service_element):
-    """Given a Service element, return a list of the contents of all
-    URI tags in priority order."""
-    return [uri_element.text for uri_element
-            in prioSort(service_element.findall(uri_tag))]
+def getURI(service_element):
+    """Given a Service element, return content of its URI tag or
+    None if absent
+    """
+    uri_element = service_element.find(uri_tag)
+    return uri_element.text if uri_element is not None else None
 
 
 def getTypeURIs(service_element):
