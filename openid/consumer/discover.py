@@ -211,19 +211,14 @@ def findOPLocalIdentifier(service_element, type_uris):
 
     return local_id
 
-def getOPOrUserServices(services):
+def preferred_services(services):
     '''
-    Extract OP Identifier services.  If none found, return the
-    rest, sorted with most preferred first according to SERVICE_TYPES.
-
-    services is a list of OpenIDServiceEndpoint objects.
-
-    Returns a list of OpenIDServiceEndpoint objects.
+    Return only OP Identifier services if present or all of them otherwise.
+    Services are ordered by their type according to SERVICE_TYPES list.
     '''
     services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
-    if services and services[0].isOPIdentifier():
-        services = [s for s in services if s.isOPIdentifier()]
-    return services
+    op_idp_services = [s for s in services if s.isOPIdentifier()]
+    return op_idp_services or services
 
 
 def discoverXRI(iname):
@@ -255,7 +250,7 @@ def discoverXRI(iname):
         endpoint.iname = iname
 
     # FIXME: returned xri should probably be in some normal form
-    return iname, getOPOrUserServices(endpoints)
+    return iname, preferred_services(endpoints)
 
 
 def normalizeURL(url):
@@ -281,7 +276,7 @@ def discoverURI(url):
             for element in yadis.parse(data, SERVICE_TYPES)]
     except xrds.XRDSError:
         openid_services = OpenIDServiceEndpoint.fromHTML(url, data)
-    return url, getOPOrUserServices(openid_services)
+    return url, preferred_services(openid_services)
 
 def discover(identifier):
     if xri.identifierScheme(identifier) == "XRI":
