@@ -41,7 +41,6 @@ class OpenIDServiceEndpoint(object):
         self.claimed_id = None
         self.server_url = None
         self.local_id = None
-        self.iname = None
         self.type_uris = []
 
     def usesExtension(self, extension_uri):
@@ -75,10 +74,6 @@ class OpenIDServiceEndpoint(object):
             # think I care.
             obj.claimed_id = canonicalID or user_id
             obj.local_id = findOPLocalIdentifier(service_element, obj.type_uris)
-        if canonicalID:
-            # It was an XRI discovery, so claimed_id now holds canonicalID and we
-            # want to store the iname separately
-            obj.iname = user_id
 
         return obj
 
