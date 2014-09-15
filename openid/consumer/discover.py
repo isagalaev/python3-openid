@@ -189,15 +189,6 @@ def findOPLocalIdentifier(service_element, type_uris):
 
     return local_id
 
-def preferred_services(services):
-    '''
-    Return only OP Identifier services if present or all of them otherwise.
-    Services are ordered by their type according to SERVICE_TYPES list.
-    '''
-    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
-    op_idp_services = [s for s in services if s.isOPIdentifier()]
-    return op_idp_services or services
-
 
 def parse_xrds(user_id, data):
     et = xrds.parseXRDS(data)
@@ -207,10 +198,15 @@ def parse_xrds(user_id, data):
             raise xrds.XRDSError('No canonicalID found for XRI %r' % user_id)
     else:
         canonicalID = None
-    return [
+    services = [
         OpenIDServiceEndpoint.fromServiceElement(element, user_id, canonicalID)
         for element in yadis.parse(data, SERVICE_TYPES)
     ]
+    # Return only OP Identifier services if present or all of them otherwise.
+    # Services are ordered by their type according to SERVICE_TYPES list.
+    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
+    op_idp_services = [s for s in services if s.isOPIdentifier()]
+    return op_idp_services or services
 
 
 def xri_url(iname):
@@ -234,7 +230,7 @@ def discoverXRI(iname):
         logging.exception(e)
         endpoints = []
 
-    return iname, preferred_services(endpoints)
+    return iname, endpoints
 
 
 def normalizeURL(url):
@@ -255,10 +251,10 @@ def normalizeURL(url):
 def discoverURI(url):
     url, data = yadis.fetch_data(normalizeURL(url))
     try:
-        openid_services = parse_xrds(url, data)
+        services = parse_xrds(url, data)
     except xrds.XRDSError:
-        openid_services = OpenIDServiceEndpoint.fromHTML(url, data)
-    return url, preferred_services(openid_services)
+        services = OpenIDServiceEndpoint.fromHTML(url, data)
+    return url, services
 
 
 def discover(identifier):
