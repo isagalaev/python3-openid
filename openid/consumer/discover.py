@@ -37,11 +37,15 @@ class OpenIDServiceEndpoint(object):
     @ivar canonicalID: For XRI, the persistent identifier.
     """
 
-    def __init__(self):
-        self.claimed_id = None
-        self.server_url = None
-        self.local_id = None
-        self.type_uris = []
+    def __init__(self, type_uris=None, server_url=None, claimed_id=None, local_id=None):
+        self.type_uris = type_uris if type_uris is not None else [OPENID_2_0_TYPE]
+        self.server_url = server_url
+        self.claimed_id = claimed_id
+        self.local_id = local_id
+
+    @classmethod
+    def as_op_identifier(cls, op_endpoint_url):
+        return cls([OPENID_IDP_2_0_TYPE], op_endpoint_url)
 
     def usesExtension(self, extension_uri):
         return extension_uri in self.type_uris
@@ -60,70 +64,6 @@ class OpenIDServiceEndpoint(object):
         openid.identity parameter to the server."""
         return self.local_id or self.claimed_id
 
-    @classmethod
-    def fromServiceElement(cls, service_element, user_id, canonicalID=None):
-        obj = cls()
-
-        obj.type_uris = xrds.getTypeURIs(service_element)
-        obj.server_url = xrds.getURI(service_element)
-
-        if not obj.isOPIdentifier():
-            # XXX: This has crappy implications for Service elements
-            # that contain both 'server' and 'signon' Types.  But
-            # that's a pathological configuration anyway, so I don't
-            # think I care.
-            obj.claimed_id = canonicalID or user_id
-            obj.local_id = findOPLocalIdentifier(service_element, obj.type_uris)
-
-        return obj
-
-    def fromHTML(cls, uri, html):
-        """Parse the given document as HTML looking for an OpenID <link
-        rel=...>
-
-        @rtype: [OpenIDServiceEndpoint]
-        """
-        discovery_types = [
-            (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
-            (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
-            ]
-
-        link_attrs = html_parse.parseLinkAttrs(html)
-        services = []
-        for type_uri, op_endpoint_rel, local_id_rel in discovery_types:
-            op_endpoint_url = html_parse.findFirstHref(
-                link_attrs, op_endpoint_rel)
-            if op_endpoint_url is None:
-                continue
-
-            service = cls()
-            service.claimed_id = uri
-            service.local_id = html_parse.findFirstHref(
-                link_attrs, local_id_rel)
-            service.server_url = op_endpoint_url
-            service.type_uris = [type_uri]
-
-            services.append(service)
-
-        return services
-
-    fromHTML = classmethod(fromHTML)
-
-
-    def fromOPEndpointURL(cls, op_endpoint_url):
-        """Construct an OP-Identifier OpenIDServiceEndpoint object for
-        a given OP Endpoint URL
-
-        @param op_endpoint_url: The URL of the endpoint
-        @rtype: OpenIDServiceEndpoint
-        """
-        service = cls()
-        service.server_url = op_endpoint_url
-        service.type_uris = [OPENID_IDP_2_0_TYPE]
-        return service
-
-    fromOPEndpointURL = classmethod(fromOPEndpointURL)
-
 
     def __str__(self):
         return ("<%s.%s "
@@ -137,6 +77,30 @@ class OpenIDServiceEndpoint(object):
                     self.local_id,
                     ))
 
+
+def parse_html(url, html):
+    discovery_types = [
+        (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
+        (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
+        ]
+
+    link_attrs = html_parse.parseLinkAttrs(html)
+
+    services = []
+    for type_uri, op_endpoint_rel, local_id_rel in discovery_types:
+        op_endpoint_url = html_parse.findFirstHref(
+            link_attrs, op_endpoint_rel)
+        if op_endpoint_url is None:
+            continue
+        service = OpenIDServiceEndpoint(
+            [type_uri],
+            op_endpoint_url,
+            url,
+            html_parse.findFirstHref(link_attrs, local_id_rel),
+        )
+        services.append(service)
+
+    return services
 
 
 def findOPLocalIdentifier(service_element, type_uris):
@@ -190,6 +154,14 @@ def findOPLocalIdentifier(service_element, type_uris):
     return local_id
 
 
+def parse_service(service_element, user_id, canonicalID=None):
+    result = OpenIDServiceEndpoint(xrds.getTypeURIs(service_element), xrds.getURI(service_element))
+    if not result.isOPIdentifier():
+        result.claimed_id = canonicalID or user_id
+        result.local_id = findOPLocalIdentifier(service_element, result.type_uris)
+    return result
+
+
 def parse_xrds(user_id, data):
     et = xrds.parseXRDS(data)
     if xri.is_iname(user_id):
@@ -199,7 +171,7 @@ def parse_xrds(user_id, data):
     else:
         canonicalID = None
     services = [
-        OpenIDServiceEndpoint.fromServiceElement(element, user_id, canonicalID)
+        parse_service(element, user_id, canonicalID)
         for element in yadis.parse(data, SERVICE_TYPES)
     ]
     # Return only OP Identifier services if present or all of them otherwise.
@@ -244,7 +216,7 @@ def discoverURI(url):
     try:
         services = parse_xrds(url, data)
     except xrds.XRDSError:
-        services = OpenIDServiceEndpoint.fromHTML(url, data)
+        services = parse_html(url, data)
     return url, services
 
 

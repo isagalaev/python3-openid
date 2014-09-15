@@ -181,54 +181,49 @@ class Services(unittest.TestCase):
         self.assertEqual(type_uris, s.type_uris)
 
 
-@support.gentests
-class PreferredNamespace(unittest.TestCase):
-    data = [
-        ('empty', (message.OPENID1_NS, [])),
-        ('bogus', (message.OPENID1_NS, ['http://unittest/'])),
-        ('openid10', (message.OPENID1_NS, [discover.OPENID_1_0_TYPE])),
-        ('openid11', (message.OPENID1_NS, [discover.OPENID_1_1_TYPE])),
-        ('openid20', (message.OPENID2_NS, [discover.OPENID_2_0_TYPE])),
-        ('openid20idp', (message.OPENID2_NS, [discover.OPENID_IDP_2_0_TYPE])),
-        ('openid2and1', (message.OPENID2_NS, [discover.OPENID_2_0_TYPE, discover.OPENID_1_0_TYPE])),
-        ('openid1and2', (message.OPENID2_NS, [discover.OPENID_1_0_TYPE, discover.OPENID_2_0_TYPE])),
-    ]
-
-    def _test(self, ns, type_uris):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.type_uris = type_uris
-        self.assertEqual(ns, endpoint.preferredNamespace())
-
-
 class Endpoint(unittest.TestCase):
-    def test_isOPIdentifier(self):
+    def test_uses_extension(self):
+        url = 'http://example.com/extension'
+        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_2_0_TYPE, url])
+        self.assertTrue(endpoint.usesExtension(url))
+
+    def test_openid_2(self):
         endpoint = discover.OpenIDServiceEndpoint()
-        self.assertFalse(endpoint.isOPIdentifier())
-        endpoint.type_uris = [
+        self.assertFalse(endpoint.compatibilityMode())
+        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_2_0_TYPE])
+        self.assertFalse(endpoint.compatibilityMode())
+        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_IDP_2_0_TYPE])
+        self.assertFalse(endpoint.compatibilityMode())
+        self.assertEqual(endpoint.preferredNamespace(), discover.OPENID2_NS)
+
+    def test_openid_1(self):
+        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_1_1_TYPE])
+        self.assertTrue(endpoint.compatibilityMode())
+        self.assertEqual(endpoint.preferredNamespace(), discover.OPENID1_NS)
+
+    def test_isOPIdentifier(self):
+        endpoint = discover.OpenIDServiceEndpoint([
             discover.OPENID_2_0_TYPE,
             discover.OPENID_1_0_TYPE,
             discover.OPENID_1_1_TYPE,
-        ]
+        ])
         self.assertFalse(endpoint.isOPIdentifier())
-        endpoint.type_uris.append(discover.OPENID_IDP_2_0_TYPE)
+        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_IDP_2_0_TYPE])
         self.assertTrue(endpoint.isOPIdentifier())
 
-    def test_fromOPEndpointURL(self):
-        url = 'http://example.com/op/endpoint'
-        endpoint = discover.OpenIDServiceEndpoint.fromOPEndpointURL(url)
+    def test_as_op_identifier(self):
+        url = 'http://unittest'
+        endpoint = discover.OpenIDServiceEndpoint.as_op_identifier(url)
         self.assertTrue(endpoint.isOPIdentifier())
-        self.assertEqual(endpoint.getLocalID(), None)
-        self.assertEqual(endpoint.claimed_id, None)
-        self.assertFalse(endpoint.compatibilityMode())
         self.assertEqual(endpoint.server_url, url)
 
-    def test_useCanonicalID(self):
-        """When there is no delegate, the CanonicalID should be used with XRI.
-        """
+    def test_local_id(self):
+        endpoint = discover.OpenIDServiceEndpoint(claimed_id='claimed_id')
+        self.assertEqual(endpoint.getLocalID(), 'claimed_id')
+        endpoint = discover.OpenIDServiceEndpoint(claimed_id='claimed_id', local_id='local_id')
+        self.assertEqual(endpoint.getLocalID(), 'local_id')
         endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.claimed_id = xri.XRI("=!1000")
-        endpoint.canonicalID = xri.XRI("=!1000")
-        self.assertEqual(endpoint.getLocalID(), xri.XRI("=!1000"))
+        self.assertEqual(endpoint.getLocalID(), None)
 
 
 @support.gentests

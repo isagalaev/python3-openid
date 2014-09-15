@@ -1,6 +1,8 @@
 import unittest
+
+from openid.consumer import discover
 from openid.consumer.discover import \
-     SERVICE_TYPES, OpenIDServiceEndpoint, OPENID_1_1_TYPE, OPENID_1_0_TYPE
+     SERVICE_TYPES, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
 from openid import xrds, yadis
 
@@ -117,7 +119,7 @@ class OpenIDYadisTest(unittest.TestCase):
 
     def runTest(self):
         endpoints = [
-            OpenIDServiceEndpoint.fromServiceElement(element, self.yadis_url)
+            discover.parse_service(element, self.yadis_url)
             for element in yadis.parse(self.xrds, SERVICE_TYPES)
         ]
 

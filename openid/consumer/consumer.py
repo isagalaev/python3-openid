@@ -898,7 +898,7 @@ class GenericConsumer(object):
         # checking that we can do, so return an endpoint that's for
         # the specified `openid.op_endpoint'
         elif to_match.claimed_id is None:
-            return OpenIDServiceEndpoint.fromOPEndpointURL(to_match.server_url)
+            return OpenIDServiceEndpoint.as_op_identifier(to_match.server_url)
 
         # The claimed ID doesn't match, so we have to do discovery
         # again. This covers not using sessions, OP identifier
