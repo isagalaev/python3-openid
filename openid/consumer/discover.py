@@ -209,7 +209,9 @@ def parse_xrds(user_id, data):
     return op_idp_services or services
 
 
-def xri_url(iname):
+def discoverXRI(iname):
+    if iname.startswith('xri://'):
+        iname = iname[6:]
     query = {
         # XXX: If the proxy resolver will ensure that it doesn't return
         # bogus CanonicalIDs (as per Steve's message of 15 Aug 2006
@@ -217,13 +219,8 @@ def xri_url(iname):
         # which would give us a bit less to process.
         '_xrd_r': 'application/xrds+xml;sep=false',
     }
-    return PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
-
-
-def discoverXRI(iname):
-    if iname.startswith('xri://'):
-        iname = iname[6:]
-    url, data = yadis.fetch_data(xri_url(iname))
+    url =  PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
+    url, data = yadis.fetch_data(url)
     try:
         endpoints = parse_xrds(iname, data)
     except xrds.XRDSError as e:
@@ -233,23 +230,17 @@ def discoverXRI(iname):
     return iname, endpoints
 
 
-def normalizeURL(url):
-    '''
-    Normalize a URL, converting normalization failures to DiscoveryFailure
-    '''
+def discoverURI(url):
     try:
         parsed = urllib.parse.urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             # checking both scheme and netloc as things like 'server:80/' put 'server' in scheme
             url = 'http://' + url
         url = urinorm.urinorm(url)
-        return urllib.parse.urldefrag(url)[0]
-    except ValueError as why:
-        raise DiscoveryFailure('Normalizing identifier: %s' % why)
-
-
-def discoverURI(url):
-    url, data = yadis.fetch_data(normalizeURL(url))
+        url = urllib.parse.urldefrag(url)[0]
+    except ValueError:
+        raise DiscoveryFailure('Normalizing identifier: %s' % url)
+    url, data = yadis.fetch_data(url)
     try:
         services = parse_xrds(url, data)
     except xrds.XRDSError:
