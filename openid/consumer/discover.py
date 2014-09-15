@@ -62,7 +62,7 @@ class OpenIDServiceEndpoint(object):
         return self.local_id or self.claimed_id
 
     @classmethod
-    def fromServiceElement(cls, yadis_url, service_element):
+    def fromServiceElement(cls, service_element, user_id, canonicalID=None):
         obj = cls()
 
         obj.type_uris = xrds.getTypeURIs(service_element)
@@ -73,9 +73,12 @@ class OpenIDServiceEndpoint(object):
             # that contain both 'server' and 'signon' Types.  But
             # that's a pathological configuration anyway, so I don't
             # think I care.
-            obj.local_id = findOPLocalIdentifier(service_element,
-                                                  obj.type_uris)
-            obj.claimed_id = yadis_url
+            obj.claimed_id = canonicalID or user_id
+            obj.local_id = findOPLocalIdentifier(service_element, obj.type_uris)
+        if canonicalID:
+            # It was an XRI discovery, so claimed_id now holds canonicalID and we
+            # want to store the iname separately
+            obj.iname = user_id
 
         return obj
 
@@ -215,21 +218,16 @@ def discoverXRI(iname):
     try:
         url, data = yadis.fetch_data(url)
         et = xrds.parseXRDS(data)
-        endpoints = [OpenIDServiceEndpoint.fromServiceElement(iname, element)
-            for element in yadis.parse(data, SERVICE_TYPES)
-        ]
         canonicalID = xrds.getCanonicalID(iname, et)
         if canonicalID is None:
-            raise xrds.XRDSError('No CanonicalID found for XRI %r' % iname)
-    except xrds.XRDSError:
-        logging.exception('xrds error on %s' % iname)
+            raise xrds.XRDSError('No canonicalID found for XRI %r' % iname)
+        endpoints = [OpenIDServiceEndpoint.fromServiceElement(element, iname, canonicalID)
+            for element in yadis.parse(data, SERVICE_TYPES)
+        ]
+    except xrds.XRDSError as e:
+        logging.exception(e)
         endpoints = []
 
-    for endpoint in endpoints:
-        endpoint.claimed_id = canonicalID
-        endpoint.iname = iname
-
-    # FIXME: returned xri should probably be in some normal form
     return iname, preferred_services(endpoints)
 
 
@@ -252,7 +250,7 @@ def discoverURI(url):
     url, data = yadis.fetch_data(normalizeURL(url))
     try:
         openid_services = [
-            OpenIDServiceEndpoint.fromServiceElement(url, element)
+            OpenIDServiceEndpoint.fromServiceElement(element, url)
             for element in yadis.parse(data, SERVICE_TYPES)]
     except xrds.XRDSError:
         openid_services = OpenIDServiceEndpoint.fromHTML(url, data)

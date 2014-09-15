@@ -117,7 +117,7 @@ class OpenIDYadisTest(unittest.TestCase):
 
     def runTest(self):
         endpoints = [
-            OpenIDServiceEndpoint.fromServiceElement(self.yadis_url, element)
+            OpenIDServiceEndpoint.fromServiceElement(element, self.yadis_url)
             for element in yadis.parse(self.xrds, SERVICE_TYPES)
         ]
 
