@@ -199,6 +199,20 @@ def preferred_services(services):
     return op_idp_services or services
 
 
+def parse_xrds(user_id, data):
+    et = xrds.parseXRDS(data)
+    if xri.identifierScheme(user_id) == 'XRI':
+        canonicalID = xrds.getCanonicalID(user_id, et)
+        if canonicalID is None:
+            raise xrds.XRDSError('No canonicalID found for XRI %r' % user_id)
+    else:
+        canonicalID = None
+    return [
+        OpenIDServiceEndpoint.fromServiceElement(element, user_id, canonicalID)
+        for element in yadis.parse(data, SERVICE_TYPES)
+    ]
+
+
 def discoverXRI(iname):
     if iname.startswith('xri://'):
         iname = iname[6:]
@@ -210,15 +224,9 @@ def discoverXRI(iname):
         '_xrd_r': 'application/xrds+xml;sep=false',
     }
     url = PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
+    url, data = yadis.fetch_data(url)
     try:
-        url, data = yadis.fetch_data(url)
-        et = xrds.parseXRDS(data)
-        canonicalID = xrds.getCanonicalID(iname, et)
-        if canonicalID is None:
-            raise xrds.XRDSError('No canonicalID found for XRI %r' % iname)
-        endpoints = [OpenIDServiceEndpoint.fromServiceElement(element, iname, canonicalID)
-            for element in yadis.parse(data, SERVICE_TYPES)
-        ]
+        endpoints = parse_xrds(iname, data)
     except xrds.XRDSError as e:
         logging.exception(e)
         endpoints = []
@@ -244,9 +252,7 @@ def normalizeURL(url):
 def discoverURI(url):
     url, data = yadis.fetch_data(normalizeURL(url))
     try:
-        openid_services = [
-            OpenIDServiceEndpoint.fromServiceElement(element, url)
-            for element in yadis.parse(data, SERVICE_TYPES)]
+        openid_services = parse_xrds(url, data)
     except xrds.XRDSError:
         openid_services = OpenIDServiceEndpoint.fromHTML(url, data)
     return url, preferred_services(openid_services)
