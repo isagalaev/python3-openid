@@ -12,16 +12,8 @@ from openid import codecutil  # registers 'oid_percent_escape' encoding handler
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 
 
-def identifierScheme(identifier):
-    """Determine if this identifier is an XRI or URI.
-
-    @returns: C{"XRI"} or C{"URI"}
-    """
-    if identifier.startswith('xri://') or (
-        identifier and identifier[0] in XRI_AUTHORITIES):
-        return "XRI"
-    else:
-        return "URI"
+def is_iname(identifier):
+    return identifier.startswith(tuple(['xri://'] + XRI_AUTHORITIES))
 
 
 def toIRINormal(xri):

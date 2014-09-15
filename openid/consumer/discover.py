@@ -201,7 +201,7 @@ def preferred_services(services):
 
 def parse_xrds(user_id, data):
     et = xrds.parseXRDS(data)
-    if xri.identifierScheme(user_id) == 'XRI':
+    if xri.is_iname(user_id):
         canonicalID = xrds.getCanonicalID(user_id, et)
         if canonicalID is None:
             raise xrds.XRDSError('No canonicalID found for XRI %r' % user_id)
@@ -257,8 +257,9 @@ def discoverURI(url):
         openid_services = OpenIDServiceEndpoint.fromHTML(url, data)
     return url, preferred_services(openid_services)
 
+
 def discover(identifier):
-    if xri.identifierScheme(identifier) == "XRI":
+    if xri.is_iname(identifier):
         return discoverXRI(identifier)
     else:
         return discoverURI(identifier)

@@ -3,13 +3,12 @@ from openid import xri
 
 
 class XriDiscoveryTestCase(TestCase):
-    def test_isXRI(self):
-        i = xri.identifierScheme
-        self.assertEqual(i('=john.smith'), 'XRI')
-        self.assertEqual(i('@smiths/john'), 'XRI')
-        self.assertEqual(i('smoker.myopenid.com'), 'URI')
-        self.assertEqual(i('xri://=john'), 'XRI')
-        self.assertEqual(i(''), 'URI')
+    def test_is_iname(self):
+        self.assertTrue(xri.is_iname('=john.smith'))
+        self.assertTrue(xri.is_iname('@smiths/john'))
+        self.assertTrue(xri.is_iname('xri://=john'))
+        self.assertFalse(xri.is_iname('smoker.myopenid.com'))
+        self.assertFalse(xri.is_iname(''))
 
 
 class XriEscapingTestCase(TestCase):
