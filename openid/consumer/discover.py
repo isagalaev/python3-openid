@@ -213,9 +213,7 @@ def parse_xrds(user_id, data):
     ]
 
 
-def discoverXRI(iname):
-    if iname.startswith('xri://'):
-        iname = iname[6:]
+def xri_url(iname):
     query = {
         # XXX: If the proxy resolver will ensure that it doesn't return
         # bogus CanonicalIDs (as per Steve's message of 15 Aug 2006
@@ -223,8 +221,13 @@ def discoverXRI(iname):
         # which would give us a bit less to process.
         '_xrd_r': 'application/xrds+xml;sep=false',
     }
-    url = PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
-    url, data = yadis.fetch_data(url)
+    return PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
+
+
+def discoverXRI(iname):
+    if iname.startswith('xri://'):
+        iname = iname[6:]
+    url, data = yadis.fetch_data(xri_url(iname))
     try:
         endpoints = parse_xrds(iname, data)
     except xrds.XRDSError as e:
