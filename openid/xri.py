@@ -5,14 +5,12 @@
 """
 
 import re
+import urllib.parse
 from functools import reduce
-
-from openid import codecutil  # registers 'oid_percent_escape' encoding handler
 
 
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 XREF_RE = re.compile(r'\((.*?)\)')
-
 
 def is_iname(identifier):
     return identifier.startswith(tuple(['xri://'] + XRI_AUTHORITIES))
@@ -29,9 +27,9 @@ def urlescape(xri):
     '''
     Escapes an unprefixed xri to be used as part of a URL.
     '''
-    xri = xri.replace('%', '%25')
+    xri = urllib.parse.quote(xri, safe=''.join(XRI_AUTHORITIES + [')', '/', '?', '#', '*']))
     xri = XREF_RE.sub(_escape_xref, xri)
-    return xri.encode('ascii', errors='oid_percent_escape').decode()
+    return xri
 
 
 def providerIsAuthoritative(providerID, canonicalID):
