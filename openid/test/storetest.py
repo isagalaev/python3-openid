@@ -4,7 +4,6 @@ import time
 import socket
 import random
 import os
-import warnings
 
 from openid.association import Association
 from openid.cryptutil import randomString
@@ -255,8 +254,7 @@ def test_mysql():
     try:
         import MySQLdb
     except ImportError:
-        warnings.warn("Could not import MySQLdb. Skipping MySQL store tests.")
-        pass
+        raise unittest.SkipTest("Could not import MySQLdb. Skipping MySQL store tests.")
     else:
         db_user = 'openid_test'
         db_passwd = ''
@@ -323,8 +321,7 @@ def test_postgresql():
     try:
         import psycopg
     except ImportError:
-        warnings.warn("Could not import psycopg. Skipping PostgreSQL store tests.")
-        pass
+        raise unittest.SkipTest("Could not import psycopg. Skipping PostgreSQL store tests.")
     else:
         db_name = getTmpDbName()
         db_user = 'openid_test'
