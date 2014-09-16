@@ -1,8 +1,6 @@
 """
 ElementTree interface to an XRD document.
 """
-import random
-import functools
 from datetime import datetime
 try:
     from lxml import etree as ET
@@ -115,63 +113,6 @@ def getLocalID(service_element, is_v1, is_v2):
     return local_id
 
 
-@functools.total_ordering
-class _Max(object):
-    """
-    Value that compares greater than any other value.
-
-    Should only be used as a singleton. Implemented for use as a
-    priority value for when a priority is not specified.
-    """
-    def __lt__(self, other):
-        return isinstance(other, self.__class__)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__)
-
-Max = _Max()
-
-
-def getPriorityStrict(element):
-    """Get the priority of this element.
-
-    Raises ValueError if the value of the priority is invalid. If no
-    priority is specified, it returns a value that compares greater
-    than any other value.
-    """
-    prio_str = element.get('priority')
-    if prio_str is not None:
-        prio_val = int(prio_str)
-        if prio_val >= 0:
-            return prio_val
-        else:
-            raise ValueError('Priority values must be non-negative integers')
-
-    # Any errors in parsing the priority fall through to here
-    return Max
-
-
-def getPriority(element):
-    """Get the priority of this element
-
-    Returns Max if no priority is specified or the priority value is invalid.
-    """
-    try:
-        return getPriorityStrict(element)
-    except ValueError:
-        return Max
-
-
-def prioSort(elements):
-    """Sort a list of elements that have priority attributes"""
-    # Randomize the services before sorting so that equal priority
-    # elements are load-balanced.
-    random.shuffle(elements)
-
-    sorted_elems = sorted(elements, key=getPriority)
-    return sorted_elems
-
-
 def iterServices(tree):
     """Return an iterable over the Service elements in the Yadis XRD
     sorted by priority"""
@@ -179,7 +120,8 @@ def iterServices(tree):
         xrd = tree.findall(t('xrd:XRD'))[-1] # the last XRD element, per spec
     except IndexError:
         raise XRDSError('No XRD elements found')
-    return prioSort(xrd.findall(t('xrd:Service')))
+    elements = xrd.findall(t('xrd:Service'))
+    return sorted(elements, key=lambda e: int(e.get('priority', 1000)))
 
 
 def getURI(service_element):
