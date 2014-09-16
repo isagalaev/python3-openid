@@ -10,21 +10,10 @@ from datetime import datetime
 from time import strptime
 
 from openid import xri
-from openid.oidutil import importElementTree
-ElementTree = importElementTree()
-
-# the different elementtree modules don't have a common exception
-# model. We just want to be able to catch the exceptions that signify
-# malformed XML data and wrap them, so that the other library code
-# doesn't have to know which XML library we're using.
 try:
-    # Make the parser raise an exception so we can sniff out the type
-    # of exceptions
-    ElementTree.XML('> purposely malformed XML <')
-except (SystemExit, MemoryError, AssertionError, ImportError):
-    raise
-except:
-    XMLError = sys.exc_info()[0]
+    from lxml import etree as ET
+except ImportError:
+    from xml.etree import cElementTree as ET
 
 
 class XRDSError(Exception):
@@ -49,15 +38,12 @@ def parseXRDS(text):
         not contain an XRDS.
     """
     try:
-        element = ElementTree.XML(text)
-    except XMLError:
+        root = ET.XML(text)
+    except ET.ParseError:
         raise XRDSError('Error parsing document as XML', text)
-    else:
-        tree = ElementTree.ElementTree(element)
-        if tree.getroot().tag != root_tag:
-            raise XRDSError('Not an XRDS document', text)
-
-        return tree
+    if root.tag != root_tag:
+        raise XRDSError('Not an XRDS document', text)
+    return ET.ElementTree(root)
 
 
 XRD_NS_2_0 = 'xri://$xrd*($v*2.0)'

@@ -821,10 +821,10 @@ class MessageTest(unittest.TestCase):
 
     def _checkForm(self, html, message_, action_url, form_tag_attrs,
                    submit_text):
-        E = oidutil.importElementTree()
+        from xml.etree import ElementTree as ET
 
         # Build element tree from HTML source
-        input_tree = E.ElementTree(E.fromstring(html))
+        input_tree = ET.ElementTree(ET.fromstring(html))
 
         # Get root element
         form = input_tree.getroot()

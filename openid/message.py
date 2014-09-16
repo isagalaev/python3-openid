@@ -12,11 +12,9 @@ import urllib.error
 from openid import oidutil
 from openid import kvform
 try:
-    ElementTree = oidutil.importElementTree()
+    from lxml import etree as ET
 except ImportError:
-    # No elementtree found, so give up, but don't fail to import,
-    # since we have fallbacks.
-    ElementTree = None
+    from xml.etree import cElementTree as ET
 
 # This doesn't REALLY belong here, but where is better?
 IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select'
@@ -328,12 +326,9 @@ class Message(object):
             encodes the values in this Message object.
         @rtype: str
         """
-        if ElementTree is None:
-            raise RuntimeError('This function requires ElementTree.')
-
         assert action_url is not None
 
-        form = ElementTree.Element('form')
+        form = ET.Element('form')
 
         if form_tag_attrs:
             for name, attr in form_tag_attrs.items():
@@ -348,14 +343,14 @@ class Message(object):
             attrs = {'type': 'hidden',
                      'name': oidutil.toUnicode(name),
                      'value': oidutil.toUnicode(value)}
-            form.append(ElementTree.Element('input', attrs))
+            form.append(ET.Element('input', attrs))
 
-        submit = ElementTree.Element(
+        submit = ET.Element(
             'input',
             {'type': 'submit', 'value': oidutil.toUnicode(submit_text)})
         form.append(submit)
 
-        return str(ElementTree.tostring(form, encoding='utf-8'),
+        return str(ET.tostring(form, encoding='utf-8'),
                    encoding="utf-8")
 
     def toURL(self, base_url):
