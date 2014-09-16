@@ -66,18 +66,13 @@ class Service(object):
         '''
         return self.local_id or self.claimed_id
 
-
     def __str__(self):
-        return ("<%s.%s "
-                "server_url=%r "
-                "claimed_id=%r "
-                "local_id=%r "
-                ">"
-                 % (self.__class__.__module__, self.__class__.__name__,
-                    self.server_url,
-                    self.claimed_id,
-                    self.local_id,
-                    ))
+        return '<%s server_url=%s claimed_id=%s local_id=%s>' % (
+            self.__class__.__name__,
+            self.server_url,
+            self.claimed_id,
+            self.local_id,
+        )
 
 
 def parse_html(url, html):
