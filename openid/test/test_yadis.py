@@ -9,7 +9,7 @@ from . import support
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 @support.gentests
-class XRDS(unittest.TestCase):
+class Location(unittest.TestCase):
     data = [
         ('xrds', ('/openid_1_and_2_xrds.xrds', {},)),
         ('ctype_param', ('/openid_1_and_2_xrds.xrds', {'header': 'Content-type: application/xrds+xml; charset=UTF8'},)),
@@ -33,10 +33,6 @@ class Special(unittest.TestCase):
         url = 'http://unittest/?' + urllib.parse.urlencode(params)
         self.assertRaises(urllib.error.HTTPError, yadis.fetch_data, url)
         self.assertEqual(support.urlopen.request.get_full_url(), 'http://unittest/404')
-
-    def test_exception(self):
-        url = 'http://unittest/404'
-        self.assertRaises(urllib.error.HTTPError, yadis.fetch_data, url)
 
 
 if __name__ == '__main__':
