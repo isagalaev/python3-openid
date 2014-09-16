@@ -57,7 +57,7 @@ class TestGetRootAuthority(TestCase):
     def mkTest(the_xri, expected_root):
         def test(self):
             actual_root = xri.rootAuthority(the_xri)
-            self.assertEqual(actual_root, xri.XRI(expected_root))
+            self.assertEqual(actual_root, expected_root)
         return test
 
     test_at = mkTest("@foo", "@")

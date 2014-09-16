@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 import os.path
 
-from openid import fetchers, xrds, xri
+from openid import fetchers, xrds
 from . import support
 
 
@@ -201,7 +201,7 @@ class TestCanonicalID(unittest.TestCase):
     def _getCanonicalID(self, iname, et, expectedID):
         if isinstance(expectedID, (str, type(None))):
             cid = xrds.getCanonicalID(iname, et)
-            self.assertEqual(cid, expectedID and xri.XRI(expectedID))
+            self.assertEqual(cid, expectedID)
         elif issubclass(expectedID, xrds.XRDSError):
             self.assertRaises(expectedID, xrds.getCanonicalID,
                                   iname, et)

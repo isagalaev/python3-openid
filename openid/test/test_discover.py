@@ -5,7 +5,7 @@ import os.path
 import urllib.error
 from urllib.parse import urlsplit, urlencode, urljoin
 
-from openid import xri, message
+from openid import message
 from openid.consumer import discover
 from . import support
 
@@ -141,8 +141,8 @@ class Services(unittest.TestCase):
         ('yadis2_op', ('http://unittest/yadis_idp.xrds', ['2.0 OP'], False, False)),
         ('yadis2_op_delegate', ('http://unittest/yadis_idp_delegate.xrds', ['2.0 OP'], False, False)),
         ('yadis1_and_2', ('http://unittest/openid_1_and_2_xrds.xrds', ['2.0', '1.1'], None, 'http://smoker.myopenid.com/')),
-        ('xri', ('=iname', ['1.0'], xri.XRI("=!1000"), 'http://smoker.myopenid.com/')),
-        ('xri_normalize', ('xri://=iname', ['1.0'], xri.XRI('=!1000'), 'http://smoker.myopenid.com/')),
+        ('xri', ('=iname', ['1.0'], '=!1000', 'http://smoker.myopenid.com/')),
+        ('xri_normalize', ('xri://=iname', ['1.0'], '=!1000', 'http://smoker.myopenid.com/')),
     ]
 
     def _test(self, url, types, claimed_id, local_id):

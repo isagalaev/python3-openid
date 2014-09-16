@@ -13,12 +13,12 @@ AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 XREF_RE = re.compile(r'\((.*?)\)')
 
 
-def is_iname(identifier):
-    return identifier.startswith(tuple(['xri://'] + AUTHORITIES))
-
-
 def unprefix(xri):
     return xri[6:] if xri.startswith('xri://') else xri
+
+
+def is_iname(identifier):
+    return unprefix(identifier).startswith(tuple(AUTHORITIES))
 
 
 def _escape_xref(match):
@@ -30,7 +30,7 @@ def _escape_xref(match):
 
 def urlescape(xri):
     '''
-    Escapes an unprefixed xri to be used as part of a URL.
+    Escapes an xri to be used as part of a URL.
     '''
     xri = urllib.parse.quote(xri, safe=''.join(AUTHORITIES + [')', '/', '?', '#', '*']))
     xri = XREF_RE.sub(_escape_xref, xri)
@@ -53,7 +53,7 @@ def rootAuthority(xri):
 
     Example::
 
-        rootAuthority("xri://@example") == "xri://@"
+        rootAuthority("@example") == "@"
 
     @type xri: unicode
     @returntype: unicode
@@ -76,19 +76,4 @@ def rootAuthority(xri):
             [s.split('*') for s in segments])
         root = segments[0]
 
-    return XRI(root)
-
-
-def XRI(xri):
-    """An XRI object allowing comparison of XRI.
-
-    Ideally, this would do full normalization and provide comparsion
-    operators as per XRI Syntax.  Right now, it just does a bit of
-    canonicalization by ensuring the xri scheme is present.
-
-    @param xri: an xri string
-    @type xri: unicode
-    """
-    if not xri.startswith('xri://'):
-        xri = 'xri://' + xri
-    return xri
+    return root
