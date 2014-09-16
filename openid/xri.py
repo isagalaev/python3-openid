@@ -9,11 +9,11 @@ import urllib.parse
 from functools import reduce
 
 
-XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
+AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 XREF_RE = re.compile(r'\((.*?)\)')
 
 def is_iname(identifier):
-    return identifier.startswith(tuple(['xri://'] + XRI_AUTHORITIES))
+    return identifier.startswith(tuple(['xri://'] + AUTHORITIES))
 
 
 def _escape_xref(match):
@@ -27,7 +27,7 @@ def urlescape(xri):
     '''
     Escapes an unprefixed xri to be used as part of a URL.
     '''
-    xri = urllib.parse.quote(xri, safe=''.join(XRI_AUTHORITIES + [')', '/', '?', '#', '*']))
+    xri = urllib.parse.quote(xri, safe=''.join(AUTHORITIES + [')', '/', '?', '#', '*']))
     xri = XREF_RE.sub(_escape_xref, xri)
     return xri
 
@@ -63,7 +63,7 @@ def rootAuthority(xri):
         #   before we have a real xriparse function.  Hopefully nobody does
         #   that *ever*.
         root = authority[:authority.index(')') + 1]
-    elif authority[0] in XRI_AUTHORITIES:
+    elif authority[0] in AUTHORITIES:
         # Other XRI reference.
         root = authority[0]
     else:
