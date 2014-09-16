@@ -102,6 +102,11 @@ class TestServiceParser(unittest.TestCase):
             xrds.XRDSError,
             xrds.get_elements, data, [])
 
+    def testMultipleXRD(self):
+        data = fetchers.fetch('http://unittest/test_xrds/multiple-xrd.xml').read()
+        elements = xrds.get_elements(data, [])
+        self.assertEqual(len(elements), 2)
+
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""

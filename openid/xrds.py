@@ -54,23 +54,6 @@ def parseXRDS(text):
     return ET.ElementTree(root)
 
 
-def getYadisXRD(xrd_tree):
-    """Return the XRD element that should contain the Yadis services"""
-    xrd = None
-
-    # for the side-effect of assigning the last one in the list to the
-    # xrd variable
-    for xrd in xrd_tree.findall(t('xrd:XRD')):
-        pass
-
-    # There were no elements found, or else xrd would be set to the
-    # last one
-    if xrd is None:
-        raise XRDSError('No XRD present in tree')
-
-    return xrd
-
-
 def getCanonicalID(iname, xrd_tree):
     """Return the CanonicalID from this XRDS document.
 
@@ -189,11 +172,13 @@ def prioSort(elements):
     return sorted_elems
 
 
-def iterServices(xrd_tree):
+def iterServices(tree):
     """Return an iterable over the Service elements in the Yadis XRD
-
     sorted by priority"""
-    xrd = getYadisXRD(xrd_tree)
+    try:
+        xrd = tree.findall(t('xrd:XRD'))[-1] # the last XRD element, per spec
+    except IndexError:
+        raise XRDSError('No XRD elements found')
     return prioSort(xrd.findall(t('xrd:Service')))
 
 

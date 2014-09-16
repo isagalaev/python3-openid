@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS
+    xmlns:xrds="xri://$xrds"
+    xmlns="xri://$xrd*($v*2.0)">
+  <XRD/>
+  <XRD>
+    <Service>
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.myopenid.com/server</URI>
+    </Service>
+  </XRD>
+  <XRD>
+    <Service>
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.myopenid.com/server1</URI>
+    </Service>
+    <Service>
+      <Type>http://openid.net/signon/1.0</Type>
+      <URI>http://www.myopenid.com/server2</URI>
+    </Service>
+  </XRD>
+</xrds:XRDS>
