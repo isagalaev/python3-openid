@@ -62,6 +62,7 @@ def parseXRDS(text):
 
 XRD_NS_2_0 = 'xri://$xrd*($v*2.0)'
 XRDS_NS = 'xri://$xrds'
+OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 
 
 def nsTag(ns, t):
@@ -150,6 +151,29 @@ def getCanonicalID(iname, xrd_tree):
         raise XRDSFraud("%r can not come from root %r" % (childID, root))
 
     return canonicalID
+
+
+def getLocalID(service_element, is_v1, is_v2):
+    # Build the list of tags that could contain the OP-Local Identifier
+    local_id_tags = []
+    if is_v1:
+        local_id_tags.append(nsTag(OPENID_1_0_NS, 'Delegate'))
+    if is_v2:
+        local_id_tags.append(nsTag(XRD_NS_2_0, 'LocalID'))
+
+    # Walk through all the matching tags and make sure that they all
+    # have the same value
+    local_id = None
+    for local_id_tag in local_id_tags:
+        for local_id_element in service_element.findall(local_id_tag):
+            if local_id is None:
+                local_id = local_id_element.text
+            elif local_id != local_id_element.text:
+                format = 'More than one %r tag found in one service element'
+                message = format % (local_id_tag,)
+                raise XRDSError(message)
+
+    return local_id
 
 
 @functools.total_ordering

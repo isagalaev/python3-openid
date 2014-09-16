@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 import os.path
 
-from openid import xrds, xri, yadis
+from openid import fetchers, xrds, xri, yadis
 from . import support
 
 
@@ -109,6 +109,30 @@ class TestServiceParser(unittest.TestCase):
         self.assertRaises(
             xrds.XRDSError,
             xrds.get_elements, data, [])
+
+
+@mock.patch('urllib.request.urlopen', support.urlopen)
+class LocalID(unittest.TestCase):
+    def _get_service(self, url):
+        data = fetchers.fetch(url).read()
+        return xrds.iterServices(xrds.parseXRDS(data))[0]
+
+    def test_success(self):
+        local_id = 'http://smoker.myopenid.com/'
+        element = self._get_service('http://unittest/openid_1_and_2_xrds.xrds')
+        self.assertEqual(xrds.getLocalID(element, True, False), local_id)
+        self.assertEqual(xrds.getLocalID(element, False, True), local_id)
+
+    def test_no_local_id(self):
+        element = self._get_service('http://unittest/openid2_xrds_no_local_id.xrds')
+        self.assertIsNone(xrds.getLocalID(element, True, False))
+        self.assertIsNone(xrds.getLocalID(element, False, True))
+
+    def test_mismatch(self):
+        data = fetchers.fetch('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds').read()
+        element = xrds.iterServices(xrds.parseXRDS(data))[0]
+        with self.assertRaises(xrds.XRDSError):
+            xrds.getLocalID(element, True, True)
 
 
 class TestCanonicalID(unittest.TestCase):

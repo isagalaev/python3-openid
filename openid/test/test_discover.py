@@ -82,10 +82,6 @@ class Discovery(unittest.TestCase):
         url = 'ssh://unittest/'
         self.assertRaises(discover.DiscoveryFailure, discover.discover, url)
 
-    def test_localid_mismatch(self):
-        with self.assertRaises(discover.DiscoveryFailure):
-            discover.discover('http://unittest/openid_1_and_2_xrds_bad_delegate.xrds')
-
     def test_html1And2(self):
         url = 'http://unittest/openid_1_and_2.html'
         id_url, services = discover.discover(url)

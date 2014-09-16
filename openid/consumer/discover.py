@@ -8,7 +8,6 @@ from openid import urinorm, yadis, xri, xrds
 from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
 
-OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
 OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
 OPENID_2_0_TYPE = 'http://specs.openid.net/auth/2.0/signon'
 OPENID_1_1_TYPE = 'http://openid.net/signon/1.1'
@@ -96,62 +95,13 @@ def parse_html(url, html):
     return services
 
 
-def findOPLocalIdentifier(service_element, types):
-    """Find the OP-Local Identifier for this xrd:Service element.
-
-    This considers openid:Delegate to be a synonym for xrd:LocalID if
-    both OpenID 1.X and OpenID 2.0 types are present. If only OpenID
-    1.X is present, it returns the value of openid:Delegate. If only
-    OpenID 2.0 is present, it returns the value of xrd:LocalID. If
-    there is more than one LocalID tag and the values are different,
-    it raises a DiscoveryFailure. This is also triggered when the
-    xrd:LocalID and openid:Delegate tags are different.
-
-    @param service_element: The xrd:Service element
-    @type service_element: ElementTree.Node
-
-    @param types: The xrd:Type values present in this service
-        element. This function could extract them, but higher level
-        code needs to do that anyway.
-    @type types: [str]
-
-    @raises DiscoveryFailure: when discovery fails.
-
-    @returns: The OP-Local Identifier for this service element, if one
-        is present, or None otherwise.
-    @rtype: str or unicode or NoneType
-    """
-    # XXX: Test this function on its own!
-
-    # Build the list of tags that could contain the OP-Local Identifier
-    local_id_tags = []
-    if (OPENID_1_1_TYPE in types or
-        OPENID_1_0_TYPE in types):
-        local_id_tags.append(xrds.nsTag(OPENID_1_0_NS, 'Delegate'))
-
-    if OPENID_2_0_TYPE in types:
-        local_id_tags.append(xrds.nsTag(xrds.XRD_NS_2_0, 'LocalID'))
-
-    # Walk through all the matching tags and make sure that they all
-    # have the same value
-    local_id = None
-    for local_id_tag in local_id_tags:
-        for local_id_element in service_element.findall(local_id_tag):
-            if local_id is None:
-                local_id = local_id_element.text
-            elif local_id != local_id_element.text:
-                format = 'More than one %r tag found in one service element'
-                message = format % (local_id_tag,)
-                raise DiscoveryFailure(message)
-
-    return local_id
-
-
 def parse_service(service_element, user_id, canonicalID=None):
     result = Service(xrds.getTypeURIs(service_element), xrds.getURI(service_element))
     if not result.is_op_identifier():
         result.claimed_id = canonicalID or user_id
-        result.local_id = findOPLocalIdentifier(service_element, result.types)
+        v1 = OPENID_1_0_TYPE in result.types or OPENID_1_1_TYPE in result.types
+        v2 = OPENID_2_0_TYPE in result.types
+        result.local_id = xrds.getLocalID(service_element, v1, v2)
     return result
 
 
