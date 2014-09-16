@@ -10,7 +10,7 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
      OPENID1_NS, BARE_NS
 from openid import cryptutil, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE, \
+from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      DiscoveryFailure, OPENID_1_1_TYPE
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
@@ -149,12 +149,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     else:
         mode = 'checkid_setup'
 
-    endpoint = OpenIDServiceEndpoint()
-    endpoint.claimed_id = user_url
-    endpoint.server_url = server_url
-    endpoint.local_id = delegate_url
-    endpoint.type_uris = [OPENID_1_1_TYPE]
-
+    endpoint = Service([OPENID_1_1_TYPE], server_url, user_url, delegate_url)
     fetcher = TestFetcher(None, None, assocs[0])
 
     def run():
@@ -291,11 +286,10 @@ class TestIdRes(unittest.TestCase, CatchLogs):
         self.store = memstore.MemoryStore()
         self.consumer = self.consumer_class(self.store)
         self.return_to = "nonny"
-        self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.claimed_id = self.consumer_id = "consu"
-        self.endpoint.server_url = self.server_url = "serlie"
-        self.endpoint.local_id = self.server_id = "sirod"
-        self.endpoint.type_uris = [OPENID_1_1_TYPE]
+        self.consumer_id = "consu"
+        self.server_url = "serlie"
+        self.server_id = "sirod"
+        self.endpoint = Service([OPENID_1_1_TYPE], self.server_url, self.consumer_id, self.server_id)
 
     def disableDiscoveryVerification(self):
         """Set the discovery verification to a no-op for test cases in
@@ -532,7 +526,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
              'ns': OPENID2_NS,
              })
 
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
         self.endpoint.server_url = self.server_url
         self.endpoint.claimed_id = claimed_id
         self.consumer._checkReturnTo = lambda unused1, unused2: True
@@ -1342,7 +1336,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                                   "http://server_url")
 
             # exception fetching returns no association
-            e = OpenIDServiceEndpoint()
+            e = Service()
             e.server_url = 'some://url'
             self.assertRaises(self.fetcher.MyException,
                                   self.consumer._getAssociation, e)
@@ -1355,7 +1349,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
 
 class TestSuccessResponse(unittest.TestCase):
     def setUp(self):
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
         self.endpoint.claimed_id = 'identity_url'
 
     def test_extensionResponse(self):
@@ -1436,7 +1430,7 @@ class ConsumerTest(unittest.TestCase):
     Its GenericConsumer component is stubbed out with StubConsumer.
     """
     def setUp(self):
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
         self.endpoint.claimed_id = self.identity_url = 'http://identity.url/'
         self.store = None
         self.session = {}
@@ -1630,7 +1624,7 @@ class ConsumerTest(unittest.TestCase):
 
         # Use a response endpoint with a different URL (asserted by
         # the IDP)
-        resp_endpoint = OpenIDServiceEndpoint()
+        resp_endpoint = Service()
         resp_endpoint.claimed_id = "http://user.url/"
 
         resp = self._doRespDisco(True, mkSuccess(resp_endpoint, {}))
@@ -1650,7 +1644,7 @@ class IDPDrivenTest(unittest.TestCase):
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = GenericConsumer(self.store)
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
         self.endpoint.server_url = "http://idp.unittest/"
 
     def test_idpDrivenBegin(self):
@@ -1667,7 +1661,7 @@ class IDPDrivenTest(unittest.TestCase):
             'openid.sig': GOODSIG,
             })
 
-        discovered_endpoint = OpenIDServiceEndpoint()
+        discovered_endpoint = Service()
         discovered_endpoint.claimed_id = identifier
         discovered_endpoint.server_url = self.endpoint.server_url
         discovered_endpoint.local_id = identifier
@@ -1731,15 +1725,11 @@ class TestDiscoveryVerification(unittest.TestCase):
             'openid.op_endpoint': self.server_url,
             })
 
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
         self.endpoint.server_url = self.server_url
 
     def test_theGoodStuff(self):
-        endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID_2_0_TYPE]
-        endpoint.claimed_id = self.identifier
-        endpoint.server_url = self.server_url
-        endpoint.local_id = self.identifier
+        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, self.identifier)
         self.services = [endpoint]
         r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
 
@@ -1757,11 +1747,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.consumer._discoverAndVerify = discoverAndVerify
 
         # a set of things without the stuff
-        endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID_2_0_TYPE]
-        endpoint.claimed_id = self.identifier
-        endpoint.server_url = "http://the-MOON.unittest/"
-        endpoint.local_id = self.identifier
+        endpoint = Service([OPENID_2_0_TYPE], "http://the-MOON.unittest/", self.identifier, self.identifier)
         self.services = [endpoint]
         try:
             r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
@@ -1783,12 +1769,7 @@ class TestDiscoveryVerification(unittest.TestCase):
         self.consumer._discoverAndVerify = discoverAndVerify
 
         # a set of things with the server stuff but other delegate
-        endpoint = OpenIDServiceEndpoint()
-        endpoint.type_uris = [OPENID_2_0_TYPE]
-        endpoint.claimed_id = self.identifier
-        endpoint.server_url = self.server_url
-        endpoint.local_id = "http://unittest/juan-carlos"
-
+        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, "http://unittest/juan-carlos")
         try:
             r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
         except ProtocolError as e:
@@ -1812,7 +1793,7 @@ class TestCreateAssociationRequest(unittest.TestCase):
         class DummyEndpoint(object):
             use_compatibility = False
 
-            def compatibilityMode(self):
+            def compat_mode(self):
                 return self.use_compatibility
 
         self.endpoint = DummyEndpoint()
@@ -1969,7 +1950,7 @@ class TestNoStore(unittest.TestCase):
         def notCalled(unused):
             self.fail('This method was unexpectedly called')
 
-        endpoint = OpenIDServiceEndpoint()
+        endpoint = Service()
         endpoint.claimed_id = 'identity_url'
 
         self.consumer._getAssociation = notCalled
@@ -2008,7 +1989,7 @@ class TestDiscoverAndVerify(unittest.TestCase):
         def dummyDiscover(unused_identifier):
             return self.discovery_result
         self.consumer._discover = dummyDiscover
-        self.to_match = OpenIDServiceEndpoint()
+        self.to_match = Service()
 
     def failUnlessDiscoveryFailure(self):
         self.assertRaises(
@@ -2067,7 +2048,7 @@ class SillyExtension(Extension):
 class TestAddExtension(unittest.TestCase):
     def test_SillyExtension(self):
         ext = SillyExtension()
-        ar = AuthRequest(OpenIDServiceEndpoint(), None)
+        ar = AuthRequest(Service(), None)
         ar.addExtension(ext)
         ext_args = ar.message.getArgs(ext.ns_uri)
         self.assertEqual(ext.getExtensionArgs(), ext_args)

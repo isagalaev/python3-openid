@@ -30,15 +30,15 @@ class DiscoveryFailure(Exception):
     pass
 
 
-class OpenIDServiceEndpoint(object):
+class Service(object):
     """Object representing an OpenID service endpoint.
 
     @ivar identity_url: the verified identifier.
     @ivar canonicalID: For XRI, the persistent identifier.
     """
 
-    def __init__(self, type_uris=None, server_url=None, claimed_id=None, local_id=None):
-        self.type_uris = type_uris if type_uris is not None else [OPENID_2_0_TYPE]
+    def __init__(self, types=None, server_url=None, claimed_id=None, local_id=None):
+        self.types = types if types is not None else [OPENID_2_0_TYPE]
         self.server_url = server_url
         self.claimed_id = claimed_id
         self.local_id = local_id
@@ -47,21 +47,23 @@ class OpenIDServiceEndpoint(object):
     def as_op_identifier(cls, op_endpoint_url):
         return cls([OPENID_IDP_2_0_TYPE], op_endpoint_url)
 
-    def usesExtension(self, extension_uri):
-        return extension_uri in self.type_uris
+    def uses_extension(self, extension_uri):
+        return extension_uri in self.types
 
-    def preferredNamespace(self):
-        return OPENID1_NS if self.compatibilityMode() else OPENID2_NS
+    def ns(self):
+        return OPENID1_NS if self.compat_mode() else OPENID2_NS
 
-    def compatibilityMode(self):
-        return not (OPENID_IDP_2_0_TYPE in self.type_uris or OPENID_2_0_TYPE in self.type_uris)
+    def compat_mode(self):
+        return not (OPENID_IDP_2_0_TYPE in self.types or OPENID_2_0_TYPE in self.types)
 
-    def isOPIdentifier(self):
-        return OPENID_IDP_2_0_TYPE in self.type_uris
+    def is_op_identifier(self):
+        return OPENID_IDP_2_0_TYPE in self.types
 
-    def getLocalID(self):
-        """Return the identifier that should be sent as the
-        openid.identity parameter to the server."""
+    def identity(self):
+        '''
+        Return the identifier that should be sent as the
+        openid.identity parameter to the server.
+        '''
         return self.local_id or self.claimed_id
 
 
@@ -92,7 +94,7 @@ def parse_html(url, html):
             link_attrs, op_endpoint_rel)
         if op_endpoint_url is None:
             continue
-        service = OpenIDServiceEndpoint(
+        service = Service(
             [type_uri],
             op_endpoint_url,
             url,
@@ -103,7 +105,7 @@ def parse_html(url, html):
     return services
 
 
-def findOPLocalIdentifier(service_element, type_uris):
+def findOPLocalIdentifier(service_element, types):
     """Find the OP-Local Identifier for this xrd:Service element.
 
     This considers openid:Delegate to be a synonym for xrd:LocalID if
@@ -117,10 +119,10 @@ def findOPLocalIdentifier(service_element, type_uris):
     @param service_element: The xrd:Service element
     @type service_element: ElementTree.Node
 
-    @param type_uris: The xrd:Type values present in this service
+    @param types: The xrd:Type values present in this service
         element. This function could extract them, but higher level
         code needs to do that anyway.
-    @type type_uris: [str]
+    @type types: [str]
 
     @raises DiscoveryFailure: when discovery fails.
 
@@ -132,11 +134,11 @@ def findOPLocalIdentifier(service_element, type_uris):
 
     # Build the list of tags that could contain the OP-Local Identifier
     local_id_tags = []
-    if (OPENID_1_1_TYPE in type_uris or
-        OPENID_1_0_TYPE in type_uris):
+    if (OPENID_1_1_TYPE in types or
+        OPENID_1_0_TYPE in types):
         local_id_tags.append(xrds.nsTag(OPENID_1_0_NS, 'Delegate'))
 
-    if OPENID_2_0_TYPE in type_uris:
+    if OPENID_2_0_TYPE in types:
         local_id_tags.append(xrds.nsTag(xrds.XRD_NS_2_0, 'LocalID'))
 
     # Walk through all the matching tags and make sure that they all
@@ -155,10 +157,10 @@ def findOPLocalIdentifier(service_element, type_uris):
 
 
 def parse_service(service_element, user_id, canonicalID=None):
-    result = OpenIDServiceEndpoint(xrds.getTypeURIs(service_element), xrds.getURI(service_element))
-    if not result.isOPIdentifier():
+    result = Service(xrds.getTypeURIs(service_element), xrds.getURI(service_element))
+    if not result.is_op_identifier():
         result.claimed_id = canonicalID or user_id
-        result.local_id = findOPLocalIdentifier(service_element, result.type_uris)
+        result.local_id = findOPLocalIdentifier(service_element, result.types)
     return result
 
 
@@ -176,8 +178,8 @@ def parse_xrds(user_id, data):
     ]
     # Return only OP Identifier services if present or all of them otherwise.
     # Services are ordered by their type according to SERVICE_TYPES list.
-    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.type_uris))
-    op_idp_services = [s for s in services if s.isOPIdentifier()]
+    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types))
+    op_idp_services = [s for s in services if s.is_op_identifier()]
     return op_idp_services or services
 
 

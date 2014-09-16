@@ -7,7 +7,7 @@ from openid.test.test_consumer import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID_NS
 from openid.server.server import DiffieHellmanSHA1ServerSession
 from openid.consumer.consumer import GenericConsumer, ProtocolError
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_1_TYPE,\
+from openid.consumer.discover import Service, OPENID_1_1_TYPE,\
     OPENID_2_0_TYPE
 from openid.store import memstore
 import unittest
@@ -38,7 +38,7 @@ class BaseAssocTest(CatchLogs, unittest.TestCase):
         CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
         self.consumer = GenericConsumer(self.store)
-        self.endpoint = OpenIDServiceEndpoint()
+        self.endpoint = Service()
 
     def failUnlessProtocolError(self, str_prefix, func, *args, **kwargs):
         try:
@@ -318,8 +318,7 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
             self.endpoint, 'HMAC-SHA1', 'DH-SHA1')
 
         # XXX: this is testing _createAssociateRequest
-        self.assertEqual(self.endpoint.compatibilityMode(),
-                             message.isOpenID1())
+        self.assertEqual(self.endpoint.compat_mode(),  message.isOpenID1())
 
         server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
         server_resp = server_sess.answer(self.secret)
@@ -341,7 +340,7 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
     def test_openid2success(self):
         # Use openid 2 type in endpoint so _setUpDH checks
         # compatibility mode state properly
-        self.endpoint.type_uris = [OPENID_2_0_TYPE, OPENID_1_1_TYPE]
+        self.endpoint.types = [OPENID_2_0_TYPE, OPENID_1_1_TYPE]
         self.test_success()
 
     def test_badDHValues(self):

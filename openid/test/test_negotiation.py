@@ -5,7 +5,7 @@ from .support import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID1_NS, OPENID_NS
 from openid import association
 from openid.consumer.consumer import GenericConsumer, ServerError
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_2_0_TYPE
+from openid.consumer.discover import Service, OPENID_2_0_TYPE
 
 class ErrorRaisingConsumer(GenericConsumer):
     """
@@ -35,17 +35,14 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         self.consumer = ErrorRaisingConsumer(store=None)
-
-        self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.type_uris = [OPENID_2_0_TYPE]
-        self.endpoint.server_url = 'bogus'
+        self.endpoint = Service([OPENID_2_0_TYPE], 'bogus')
 
     def testBadResponse(self):
         """
         Test the case where the response to an associate request is a
         server error or is otherwise undecipherable.
         """
-        self.consumer.return_messages = [Message(self.endpoint.preferredNamespace())]
+        self.consumer.return_messages = [Message(self.endpoint.ns())]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
         self.failUnlessLogMatches('Server error when requesting an association')
 
@@ -54,7 +51,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         Test the case where the association type (assoc_type) returned
         in an unsupported-type response is absent.
         """
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         # not set: msg.delArg(OPENID_NS, 'assoc_type')
@@ -72,7 +69,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         Test the case where the session type (session_type) returned
         in an unsupported-type response is absent.
         """
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
@@ -96,7 +93,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         negotiator = association.SessionNegotiator(allowed_types)
         self.consumer.negotiator = negotiator
 
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'not-allowed')
@@ -113,7 +110,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         Test the case where an unsupported-type response triggers a
         retry to get an association with the new preferred type.
         """
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
@@ -132,14 +129,14 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         Test the case where an unsupported-typ response triggers a
         retry, but the retry fails and None is returned instead.
         """
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
 
         self.consumer.return_messages = [msg,
-             Message(self.endpoint.preferredNamespace())]
+             Message(self.endpoint.ns())]
 
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
@@ -171,18 +168,15 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         self.consumer = ErrorRaisingConsumer(store=None)
-
-        self.endpoint = OpenIDServiceEndpoint()
-        self.endpoint.type_uris = [OPENID1_NS]
-        self.endpoint.server_url = 'bogus'
+        self.endpoint = Service([OPENID1_NS], 'bogus')
 
     def testBadResponse(self):
-        self.consumer.return_messages = [Message(self.endpoint.preferredNamespace())]
+        self.consumer.return_messages = [Message(self.endpoint.ns())]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
         self.failUnlessLogMatches('Server error when requesting an association')
 
     def testEmptyAssocType(self):
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         # not set: msg.setArg(OPENID_NS, 'assoc_type', None)
@@ -194,7 +188,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnlessLogMatches('Server error when requesting an association')
 
     def testEmptySessionType(self):
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
@@ -211,7 +205,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         negotiator = association.SessionNegotiator(allowed_types)
         self.consumer.negotiator = negotiator
 
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'not-allowed')
@@ -223,7 +217,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         self.failUnlessLogMatches('Server error when requesting an association')
 
     def testUnsupportedWithRetry(self):
-        msg = Message(self.endpoint.preferredNamespace())
+        msg = Message(self.endpoint.ns())
         msg.setArg(OPENID_NS, 'error', 'Unsupported type')
         msg.setArg(OPENID_NS, 'error_code', 'unsupported-type')
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')

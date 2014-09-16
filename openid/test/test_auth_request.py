@@ -6,19 +6,19 @@ from openid.test import support
 
 
 class DummyEndpoint(object):
-    preferred_namespace = None
+    _ns = None
     local_id = None
     server_url = None
-    is_op_identifier = False
+    _is_op_identifier = False
 
-    def preferredNamespace(self):
-        return self.preferred_namespace
+    def ns(self):
+        return self._ns
 
-    def getLocalID(self):
+    def identity(self):
         return self.local_id
 
-    def isOPIdentifier(self):
-        return self.is_op_identifier
+    def is_op_identifier(self):
+        return self._is_op_identifier
 
 
 class DummyAssoc(object):
@@ -38,7 +38,7 @@ class TestAuthRequestMixin(support.OpenIDTestMixin):
         self.endpoint.local_id = 'http://server.unittest/joe'
         self.endpoint.claimed_id = 'http://joe.vanity.example/'
         self.endpoint.server_url = 'http://server.unittest/'
-        self.endpoint.preferred_namespace = self.preferred_namespace
+        self.endpoint._ns = self.preferred_namespace
         self.realm = 'http://example/'
         self.return_to = 'http://example/return/'
         self.assoc = DummyAssoc()
@@ -139,7 +139,7 @@ class TestAuthRequestOpenID2(TestAuthRequestMixin, unittest.TestCase):
         self.failUnlessAnonymous(msg)
 
     def test_opAnonymousIgnoresIdentifier(self):
-        self.endpoint.is_op_identifier = True
+        self.endpoint._is_op_identifier = True
         self.authreq.setAnonymous(True)
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
@@ -147,7 +147,7 @@ class TestAuthRequestOpenID2(TestAuthRequestMixin, unittest.TestCase):
         self.failUnlessAnonymous(msg)
 
     def test_opIdentifierSendsIdentifierSelect(self):
-        self.endpoint.is_op_identifier = True
+        self.endpoint._is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
         self.failUnlessHasRequiredFields(msg)
@@ -191,7 +191,7 @@ class TestAuthRequestOpenID1(TestAuthRequestMixin, unittest.TestCase):
         it with OpenID 1. If it is triggered, it will send
         identifier_select just like OpenID 2.
         """
-        self.endpoint.is_op_identifier = True
+        self.endpoint._is_op_identifier = True
         msg = self.authreq.getMessage(self.realm, self.return_to,
                                       self.immediate)
         self.failUnlessHasRequiredFields(msg)

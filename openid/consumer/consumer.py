@@ -194,7 +194,7 @@ import urllib.error
 
 from openid import fetchers
 
-from openid.consumer.discover import discover, OpenIDServiceEndpoint, \
+from openid.consumer.discover import discover, Service, \
      DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
@@ -338,7 +338,7 @@ class Consumer(object):
             L{openid.consumer.discover} module.
 
         @type service:
-            L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
+            L{Service<openid.consumer.discover.Service>}
 
         @returns: an OpenID authentication request object.
 
@@ -505,7 +505,7 @@ class TypeURIMismatch(ProtocolError):
     def __str__(self):
         s = '<%s.%s: Required type %s not found in %s for endpoint %s>' % (
             self.__class__.__module__, self.__class__.__name__,
-            self.expected, self.endpoint.type_uris, self.endpoint)
+            self.expected, self.endpoint.types, self.endpoint)
         return s
 
 
@@ -873,10 +873,7 @@ class GenericConsumer(object):
             return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
 
     def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
-        to_match = OpenIDServiceEndpoint()
-        to_match.type_uris = [OPENID_2_0_TYPE]
-        to_match.claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
-        to_match.local_id = resp_msg.getArg(OPENID2_NS, 'identity')
+        to_match = Service([OPENID_2_0_TYPE], None, resp_msg.getArg(OPENID2_NS, 'claimed_id'), resp_msg.getArg(OPENID2_NS, 'identity'))
 
         # Raises a KeyError when the op_endpoint is not present
         to_match.server_url = resp_msg.getArg(
@@ -898,7 +895,7 @@ class GenericConsumer(object):
         # checking that we can do, so return an endpoint that's for
         # the specified `openid.op_endpoint'
         elif to_match.claimed_id is None:
-            return OpenIDServiceEndpoint.as_op_identifier(to_match.server_url)
+            return Service.as_op_identifier(to_match.server_url)
 
         # The claimed ID doesn't match, so we have to do discovery
         # again. This covers not using sessions, OP identifier
@@ -941,17 +938,12 @@ class GenericConsumer(object):
         elif endpoint is not None and claimed_id is None:
             claimed_id = endpoint.claimed_id
 
-        to_match = OpenIDServiceEndpoint()
-        to_match.type_uris = [OPENID_1_1_TYPE]
-        to_match.local_id = resp_msg.getArg(OPENID1_NS, 'identity')
-        # Restore delegate information from the initiation phase
-        to_match.claimed_id = claimed_id
-
+        to_match = Service([OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
         if to_match.local_id is None:
             raise ProtocolError('Missing required field openid.identity')
 
         to_match_1_0 = copy.copy(to_match)
-        to_match_1_0.type_uris = [OPENID_1_0_TYPE]
+        to_match_1_0.types = [OPENID_1_0_TYPE]
 
         if endpoint is not None:
             try:
@@ -975,8 +967,8 @@ class GenericConsumer(object):
         extracted from the OpenID assertion, and raise an exception if
         there is a mismatch.
 
-        @type endpoint: openid.consumer.discover.OpenIDServiceEndpoint
-        @type to_match: openid.consumer.discover.OpenIDServiceEndpoint
+        @type endpoint: openid.consumer.discover.Service
+        @type to_match: openid.consumer.discover.Service
 
         @rtype: NoneType
 
@@ -985,9 +977,9 @@ class GenericConsumer(object):
         """
         # Every type URI that's in the to_match endpoint has to be
         # present in the discovered endpoint.
-        for type_uri in to_match.type_uris:
-            if not endpoint.usesExtension(type_uri):
-                raise TypeURIMismatch(type_uri, endpoint)
+        for t in to_match.types:
+            if not endpoint.uses_extension(t):
+                raise TypeURIMismatch(t, endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
         # claimed identifier with a fragment to discovered information.
@@ -998,9 +990,9 @@ class GenericConsumer(object):
                 'Expected %s, got %s' %
                 (defragged_claimed_id, endpoint.claimed_id))
 
-        if to_match.getLocalID() != endpoint.getLocalID():
+        if to_match.identity() != endpoint.identity():
             raise ProtocolError('local_id mismatch. Expected %s, got %s' %
-                                (to_match.getLocalID(), endpoint.getLocalID()))
+                                (to_match.identity(), endpoint.identity()))
 
         # If the server URL is None, this must be an OpenID 1
         # response, because op_endpoint is a required parameter in
@@ -1008,7 +1000,7 @@ class GenericConsumer(object):
         # discovered server_url is, because signature checking or
         # check_auth should take care of that check for us.
         if to_match.server_url is None:
-            assert to_match.preferredNamespace() == OPENID1_NS, (
+            assert to_match.ns() == OPENID1_NS, (
                 """The code calling this must ensure that OpenID 2
                 responses have a non-none `openid.op_endpoint' and
                 that it is set as the `server_url' attribute of the
@@ -1024,10 +1016,10 @@ class GenericConsumer(object):
         results, returning the matching endpoint that is the result of
         doing that discovery.
 
-        @type to_match: openid.consumer.discover.OpenIDServiceEndpoint
+        @type to_match: openid.consumer.discover.Service
         @param to_match: The endpoint whose information we're confirming
 
-        @rtype: openid.consumer.discover.OpenIDServiceEndpoint
+        @rtype: openid.consumer.discover.Service
         @returns: The result of performing discovery on the claimed
             identifier in `to_match'
 
@@ -1294,12 +1286,12 @@ class GenericConsumer(object):
             'assoc_type': assoc_type,
             }
 
-        if not endpoint.compatibilityMode():
+        if not endpoint.compat_mode():
             args['ns'] = OPENID2_NS
 
         # Leave out the session type if we're in compatibility mode
         # *and* it's no-encryption.
-        if (not endpoint.compatibilityMode() or
+        if (not endpoint.compat_mode() or
             assoc_session.session_type != 'no-encryption'):
             args['session_type'] = assoc_session.session_type
 
@@ -1448,7 +1440,7 @@ class AuthRequest(object):
         self.assoc = assoc
         self.endpoint = endpoint
         self.return_to_args = {}
-        self.message = Message(endpoint.preferredNamespace())
+        self.message = Message(endpoint.ns())
         self._anonymous = False
 
     def setAnonymous(self, is_anonymous):
@@ -1563,13 +1555,13 @@ class AuthRequest(object):
                 })
 
         if not self._anonymous:
-            if self.endpoint.isOPIdentifier():
+            if self.endpoint.is_op_identifier():
                 # This will never happen when we're in compatibility
-                # mode, as long as isOPIdentifier() returns False
-                # whenever preferredNamespace() returns OPENID1_NS.
+                # mode, as long as is_op_identifier() returns False
+                # whenever ns() returns OPENID1_NS.
                 claimed_id = request_identity = IDENTIFIER_SELECT
             else:
-                request_identity = self.endpoint.getLocalID()
+                request_identity = self.endpoint.identity()
                 claimed_id = self.endpoint.claimed_id
 
             # This is true for both OpenID 1 and 2
@@ -1664,7 +1656,7 @@ class AuthRequest(object):
 
         @rtype: bool
         """
-        return self.endpoint.compatibilityMode()
+        return self.endpoint.compat_mode()
 
 FAILURE = 'failure'
 SUCCESS = 'success'
@@ -1714,7 +1706,7 @@ class SuccessResponse(Response):
         may access other discovered information related to this endpoint,
         such as the CanonicalID of an XRI, through this object.
     @type endpoint:
-       L{OpenIDServiceEndpoint<openid.consumer.discover.OpenIDServiceEndpoint>}
+       L{Service<openid.consumer.discover.Service>}
 
     @ivar signed_fields: The arguments in the server's response that
         were signed and verified.

@@ -29,7 +29,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                       'got successful return %r' % (prefix, result))
 
     def test_openID1NoLocalID(self):
-        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint = discover.Service()
         endpoint.claimed_id = 'bogus'
 
         msg = message.Message.fromOpenIDArgs({})
@@ -73,14 +73,14 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': op_endpoint})
         result_endpoint = self.consumer._verifyDiscoveryResults(msg)
-        self.assertTrue(result_endpoint.isOPIdentifier())
+        self.assertTrue(result_endpoint.is_op_identifier())
         self.assertEqual(op_endpoint, result_endpoint.server_url)
         self.assertEqual(None, result_endpoint.claimed_id)
         self.failUnlessLogEmpty()
 
     def test_openID2NoEndpointDoesDisco(self):
         op_endpoint = 'Phone Home'
-        sentinel = discover.OpenIDServiceEndpoint()
+        sentinel = discover.Service()
         sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
@@ -93,12 +93,12 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         self.failUnlessLogMatches('No pre-discovered')
 
     def test_openID2MismatchedDoesDisco(self):
-        mismatched = discover.OpenIDServiceEndpoint()
+        mismatched = discover.Service()
         mismatched.identity = 'nothing special, but different'
         mismatched.local_id = 'green cheese'
 
         op_endpoint = 'Phone Home'
-        sentinel = discover.OpenIDServiceEndpoint()
+        sentinel = discover.Service()
         sentinel.claimed_id = 'monkeysoft'
         self.consumer._discoverAndVerify = const(sentinel)
         msg = message.Message.fromOpenIDArgs(
@@ -112,12 +112,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                                   'Attempting discovery')
 
     def test_openid2UsePreDiscovered(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.local_id = 'my identity'
-        endpoint.claimed_id = 'i am sam'
-        endpoint.server_url = 'Phone Home'
-        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-
+        endpoint = discover.Service([discover.OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
         msg = message.Message.fromOpenIDArgs(
             {'ns': message.OPENID2_NS,
              'identity': endpoint.local_id,
@@ -130,11 +125,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
     def test_openid2UsePreDiscoveredWrongType(self):
         text = "verify failed"
 
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.local_id = 'my identity'
-        endpoint.claimed_id = 'i am sam'
-        endpoint.server_url = 'Phone Home'
-        endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+        endpoint = discover.Service([discover.OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
 
         def discoverAndVerify(claimed_id, to_match_endpoints):
             self.assertEqual(claimed_id, endpoint.claimed_id)
@@ -162,11 +153,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                                   'Attempting discovery')
 
     def test_openid1UsePreDiscovered(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.local_id = 'my identity'
-        endpoint.claimed_id = 'i am sam'
-        endpoint.server_url = 'Phone Home'
-        endpoint.type_uris = [discover.OPENID_1_1_TYPE]
+        endpoint = discover.Service([discover.OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
 
         msg = message.Message.fromOpenIDArgs(
             {'ns': message.OPENID1_NS,
@@ -185,12 +172,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
         self.consumer._discoverAndVerify = discoverAndVerify
 
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.local_id = 'my identity'
-        endpoint.claimed_id = 'i am sam'
-        endpoint.server_url = 'Phone Home'
-        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-
+        endpoint = discover.Service([discover.OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
         msg = message.Message.fromOpenIDArgs(
             {'ns': message.OPENID1_NS,
              'identity': endpoint.local_id})
@@ -205,12 +187,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
     def test_openid2Fragment(self):
         claimed_id = "http://unittest.invalid/"
         claimed_id_frag = claimed_id + "#fragment"
-        endpoint = discover.OpenIDServiceEndpoint()
-        endpoint.local_id = 'my identity'
-        endpoint.claimed_id = claimed_id
-        endpoint.server_url = 'Phone Home'
-        endpoint.type_uris = [discover.OPENID_2_0_TYPE]
-
+        endpoint = discover.Service([discover.OPENID_2_0_TYPE], 'Phone Home', claimed_id, 'my identity')
         msg = message.Message.fromOpenIDArgs(
             {'ns': message.OPENID2_NS,
              'identity': endpoint.local_id,
@@ -220,7 +197,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
         self.assertEqual(result.local_id, endpoint.local_id)
         self.assertEqual(result.server_url, endpoint.server_url)
-        self.assertEqual(result.type_uris, endpoint.type_uris)
+        self.assertEqual(result.types, endpoint.types)
 
         self.assertEqual(result.claimed_id, claimed_id_frag)
 
@@ -239,11 +216,7 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         # We expect the OpenID 1 discovery verification to try
         # matching the discovered endpoint against the 1.1 type and
         # fall back to 1.0.
-        expected_endpoint = discover.OpenIDServiceEndpoint()
-        expected_endpoint.type_uris = [discover.OPENID_1_0_TYPE]
-        expected_endpoint.local_id = None
-        expected_endpoint.claimed_id = claimed_id
-
+        expected_endpoint = discover.Service([discover.OPENID_1_0_TYPE], None, claimed_id)
         discovered_services = [expected_endpoint]
         self.consumer._discover = lambda *args: ('unused', discovered_services)
 
@@ -259,10 +232,10 @@ class TestVerifyDiscoverySingle(TestIdRes):
     def test_endpointWithoutLocalID(self):
         # An endpoint like this with no local_id is generated as a result of
         # e.g. Yadis discovery with no LocalID tag.
-        endpoint = discover.OpenIDServiceEndpoint()
+        endpoint = discover.Service()
         endpoint.server_url = "http://localhost:8000/openidserver"
         endpoint.claimed_id = "http://localhost:8000/id/id-jo"
-        to_match = discover.OpenIDServiceEndpoint()
+        to_match = discover.Service()
         to_match.server_url = "http://localhost:8000/openidserver"
         to_match.claimed_id = "http://localhost:8000/id/id-jo"
         to_match.local_id = "http://localhost:8000/id/id-jo"

@@ -1,4 +1,4 @@
-from openid.consumer.discover import OpenIDServiceEndpoint
+from openid.consumer.discover import Service
 from openid.test import datadriven
 
 
@@ -14,7 +14,7 @@ class BadLinksTestCase(datadriven.DataDrivenTestCase):
         self.data = data
 
     def runOneTest(self):
-        actual = OpenIDServiceEndpoint.fromHTML('http://unused.url/', self.data)
+        actual = Service.fromHTML('http://unused.url/', self.data)
         expected = []
         self.assertEqual(expected, actual)
 

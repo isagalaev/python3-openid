@@ -20,12 +20,12 @@ XRDS_BOILERPLATE = '''\
 def mkXRDS(services):
     return XRDS_BOILERPLATE % (services,)
 
-def mkService(uris=None, type_uris=None, local_id=None, dent='        '):
+def mkService(uris=None, types=None, local_id=None, dent='        '):
     chunks = [dent, '<Service>\n']
     dent2 = dent + '    '
-    if type_uris:
-        for type_uri in type_uris:
-            chunks.extend([dent2 + '<Type>', type_uri, '</Type>\n'])
+    if types:
+        for t in types:
+            chunks.extend([dent2 + '<Type>', t, '</Type>\n'])
 
     if uris:
         for uri in uris:
@@ -91,17 +91,17 @@ local_id_options = [
 
 # All combinations of valid URIs, Type URIs and Delegate tags
 data = [
-    (uris, type_uris, local_id)
+    (uris, types, local_id)
     for uris in server_url_options
-    for type_uris in type_uri_options
+    for types in type_uri_options
     for local_id in local_id_options
     ]
 
 class OpenIDYadisTest(unittest.TestCase):
-    def __init__(self, uris, type_uris, local_id):
+    def __init__(self, uris, types, local_id):
         unittest.TestCase.__init__(self)
         self.uris = uris
-        self.type_uris = type_uris
+        self.types = types
         self.local_id = local_id
 
     def shortDescription(self):
@@ -113,7 +113,7 @@ class OpenIDYadisTest(unittest.TestCase):
 
         # Create an XRDS document to parse
         services = mkService(uris=self.uris,
-                             type_uris=self.type_uris,
+                             types=self.types,
                              local_id=self.local_id)
         self.xrds = mkXRDS(services)
 
@@ -124,12 +124,12 @@ class OpenIDYadisTest(unittest.TestCase):
         ]
 
         # make sure there are the same number of endpoints as
-        # URIs. This assumes that the type_uris contains at least one
+        # URIs. This assumes that the types contains at least one
         # OpenID type.
         self.assertEqual(len(endpoints), 1 if self.uris else 0)
 
         # So that we can check equality on the endpoint types
-        type_uris = sorted(self.type_uris)
+        types = sorted(self.types)
 
         for endpoint in endpoints:
             # All endpoints will have same yadis_url
@@ -139,9 +139,9 @@ class OpenIDYadisTest(unittest.TestCase):
             self.assertEqual(self.local_id, endpoint.local_id)
 
             # and types
-            actual_types = list(endpoint.type_uris)
+            actual_types = list(endpoint.types)
             actual_types.sort()
-            self.assertEqual(actual_types, type_uris)
+            self.assertEqual(actual_types, types)
 
         self.assertTrue(set(self.uris).issuperset({e.server_url for e in endpoints}))
 

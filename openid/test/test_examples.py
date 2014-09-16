@@ -11,7 +11,7 @@ import twill.commands
 import twill.parse
 import twill.unit
 
-from openid.consumer.discover import OpenIDServiceEndpoint, OPENID_1_1_TYPE
+from openid.consumer.discover import Service, OPENID_1_1_TYPE
 from openid.consumer.consumer import AuthRequest
 
 
@@ -94,9 +94,9 @@ class TestServer(unittest.TestCase):
         runExampleServer('127.0.0.1', self.server_port, 'sstore')
 
     def v1endpoint(self, port):
-        """Return an OpenID 1.1 OpenIDServiceEndpoint for the server."""
+        """Return an OpenID 1.1 Service for the server."""
         base = "http://%s:%s" % (socket.getfqdn('127.0.0.1'), port)
-        ep = OpenIDServiceEndpoint()
+        ep = Service()
         ep.claimed_id = base + "/id/bob"
         ep.server_url = base + "/openidserver"
         ep.type_uris = [OPENID_1_1_TYPE]

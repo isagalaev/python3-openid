@@ -98,14 +98,14 @@ class Discovery(unittest.TestCase):
     def test_type_order(self):
         url, services = discover.discover('http://unittest/yadis_two_services.xrds')
         self.assertEqual(len(services), 2)
-        self.assertTrue(discover.OPENID_2_0_TYPE in services[0].type_uris)
-        self.assertTrue(discover.OPENID_1_0_TYPE in services[1].type_uris)
+        self.assertTrue(discover.OPENID_2_0_TYPE in services[0].types)
+        self.assertTrue(discover.OPENID_1_0_TYPE in services[1].types)
 
     def test_idp_type_order(self):
         url, services = discover.discover('http://unittest/yadis_idp.xrds')
         self.assertEqual(len(services), 2)
-        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[0].type_uris)
-        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[1].type_uris)
+        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[0].types)
+        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[1].types)
 
     def test_redirected_claimed_id(self):
         claimed_id = 'http://unittest/openid2_xrds.xrds'
@@ -162,13 +162,13 @@ class Services(unittest.TestCase):
             self.assertFalse(local_id)
             self.assertFalse(s.claimed_id)
             self.assertFalse(s.local_id)
-            self.assertFalse(s.getLocalID())
-            self.assertFalse(s.compatibilityMode())
-            self.assertTrue(s.isOPIdentifier())
-            self.assertEqual(s.preferredNamespace(), discover.OPENID2_NS)
+            self.assertFalse(s.identity())
+            self.assertFalse(s.compat_mode())
+            self.assertTrue(s.is_op_identifier())
+            self.assertEqual(s.ns(), discover.OPENID2_NS)
         else:
             self.assertEqual(claimed_id, s.claimed_id)
-            self.assertEqual(local_id, s.getLocalID())
+            self.assertEqual(local_id, s.identity())
 
         openid_types = {
             '1.1': discover.OPENID_1_1_TYPE,
@@ -177,53 +177,53 @@ class Services(unittest.TestCase):
             '2.0 OP': discover.OPENID_IDP_2_0_TYPE,
             }
 
-        type_uris = [openid_types[t] for t in types]
-        self.assertEqual(type_uris, s.type_uris)
+        types = [openid_types[t] for t in types]
+        self.assertEqual(types, s.types)
 
 
 class Endpoint(unittest.TestCase):
     def test_uses_extension(self):
         url = 'http://example.com/extension'
-        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_2_0_TYPE, url])
-        self.assertTrue(endpoint.usesExtension(url))
+        endpoint = discover.Service([discover.OPENID_2_0_TYPE, url])
+        self.assertTrue(endpoint.uses_extension(url))
 
     def test_openid_2(self):
-        endpoint = discover.OpenIDServiceEndpoint()
-        self.assertFalse(endpoint.compatibilityMode())
-        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_2_0_TYPE])
-        self.assertFalse(endpoint.compatibilityMode())
-        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_IDP_2_0_TYPE])
-        self.assertFalse(endpoint.compatibilityMode())
-        self.assertEqual(endpoint.preferredNamespace(), discover.OPENID2_NS)
+        endpoint = discover.Service()
+        self.assertFalse(endpoint.compat_mode())
+        endpoint = discover.Service([discover.OPENID_2_0_TYPE])
+        self.assertFalse(endpoint.compat_mode())
+        endpoint = discover.Service([discover.OPENID_IDP_2_0_TYPE])
+        self.assertFalse(endpoint.compat_mode())
+        self.assertEqual(endpoint.ns(), discover.OPENID2_NS)
 
     def test_openid_1(self):
-        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_1_1_TYPE])
-        self.assertTrue(endpoint.compatibilityMode())
-        self.assertEqual(endpoint.preferredNamespace(), discover.OPENID1_NS)
+        endpoint = discover.Service([discover.OPENID_1_1_TYPE])
+        self.assertTrue(endpoint.compat_mode())
+        self.assertEqual(endpoint.ns(), discover.OPENID1_NS)
 
-    def test_isOPIdentifier(self):
-        endpoint = discover.OpenIDServiceEndpoint([
+    def test_is_op_identifier(self):
+        endpoint = discover.Service([
             discover.OPENID_2_0_TYPE,
             discover.OPENID_1_0_TYPE,
             discover.OPENID_1_1_TYPE,
         ])
-        self.assertFalse(endpoint.isOPIdentifier())
-        endpoint = discover.OpenIDServiceEndpoint([discover.OPENID_IDP_2_0_TYPE])
-        self.assertTrue(endpoint.isOPIdentifier())
+        self.assertFalse(endpoint.is_op_identifier())
+        endpoint = discover.Service([discover.OPENID_IDP_2_0_TYPE])
+        self.assertTrue(endpoint.is_op_identifier())
 
     def test_as_op_identifier(self):
         url = 'http://unittest'
-        endpoint = discover.OpenIDServiceEndpoint.as_op_identifier(url)
-        self.assertTrue(endpoint.isOPIdentifier())
+        endpoint = discover.Service.as_op_identifier(url)
+        self.assertTrue(endpoint.is_op_identifier())
         self.assertEqual(endpoint.server_url, url)
 
     def test_local_id(self):
-        endpoint = discover.OpenIDServiceEndpoint(claimed_id='claimed_id')
-        self.assertEqual(endpoint.getLocalID(), 'claimed_id')
-        endpoint = discover.OpenIDServiceEndpoint(claimed_id='claimed_id', local_id='local_id')
-        self.assertEqual(endpoint.getLocalID(), 'local_id')
-        endpoint = discover.OpenIDServiceEndpoint()
-        self.assertEqual(endpoint.getLocalID(), None)
+        endpoint = discover.Service(claimed_id='claimed_id')
+        self.assertEqual(endpoint.identity(), 'claimed_id')
+        endpoint = discover.Service(claimed_id='claimed_id', local_id='local_id')
+        self.assertEqual(endpoint.identity(), 'local_id')
+        endpoint = discover.Service()
+        self.assertEqual(endpoint.identity(), None)
 
 
 @support.gentests
