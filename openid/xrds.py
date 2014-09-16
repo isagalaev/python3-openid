@@ -12,6 +12,18 @@ except ImportError:
 from openid import xri
 
 
+NAMESPACES = {
+    'xrd': 'xri://$xrd*($v*2.0)',
+    'xrds': 'xri://$xrds',
+    'openid': 'http://openid.net/xmlns/1.0',
+}
+
+
+def t(prefixed_name):
+    prefix, name = prefixed_name.split(':')
+    return '{%s}%s' % (NAMESPACES[prefix], name)
+
+
 class XRDSError(Exception):
     '''
     General error with the XRDS document.
@@ -37,47 +49,9 @@ def parseXRDS(text):
         root = ET.XML(text)
     except ET.ParseError:
         raise XRDSError('Error parsing document as XML', text)
-    if root.tag != root_tag:
+    if root.tag != t('xrds:XRDS'):
         raise XRDSError('Not an XRDS document', text)
     return ET.ElementTree(root)
-
-
-XRD_NS_2_0 = 'xri://$xrd*($v*2.0)'
-XRDS_NS = 'xri://$xrds'
-OPENID_1_0_NS = 'http://openid.net/xmlns/1.0'
-
-
-def nsTag(ns, t):
-    return '{%s}%s' % (ns, t)
-
-
-def mkXRDTag(t):
-    """basestring -> basestring
-
-    Create a tag name in the XRD 2.0 XML namespace suitable for using
-    with ElementTree
-    """
-    return nsTag(XRD_NS_2_0, t)
-
-
-def mkXRDSTag(t):
-    """basestring -> basestring
-
-    Create a tag name in the XRDS XML namespace suitable for using
-    with ElementTree
-    """
-    return nsTag(XRDS_NS, t)
-
-# Tags that are used in Yadis documents
-root_tag = mkXRDSTag('XRDS')
-service_tag = mkXRDTag('Service')
-xrd_tag = mkXRDTag('XRD')
-type_tag = mkXRDTag('Type')
-uri_tag = mkXRDTag('URI')
-expires_tag = mkXRDTag('Expires')
-
-# Other XRD tags
-canonicalID_tag = mkXRDTag('CanonicalID')
 
 
 def getYadisXRD(xrd_tree):
@@ -86,7 +60,7 @@ def getYadisXRD(xrd_tree):
 
     # for the side-effect of assigning the last one in the list to the
     # xrd variable
-    for xrd in xrd_tree.findall(xrd_tag):
+    for xrd in xrd_tree.findall(t('xrd:XRD')):
         pass
 
     # There were no elements found, or else xrd would be set to the
@@ -109,11 +83,11 @@ def getCanonicalID(iname, xrd_tree):
     @returns: The XRI CanonicalID or None.
     @returntype: unicode or None
     """
-    xrd_list = xrd_tree.findall(xrd_tag)
+    xrd_list = xrd_tree.findall(t('xrd:XRD'))
     xrd_list.reverse()
 
     try:
-        canonicalID = xri.XRI(xrd_list[0].findall(canonicalID_tag)[0].text)
+        canonicalID = xri.XRI(xrd_list[0].findall(t('xrd:CanonicalID'))[0].text)
     except IndexError:
         return None
 
@@ -122,7 +96,7 @@ def getCanonicalID(iname, xrd_tree):
     for xrd in xrd_list[1:]:
         # XXX: can't use rsplit until we require python >= 2.4.
         parent_sought = childID[:childID.rindex('!')]
-        parent = xri.XRI(xrd.findtext(canonicalID_tag))
+        parent = xri.XRI(xrd.findtext(t('xrd:CanonicalID')))
         if parent_sought != parent.lower():
             raise XRDSFraud("%r can not come from %s" % (childID, parent))
 
@@ -139,9 +113,9 @@ def getLocalID(service_element, is_v1, is_v2):
     # Build the list of tags that could contain the OP-Local Identifier
     local_id_tags = []
     if is_v1:
-        local_id_tags.append(nsTag(OPENID_1_0_NS, 'Delegate'))
+        local_id_tags.append(t('openid:Delegate'))
     if is_v2:
-        local_id_tags.append(nsTag(XRD_NS_2_0, 'LocalID'))
+        local_id_tags.append(t('xrd:LocalID'))
 
     # Walk through all the matching tags and make sure that they all
     # have the same value
@@ -220,14 +194,14 @@ def iterServices(xrd_tree):
 
     sorted by priority"""
     xrd = getYadisXRD(xrd_tree)
-    return prioSort(xrd.findall(service_tag))
+    return prioSort(xrd.findall(t('xrd:Service')))
 
 
 def getURI(service_element):
     """Given a Service element, return content of its URI tag or
     None if absent
     """
-    uri_element = service_element.find(uri_tag)
+    uri_element = service_element.find(t('xrd:URI'))
     return uri_element.text if uri_element is not None else None
 
 
@@ -235,7 +209,7 @@ def getTypeURIs(service_element):
     """Given a Service element, return a list of the contents of all
     Type tags"""
     return [type_element.text for type_element
-            in service_element.findall(type_tag)]
+            in service_element.findall(t('xrd:Type'))]
 
 
 def matches_types(element, types):
