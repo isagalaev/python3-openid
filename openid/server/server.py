@@ -977,7 +977,8 @@ class OpenIDResponse(object):
         @type request: L{OpenIDRequest}
         """
         self.request = request
-        self.fields = Message(request.namespace)
+        namespace = request.message.getOpenIDNamespace() if hasattr(request, 'message') else request.namespace
+        self.fields = Message(namespace)
 
     def __str__(self):
         return "%s for %s: %s" % (
