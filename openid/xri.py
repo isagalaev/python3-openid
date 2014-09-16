@@ -37,11 +37,14 @@ def urlescape(xri):
     return xri
 
 
-def providerIsAuthoritative(providerID, canonicalID):
-    return canonicalID.rsplit('!', 1)[0] == providerID
+def is_authoritative(provider_id, canonical_id):
+    '''
+    Checks if provider_id is authoritative for canonical_id
+    '''
+    return canonical_id.rsplit('!', 1)[0] == provider_id
 
 
-def rootAuthority(xri):
+def root_authority(xri):
     '''
     Return the root authority for an XRI:
 

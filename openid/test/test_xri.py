@@ -36,7 +36,7 @@ class XRI(TestCase):
 class CanonicalIDTest(TestCase):
     def mkTest(providerID, canonicalID, isAuthoritative):
         def test(self):
-            result = xri.providerIsAuthoritative(providerID, canonicalID)
+            result = xri.is_authoritative(providerID, canonicalID)
             format = "%s providing %s, expected %s"
             message = format % (providerID, canonicalID, isAuthoritative)
             self.assertEqual(isAuthoritative, result, message)
@@ -56,7 +56,7 @@ class CanonicalIDTest(TestCase):
 class TestGetRootAuthority(TestCase):
     def mkTest(the_xri, expected_root):
         def test(self):
-            actual_root = xri.rootAuthority(the_xri)
+            actual_root = xri.root_authority(the_xri)
             self.assertEqual(actual_root, expected_root)
         return test
 

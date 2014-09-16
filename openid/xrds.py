@@ -83,8 +83,8 @@ def getCanonicalID(iname, xrd_tree):
 
         childID = parent_sought
 
-    root = xri.rootAuthority(iname)
-    if not xri.providerIsAuthoritative(root, childID):
+    root = xri.root_authority(iname)
+    if not xri.is_authoritative(root, childID):
         raise XRDSFraud("%r can not come from root %r" % (childID, root))
 
     return canonicalID
