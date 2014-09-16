@@ -54,7 +54,7 @@ def parseXRDS(text):
         raise XRDSError('Error parsing document as XML', text)
     else:
         tree = ElementTree.ElementTree(element)
-        if not isXRDS(tree):
+        if tree.getroot().tag != root_tag:
             raise XRDSError('Not an XRDS document', text)
 
         return tree
@@ -95,12 +95,6 @@ expires_tag = mkXRDTag('Expires')
 
 # Other XRD tags
 canonicalID_tag = mkXRDTag('CanonicalID')
-
-
-def isXRDS(xrd_tree):
-    """Is this document an XRDS document?"""
-    root = xrd_tree.getroot()
-    return root.tag == root_tag
 
 
 def getYadisXRD(xrd_tree):
