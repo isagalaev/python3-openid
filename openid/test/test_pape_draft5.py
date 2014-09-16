@@ -1,12 +1,8 @@
-
 from openid.extensions.draft import pape5 as pape
 from openid.message import *
 from openid.server import server
 
 import warnings
-warnings.filterwarnings('ignore', module=__name__,
-                        message='"none" used as a policy URI')
-
 import unittest
 
 
@@ -303,7 +299,8 @@ class PapeResponseTestCase(unittest.TestCase):
 
     def test_parseExtensionArgs_old_none(self):
         args = {'auth_policies': 'none'}
-        self.resp.parseExtensionArgs(args, is_openid1=False)
+        with self.assertWarns(UserWarning):
+            self.resp.parseExtensionArgs(args, is_openid1=False)
         self.assertEqual([], self.resp.auth_policies)
 
     def test_parseExtensionArgs_old_none_strict(self):
