@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 import os.path
 
-from openid import fetchers, xrds, xri, yadis
+from openid import fetchers, xrds, xri
 from . import support
 
 
@@ -27,7 +27,7 @@ def simple_constructor(service_element):
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class TestServiceParser(unittest.TestCase):
     def _getServices(self, types=[], constructor=lambda x: x):
-        url, data = yadis.fetch_data('http://unittest/test_xrds/valid-populated-xrds.xml')
+        data = fetchers.fetch('http://unittest/test_xrds/valid-populated-xrds.xml').read()
         return [constructor(e) for e in xrds.get_elements(data, types)]
 
     def testParse(self):
@@ -91,13 +91,13 @@ class TestServiceParser(unittest.TestCase):
             self.fail('Did not find service with expected types and uris')
 
     def testNoXRDS(self):
-        url, data = yadis.fetch_data('http://unittest/test_xrds/not-xrds.xml')
+        data = fetchers.fetch('http://unittest/test_xrds/not-xrds.xml').read()
         self.assertRaises(
             xrds.XRDSError,
             xrds.get_elements, data, [])
 
     def testNoXRD(self):
-        url, data = yadis.fetch_data('http://unittest/test_xrds/no-xrd.xml')
+        data = fetchers.fetch('http://unittest/test_xrds/no-xrd.xml').read()
         self.assertRaises(
             xrds.XRDSError,
             xrds.get_elements, data, [])
@@ -105,7 +105,7 @@ class TestServiceParser(unittest.TestCase):
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
         not present"""
-        url, data = yadis.fetch_data('http://unittest/200.txt')
+        data = fetchers.fetch('http://unittest/200.txt').read()
         self.assertRaises(
             xrds.XRDSError,
             xrds.get_elements, data, [])
