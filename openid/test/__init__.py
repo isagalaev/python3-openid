@@ -66,7 +66,7 @@ def pyUnitTests():
         'rpverify',
         'extension',
         'codecutil',
-        'yadis_discover',
+        'yadis',
         'fetchers',
         'discover',
     ]
