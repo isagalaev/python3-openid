@@ -97,7 +97,6 @@ def pyUnitTests():
         'test_association',
         'test_htmldiscover',
         'test_nonce',
-        'test_openidyadis',
         'test_parsehtml',
         'test_urinorm',
         'trustroot',
