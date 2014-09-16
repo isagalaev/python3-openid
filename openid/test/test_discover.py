@@ -211,12 +211,6 @@ class Endpoint(unittest.TestCase):
         endpoint = discover.Service([discover.OPENID_IDP_2_0_TYPE])
         self.assertTrue(endpoint.is_op_identifier())
 
-    def test_as_op_identifier(self):
-        url = 'http://unittest'
-        endpoint = discover.Service.as_op_identifier(url)
-        self.assertTrue(endpoint.is_op_identifier())
-        self.assertEqual(endpoint.server_url, url)
-
     def test_local_id(self):
         endpoint = discover.Service(claimed_id='claimed_id')
         self.assertEqual(endpoint.identity(), 'claimed_id')

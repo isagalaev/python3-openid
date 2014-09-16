@@ -195,7 +195,8 @@ import urllib.error
 from openid import fetchers
 
 from openid.consumer.discover import discover, Service, \
-     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE
+     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, \
+     OPENID_IDP_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
@@ -895,7 +896,7 @@ class GenericConsumer(object):
         # checking that we can do, so return an endpoint that's for
         # the specified `openid.op_endpoint'
         elif to_match.claimed_id is None:
-            return Service.as_op_identifier(to_match.server_url)
+            return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
 
         # The claimed ID doesn't match, so we have to do discovery
         # again. This covers not using sessions, OP identifier

@@ -43,10 +43,6 @@ class Service(object):
         self.claimed_id = claimed_id
         self.local_id = local_id
 
-    @classmethod
-    def as_op_identifier(cls, op_endpoint_url):
-        return cls([OPENID_IDP_2_0_TYPE], op_endpoint_url)
-
     def uses_extension(self, extension_uri):
         return extension_uri in self.types
 
