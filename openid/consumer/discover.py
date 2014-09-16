@@ -125,8 +125,7 @@ def parse_xrds(user_id, data):
 
 
 def discoverXRI(iname):
-    if iname.startswith('xri://'):
-        iname = iname[6:]
+    iname = xri.unprefix(iname)
     query = {
         # XXX: If the proxy resolver will ensure that it doesn't return
         # bogus CanonicalIDs (as per Steve's message of 15 Aug 2006

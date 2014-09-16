@@ -12,8 +12,13 @@ from functools import reduce
 AUTHORITIES = ['!', '=', '@', '+', '$', '(']
 XREF_RE = re.compile(r'\((.*?)\)')
 
+
 def is_iname(identifier):
     return identifier.startswith(tuple(['xri://'] + AUTHORITIES))
+
+
+def unprefix(xri):
+    return xri[6:] if xri.startswith('xri://') else xri
 
 
 def _escape_xref(match):
@@ -53,9 +58,7 @@ def rootAuthority(xri):
     @type xri: unicode
     @returntype: unicode
     """
-    if xri.startswith('xri://'):
-        xri = xri[6:]
-    authority = xri.split('/', 1)[0]
+    authority = unprefix(xri).split('/', 1)[0]
     if authority[0] == '(':
         # Cross-reference.
         # XXX: This is incorrect if someone nests cross-references so there
