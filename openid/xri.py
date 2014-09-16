@@ -49,15 +49,11 @@ def providerIsAuthoritative(providerID, canonicalID):
 
 
 def rootAuthority(xri):
-    """Return the root authority for an XRI.
-
-    Example::
+    '''
+    Return the root authority for an XRI:
 
         rootAuthority("@example") == "@"
-
-    @type xri: unicode
-    @returntype: unicode
-    """
+    '''
     authority = unprefix(xri).split('/', 1)[0]
     if authority[0] == '(':
         # Cross-reference.
@@ -71,9 +67,6 @@ def rootAuthority(xri):
         root = authority[0]
     else:
         # IRI reference.  XXX: Can IRI authorities have segments?
-        segments = authority.split('!')
-        segments = reduce(list.__add__,
-            [s.split('*') for s in segments])
-        root = segments[0]
+        root = authority.split('!')[0].split('*')[0]
 
     return root
