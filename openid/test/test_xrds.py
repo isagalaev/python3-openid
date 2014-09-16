@@ -159,11 +159,11 @@ class CanonicalID(unittest.TestCase):
     def _test(self, iname, filename, expectedID):
         with open(datapath(filename), 'rb') as f:
             et = xrds.parseXRDS(f.read())
-        if isinstance(expectedID, (str, type(None))):
+        if expectedID is xrds.XRDSFraud:
+            self.assertRaises(expectedID, xrds.getCanonicalID, iname, et)
+        else:
             cid = xrds.getCanonicalID(iname, et)
             self.assertEqual(cid, expectedID)
-        elif issubclass(expectedID, xrds.XRDSError):
-            self.assertRaises(expectedID, xrds.getCanonicalID, iname, et)
 
 
 if __name__ == '__main__':
