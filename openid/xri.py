@@ -38,14 +38,7 @@ def urlescape(xri):
 
 
 def providerIsAuthoritative(providerID, canonicalID):
-    """Is this provider ID authoritative for this XRI?
-
-    @returntype: bool
-    """
-    # XXX: can't use rsplit until we require python >= 2.4.
-    lastbang = canonicalID.rindex('!')
-    parent = canonicalID[:lastbang]
-    return parent == providerID
+    return canonicalID.rsplit('!', 1)[0] == providerID
 
 
 def rootAuthority(xri):
