@@ -120,31 +120,6 @@ def getYadisXRD(xrd_tree):
     return xrd
 
 
-def getXRDExpiration(xrd_element, default=None):
-    """Return the expiration date of this XRD element, or None if no
-    expiration was specified.
-
-    @type xrd_element: ElementTree node
-
-    @param default: The value to use as the expiration if no
-        expiration was specified in the XRD.
-
-    @rtype: datetime.datetime
-
-    @raises ValueError: If the xrd:Expires element is present, but its
-        contents are not formatted according to the specification.
-    """
-    expires_element = xrd_element.find(expires_tag)
-    if expires_element is None:
-        return default
-    else:
-        expires_string = expires_element.text
-
-        # Will raise ValueError if the string is not the expected format
-        expires_time = strptime(expires_string, "%Y-%m-%dT%H:%M:%SZ")
-        return datetime(*expires_time[0:6])
-
-
 def getCanonicalID(iname, xrd_tree):
     """Return the CanonicalID from this XRDS document.
 
