@@ -1,19 +1,15 @@
 """
 ElementTree interface to an XRD document.
 """
-
-import sys
 import random
 import functools
-
 from datetime import datetime
-from time import strptime
-
-from openid import xri
 try:
     from lxml import etree as ET
 except ImportError:
     from xml.etree import cElementTree as ET
+
+from openid import xri
 
 
 class XRDSError(Exception):
