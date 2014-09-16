@@ -261,3 +261,19 @@ def getTypeURIs(service_element):
     Type tags"""
     return [type_element.text for type_element
             in service_element.findall(type_tag)]
+
+
+def matches_types(element, types):
+    '''
+    Checks if the service element supports any of the types.
+    '''
+    return not types or set(types).intersection(set(getTypeURIs(element)))
+
+
+def get_elements(data, types):
+    '''
+    Parses an XRDS document and returns a list of service elements matching
+    types.
+    '''
+    elements = iterServices(parseXRDS(data))
+    return [e for e in elements if matches_types(e, types) and getURI(e) is not None]

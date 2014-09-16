@@ -28,7 +28,7 @@ def simple_constructor(service_element):
 class TestServiceParser(unittest.TestCase):
     def _getServices(self, types=[], constructor=lambda x: x):
         url, data = yadis.fetch_data('http://unittest/test_xrds/valid-populated-xrds.xml')
-        return [constructor(e) for e in yadis.parse(data, types)]
+        return [constructor(e) for e in xrds.get_elements(data, types)]
 
     def testParse(self):
         """Make sure that parsing succeeds at all"""
@@ -94,13 +94,13 @@ class TestServiceParser(unittest.TestCase):
         url, data = yadis.fetch_data('http://unittest/test_xrds/not-xrds.xml')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, data, [])
+            xrds.get_elements, data, [])
 
     def testNoXRD(self):
         url, data = yadis.fetch_data('http://unittest/test_xrds/no-xrd.xml')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, data, [])
+            xrds.get_elements, data, [])
 
     def testEmpty(self):
         """Make sure that we get an exception when an XRDS element is
@@ -108,7 +108,7 @@ class TestServiceParser(unittest.TestCase):
         url, data = yadis.fetch_data('http://unittest/200.txt')
         self.assertRaises(
             xrds.XRDSError,
-            yadis.parse, data, [])
+            xrds.get_elements, data, [])
 
 
 class TestCanonicalID(unittest.TestCase):

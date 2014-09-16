@@ -169,7 +169,7 @@ def parse_xrds(user_id, data):
         canonicalID = None
     services = [
         parse_service(element, user_id, canonicalID)
-        for element in yadis.parse(data, SERVICE_TYPES)
+        for element in xrds.get_elements(data, SERVICE_TYPES)
     ]
     # Return only OP Identifier services if present or all of them otherwise.
     # Services are ordered by their type according to SERVICE_TYPES list.

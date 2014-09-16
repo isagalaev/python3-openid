@@ -4,7 +4,7 @@ from openid.consumer import discover
 from openid.consumer.discover import \
      SERVICE_TYPES, OPENID_1_1_TYPE, OPENID_1_0_TYPE
 
-from openid import xrds, yadis
+from openid import xrds
 
 
 XRDS_BOILERPLATE = '''\
@@ -120,7 +120,7 @@ class OpenIDYadisTest(unittest.TestCase):
     def runTest(self):
         endpoints = [
             discover.parse_service(element, self.yadis_url)
-            for element in yadis.parse(self.xrds, SERVICE_TYPES)
+            for element in xrds.get_elements(self.xrds, SERVICE_TYPES)
         ]
 
         # make sure there are the same number of endpoints as

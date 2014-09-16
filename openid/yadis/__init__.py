@@ -1,7 +1,7 @@
 import cgi
 import io
 
-from openid import fetchers, xrds
+from openid import fetchers
 from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
 
 
@@ -35,20 +35,3 @@ def fetch_data(uri):
     if location:
         text = fetchers.fetch(location).read() # MAX_RESPONSE
     return response.url, text
-
-
-def matches_types(element, types):
-    '''
-    Checks if the service element supports any of the types.
-    '''
-    return not types or \
-           set(types).intersection(set(xrds.getTypeURIs(element)))
-
-
-def parse(data, types):
-    '''
-    Parses an XRDS document and returns a list of endpoints in the form of
-    (service_uri, service_element).
-    '''
-    elements = xrds.iterServices(xrds.parseXRDS(data))
-    return [e for e in elements if matches_types(e, types) and xrds.getURI(e) is not None]
