@@ -34,8 +34,7 @@ def main():
         # did the ruby port.  We can't invoke requestAssociation
         # without these other trappings.
         store = MemoryStore()
-        endpoint = Service()
-        endpoint.server_url = endpoint_url
+        endpoint = Service([], endpoint_url)
         c = consumer.GenericConsumer(store)
         auth_req = c.begin(endpoint)
         if auth_req.assoc:
