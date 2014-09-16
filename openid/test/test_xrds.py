@@ -140,74 +140,30 @@ class LocalID(unittest.TestCase):
             xrds.getLocalID(element, True, True)
 
 
-class TestCanonicalID(unittest.TestCase):
+@support.gentests
+class CanonicalID(unittest.TestCase):
+    data = [
+        ('delegated', ("@ootao*test1", "delegated-20060809.xrds", "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")),
+        ('delegated_r1', ("@ootao*test1", "delegated-20060809-r1.xrds", "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")),
+        ('delegated_r2', ("@ootao*test1", "delegated-20060809-r2.xrds", "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")),
+        ('sometimesprefix', ("@ootao*test1", "sometimesprefix.xrds", "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")),
+        ('prefixsometimes', ("@ootao*test1", "prefixsometimes.xrds", "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")),
+        ('spoof1', ("=keturn*isDrummond", "spoof1.xrds", xrds.XRDSFraud)),
+        ('spoof2', ("=keturn*isDrummond", "spoof2.xrds", xrds.XRDSFraud)),
+        ('spoof3', ("@keturn*is*drummond", "spoof3.xrds", xrds.XRDSFraud)),
+        ('status222', ("=x", "status222.xrds", None)),
+        ('multisegment_xri', ('xri://=nishitani*masaki', 'subsegments.xrds', '=!E117.EF2F.454B.C707!0000.0000.3B9A.CA01')),
+        ('iri_auth_not_allowed', ("phreak.example.com", "delegated-20060809-r2.xrds", xrds.XRDSFraud)),
+    ]
 
-    def mkTest(iname, filename, expectedID):
-        """This function builds a method that runs the CanonicalID
-        test for the given set of inputs"""
-
-        filename = datapath(filename)
-
-        def test(self):
-            with open(filename, 'rb') as f:
-                et = xrds.parseXRDS(f.read())
-            self._getCanonicalID(iname, et, expectedID)
-        return test
-
-    test_delegated = mkTest(
-        "@ootao*test1", "delegated-20060809.xrds",
-        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
-
-    test_delegated_r1 = mkTest(
-        "@ootao*test1", "delegated-20060809-r1.xrds",
-        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
-
-    test_delegated_r2 = mkTest(
-        "@ootao*test1", "delegated-20060809-r2.xrds",
-        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
-
-    test_sometimesprefix = mkTest(
-        "@ootao*test1", "sometimesprefix.xrds",
-        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
-
-    test_prefixsometimes = mkTest(
-        "@ootao*test1", "prefixsometimes.xrds",
-        "@!5BAD.2AA.3C72.AF46!0000.0000.3B9A.CA01")
-
-    test_spoof1 = mkTest("=keturn*isDrummond", "spoof1.xrds", xrds.XRDSFraud)
-
-    test_spoof2 = mkTest("=keturn*isDrummond", "spoof2.xrds", xrds.XRDSFraud)
-
-    test_spoof3 = mkTest("@keturn*is*drummond", "spoof3.xrds", xrds.XRDSFraud)
-
-    test_status222 = mkTest("=x", "status222.xrds", None)
-
-    test_multisegment_xri = mkTest('xri://=nishitani*masaki',
-                                   'subsegments.xrds',
-                                   '=!E117.EF2F.454B.C707!0000.0000.3B9A.CA01')
-
-    test_iri_auth_not_allowed = mkTest(
-        "phreak.example.com", "delegated-20060809-r2.xrds", xrds.XRDSFraud)
-    test_iri_auth_not_allowed.__doc__ = \
-        "Don't let IRI authorities be canonical for the GCS."
-
-    # TODO: Refs
-    # test_ref = mkTest("@ootao*test.ref", "ref.xrds", "@!BAE.A650.823B.2475")
-
-    # TODO: Add a IRI authority with an IRI canonicalID.
-    # TODO: Add test cases with real examples of multiple CanonicalIDs
-    #   somewhere in the resolution chain.
-
-    def _getCanonicalID(self, iname, et, expectedID):
+    def _test(self, iname, filename, expectedID):
+        with open(datapath(filename), 'rb') as f:
+            et = xrds.parseXRDS(f.read())
         if isinstance(expectedID, (str, type(None))):
             cid = xrds.getCanonicalID(iname, et)
             self.assertEqual(cid, expectedID)
         elif issubclass(expectedID, xrds.XRDSError):
-            self.assertRaises(expectedID, xrds.getCanonicalID,
-                                  iname, et)
-        else:
-            self.fail("Don't know how to test for expected value %r"
-                      % (expectedID,))
+            self.assertRaises(expectedID, xrds.getCanonicalID, iname, et)
 
 
 if __name__ == '__main__':
