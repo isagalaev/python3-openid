@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from openid import xri
 
 
@@ -13,12 +14,11 @@ class XriDiscoveryTestCase(TestCase):
 
 class XriEscapingTestCase(TestCase):
     def test_escaping_percents(self):
-        self.assertEqual(xri.escapeForIRI('@example/abc%2Fd/ef'),
-                             '@example/abc%252Fd/ef')
+        self.assertEqual(xri.urlescape('@example/abc%2Fd/ef'), '@example/abc%252Fd/ef')
 
     def test_escaping_xref(self):
         # no escapes
-        esc = xri.escapeForIRI
+        esc = xri.urlescape
         self.assertEqual('@example/foo/(@bar)', esc('@example/foo/(@bar)'))
         # escape slashes
         self.assertEqual('@example/foo/(@bar%2Fbaz)',
@@ -31,23 +31,10 @@ class XriEscapingTestCase(TestCase):
 
 
 class XriTransformationTestCase(TestCase):
-    def test_to_iri_normal(self):
-        self.assertEqual(xri.toIRINormal('@example'), 'xri://@example')
-
-    try:
-        chr(0x10000)
-    except ValueError:
-        # bleh narrow python build
-        def test_iri_to_url(self):
-            s = 'l\xa1m'
-            expected = 'l%C2%A1m'
-            self.assertEqual(xri.iriToURI(s), expected)
-    else:
-
-        def test_iri_to_url(self):
-            s = 'l\xa1m\U00101010n'
-            expected = 'l%C2%A1m%F4%81%80%90n'
-            self.assertEqual(xri.iriToURI(s), expected)
+    def test_iri_to_url(self):
+        s = 'l\xa1m\U00101010n'
+        expected = 'l%C2%A1m%F4%81%80%90n'
+        self.assertEqual(xri.urlescape(s), expected)
 
 
 class CanonicalIDTest(TestCase):

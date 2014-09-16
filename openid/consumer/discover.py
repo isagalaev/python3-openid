@@ -134,7 +134,7 @@ def discoverXRI(iname):
         # which would give us a bit less to process.
         '_xrd_r': 'application/xrds+xml;sep=false',
     }
-    url =  PROXY_URL + xri.toURINormal(iname)[6:] + '?' + urllib.parse.urlencode(query)
+    url =  PROXY_URL + xri.urlescape(iname) + '?' + urllib.parse.urlencode(query)
     url, data = yadis.fetch_data(url)
     try:
         endpoints = parse_xrds(iname, data)

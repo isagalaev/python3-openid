@@ -9,51 +9,29 @@ from functools import reduce
 
 from openid import codecutil  # registers 'oid_percent_escape' encoding handler
 
+
 XRI_AUTHORITIES = ['!', '=', '@', '+', '$', '(']
+XREF_RE = re.compile(r'\((.*?)\)')
 
 
 def is_iname(identifier):
     return identifier.startswith(tuple(['xri://'] + XRI_AUTHORITIES))
 
 
-def toIRINormal(xri):
-    """Transform an XRI to IRI-normal form."""
-    if not xri.startswith('xri://'):
-        xri = 'xri://' + xri
-    return escapeForIRI(xri)
+def _escape_xref(match):
+    '''
+    Escape things that need to be escaped if they're in a cross-reference.
+    '''
+    return match.group(0).replace('/', '%2F') .replace('?', '%3F') .replace('#', '%23')
 
 
-_xref_re = re.compile('\((.*?)\)')
-
-
-def _escape_xref(xref_match):
-    """Escape things that need to be escaped if they're in a cross-reference.
-    """
-    xref = xref_match.group()
-    xref = xref.replace('/', '%2F')
-    xref = xref.replace('?', '%3F')
-    xref = xref.replace('#', '%23')
-    return xref
-
-
-def escapeForIRI(xri):
-    """Escape things that need to be escaped when transforming to an IRI."""
+def urlescape(xri):
+    '''
+    Escapes an unprefixed xri to be used as part of a URL.
+    '''
     xri = xri.replace('%', '%25')
-    xri = _xref_re.sub(_escape_xref, xri)
-    return xri
-
-
-def toURINormal(xri):
-    """Transform an XRI to URI normal form."""
-    return iriToURI(toIRINormal(xri))
-
-
-def iriToURI(iri):
-    """Transform an IRI to a URI by escaping unicode."""
-    # According to RFC 3987, section 3.1, "Mapping of IRIs to URIs"
-    if isinstance(iri, bytes):
-        iri = str(iri, encoding="utf-8")
-    return iri.encode('ascii', errors='oid_percent_escape').decode()
+    xri = XREF_RE.sub(_escape_xref, xri)
+    return xri.encode('ascii', errors='oid_percent_escape').decode()
 
 
 def providerIsAuthoritative(providerID, canonicalID):
