@@ -3,7 +3,7 @@ from unittest import TestCase
 from openid import xri
 
 
-class XriDiscoveryTestCase(TestCase):
+class XRI(TestCase):
     def test_is_iname(self):
         self.assertTrue(xri.is_iname('=john.smith'))
         self.assertTrue(xri.is_iname('@smiths/john'))
@@ -11,8 +11,6 @@ class XriDiscoveryTestCase(TestCase):
         self.assertFalse(xri.is_iname('smoker.myopenid.com'))
         self.assertFalse(xri.is_iname(''))
 
-
-class XriEscapingTestCase(TestCase):
     def test_escaping_percents(self):
         self.assertEqual(xri.urlescape('@example/abc%2Fd/ef'), '@example/abc%252Fd/ef')
 
@@ -29,9 +27,7 @@ class XriEscapingTestCase(TestCase):
         self.assertEqual('@example/foo/(@baz%3Fp=q%23r)?i=j#k',
                              esc('@example/foo/(@baz?p=q#r)?i=j#k'))
 
-
-class XriTransformationTestCase(TestCase):
-    def test_iri_to_url(self):
+    def test_iri(self):
         s = 'l\xa1m\U00101010n'
         expected = 'l%C2%A1m%F4%81%80%90n'
         self.assertEqual(xri.urlescape(s), expected)
