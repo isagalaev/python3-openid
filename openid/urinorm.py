@@ -2,6 +2,7 @@ import re
 import urllib.parse
 
 
+ILLEGAL_CHAR_RE = re.compile("[^-A-Za-z0-9:/?#[\]@!$&'()*+,;=._~%]", re.UNICODE)
 AUTHORITY_RE = re.compile(r'^([^@]*@)?([^:]*)(:.*)?')
 PCT_ENCODED_RE = re.compile(r'%([0-9A-Fa-f]{2})')
 UNRESERVED = '-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -86,8 +87,8 @@ def urinorm(uri):
         path = '/'
 
     uri = urllib.parse.urlunparse((scheme, authority, path, params, query, fragment))
-    illegal_mo = uri_illegal_char_re.search(uri)
-    if illegal_mo:
+    match = ILLEGAL_CHAR_RE.search(uri)
+    if match:
         raise ValueError('Illegal characters in URI: %r at position %s' %
-                         (illegal_mo.group(), illegal_mo.start()))
+                         (match.group(), match.start()))
     return uri
