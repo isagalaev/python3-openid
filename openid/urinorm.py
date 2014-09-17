@@ -1,6 +1,5 @@
 import re
-
-from openid import codecutil  # registers 'oid_percent_escape' encoding handler
+import urllib.parse
 
 # from appendix B of rfc 3986 (http://www.ietf.org/rfc/rfc3986.txt)
 uri_pattern = r'^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?'
@@ -96,8 +95,7 @@ def urinorm(uri):
     if isinstance(uri, bytes):
         uri = str(uri, encoding='utf-8')
 
-    uri = uri.encode('ascii', errors='oid_percent_escape').decode('utf-8')
-    # _escapeme_re.sub(_pct_escape_unicode, uri).encode('ascii').decode()
+    uri = urllib.parse.quote(uri, safe=''.join(map(chr, range(256)))) # quote only non-ascii chars
 
     illegal_mo = uri_illegal_char_re.search(uri)
     if illegal_mo:
