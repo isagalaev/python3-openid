@@ -4,20 +4,6 @@ import warnings
 import unittest
 
 
-def addParentToPath():
-    """
-    Add the parent directory to sys.path to make it importable.
-    """
-    try:
-        d = os.path.dirname(__file__)
-    except NameError:
-        d = os.path.dirname(sys.argv[0])
-    parent = os.path.normpath(os.path.join(d, '..'))
-    if parent not in sys.path:
-        print("adding {} to sys.path".format(parent))
-        sys.path.insert(0, parent)
-
-
 def specialCaseTests():
     """
     Some modules have an explicit `test` function that collects tests --
@@ -124,7 +110,6 @@ def test_suite():
     """
     Collect all of the tests together in a single suite.
     """
-    addParentToPath()
     combined_suite = unittest.TestSuite()
     combined_suite.addTests(specialCaseTests())
     combined_suite.addTests(pyUnitTests())
