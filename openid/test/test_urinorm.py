@@ -1,57 +1,43 @@
-import os
 import unittest
+
 import openid.urinorm
+from . import support
 
+
+@support.gentests
 class UrinormTest(unittest.TestCase):
-    def __init__(self, desc, case, expected):
-        unittest.TestCase.__init__(self)
-        self.desc = desc
-        self.case = case
-        self.expected = expected
+    data = [
+        ('normal', ('http://example.com/', 'http://example.com/')),
+        ('trailing_slash', ('http://example.com', 'http://example.com/')),
+        ('empty_port', ('http://example.com:/', 'http://example.com/')),
+        ('default_port', ('http://example.com:80/', 'http://example.com/')),
+        ('host_case', ('http://wWw.exaMPLE.COm/', 'http://www.example.com/')),
+        ('scheme_case', ('htTP://example.com/', 'http://example.com/')),
+        ('escape_case', ('http://example.com/foo%2cbar', 'http://example.com/foo%2Cbar')),
+        ('path_unescape', ('http://example.com/foo%2Dbar%2dbaz', 'http://example.com/foo-bar-baz')),
+        ('path_dots1', ('http://example.com/a/b/c/./../../g', 'http://example.com/a/g')),
+        ('path_dots2', ('http://example.com/mid/content=5/../6', 'http://example.com/mid/6')),
+        ('single_dot', ('http://example.com/a/./b', 'http://example.com/a/b')),
+        ('double_dot', ('http://example.com/a/../b', 'http://example.com/b')),
+        ('leading_double_dot', ('http://example.com/../b', 'http://example.com/b')),
+        ('trailing_single_dot', ('http://example.com/a/.', 'http://example.com/a/')),
+        ('trailing_double_dot', ('http://example.com/a/..', 'http://example.com/')),
+        ('trailing_dot_slash', ('http://example.com/a/./', 'http://example.com/a/')),
+        ('trailing_dot_dot_slash', ('http://example.com/a/../', 'http://example.com/')),
+        ('syntax', ('hTTPS://a/./b/../b/%63/%7bfoo%7d', 'https://a/b/c/%7Bfoo%7D')),
+        ('bad_scheme', ('ftp://example.com/', 'fail')),
+        ('non_absolute', ('http:/foo', 'fail')),
+        ('illegal_chars', ('http://<illegal>.com/', 'fail')),
+        ('non_ascii', ('http://foo.com/\u0008', 'fail')),
+    ]
 
-    def shortDescription(self):
-        return self.desc
-
-    def runTest(self):
+    def _test(self, source, expected):
         try:
-            actual = openid.urinorm.urinorm(self.case)
+            actual = openid.urinorm.urinorm(source)
         except ValueError as why:
-            self.assertEqual(self.expected, 'fail', why)
+            self.assertEqual(expected, 'fail', why)
         else:
-            self.assertEqual(actual, self.expected)
-
-    def parse(cls, full_case):
-        desc, case, expected = full_case.split('\n')
-        case = str(case, 'utf-8') if isinstance(case, bytes) else case
-
-        return cls(desc, case, expected)
-
-    parse = classmethod(parse)
-
-
-def parseTests(test_data):
-    result = []
-
-    cases = test_data.split('\n\n')
-    for case in cases:
-        case = case.strip()
-
-        if case:
-            result.append(UrinormTest.parse(case))
-
-    return result
-
-
-def pyUnitTests():
-    here = os.path.dirname(os.path.abspath(__file__))
-    test_data_file_name = os.path.join(here, 'urinorm.txt')
-    test_data_file = open(test_data_file_name)
-    test_data = test_data_file.read()
-    test_data_file.close()
-
-    tests = parseTests(test_data)
-    return unittest.TestSuite(tests)
+            self.assertEqual(actual, expected)
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    runner.run(pyUnitTests())
+    unittest.main()

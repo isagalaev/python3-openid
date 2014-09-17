@@ -54,6 +54,7 @@ def pyUnitTests():
         'yadis',
         'fetchers',
         'discover',
+        'urinorm',
     ]
 
     test_modules = [
@@ -83,7 +84,6 @@ def pyUnitTests():
         'test_htmldiscover',
         'test_nonce',
         'test_parsehtml',
-        'test_urinorm',
         'trustroot',
         ]
 
