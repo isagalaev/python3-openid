@@ -1,27 +1,14 @@
 import re
 import urllib.parse
 
-# from appendix B of rfc 3986 (http://www.ietf.org/rfc/rfc3986.txt)
-uri_pattern = r'^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?'
-uri_re = re.compile(uri_pattern)
-
-# gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
-#
-# sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
-#                  / "*" / "+" / "," / ";" / "="
-#
-# unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
 
 uri_illegal_char_re = re.compile(
     "[^-A-Za-z0-9:/?#[\]@!$&'()*+,;=._~%]", re.UNICODE)
 
-authority_pattern = r'^([^@]*@)?([^:]*)(:.*)?'
-authority_re = re.compile(authority_pattern)
-
+authority_re = re.compile(r'^([^@]*@)?([^:]*)(:.*)?')
 
 pct_encoded_pattern = r'%([0-9A-Fa-f]{2})'
 pct_encoded_re = re.compile(pct_encoded_pattern)
-
 
 _unreserved = [False] * 256
 for _ in range(ord('A'), ord('Z') + 1): _unreserved[_] = True
@@ -32,6 +19,8 @@ _unreserved[ord('.')] = True
 _unreserved[ord('_')] = True
 _unreserved[ord('~')] = True
 
+ASCII = ''.join(map(chr, range(256)))
+
 
 def _pct_encoded_replace_unreserved(mo):
     try:
@@ -41,13 +30,6 @@ def _pct_encoded_replace_unreserved(mo):
         else:
             return mo.group().upper()
 
-    except ValueError:
-        return mo.group()
-
-
-def _pct_encoded_replace(mo):
-    try:
-        return chr(int(mo.group(1), 16))
     except ValueError:
         return mo.group()
 
@@ -87,73 +69,41 @@ def remove_dot_segments(path):
     return ''.join(result_segments)
 
 
+def quote(s):
+    return urllib.parse.quote(s, safe=ASCII)
+
+
 def urinorm(uri):
     '''
     Normalize a URI
     '''
-    # TODO: use urllib.parse instead of these complex regular expressions
-    if isinstance(uri, bytes):
-        uri = str(uri, encoding='utf-8')
-
-    uri = urllib.parse.quote(uri, safe=''.join(map(chr, range(256)))) # quote only non-ascii chars
-
-    illegal_mo = uri_illegal_char_re.search(uri)
-    if illegal_mo:
-        raise ValueError('Illegal characters in URI: %r at position %s' %
-                         (illegal_mo.group(), illegal_mo.start()))
-
-    uri_mo = uri_re.match(uri)
-
-    scheme = uri_mo.group(2)
-    if scheme is None:
-        raise ValueError('No scheme specified')
-
+    scheme, authority, path, params, query, fragment = urllib.parse.urlparse(uri)
     scheme = scheme.lower()
-    if scheme not in ('http', 'https'):
-        raise ValueError('Not an absolute HTTP or HTTPS URI: %r' % (uri,))
+    authority = authority.lower()
+    path, params, query, fragment = map(quote, (path, params, query, fragment))
 
-    authority = uri_mo.group(4)
-    if authority is None:
-        raise ValueError('Not an absolute URI: %r' % (uri,))
+    if not scheme or not authority or scheme not in ('http', 'https'):
+        raise ValueError('Not an absolute HTTP or HTTPS URI: %s' % uri)
 
-    authority_mo = authority_re.match(authority)
-    if authority_mo is None:
-        raise ValueError('URI does not have a valid authority: %r' % (uri,))
+    if not authority_re.match(authority):
+        raise ValueError('URI does not have a valid authority: %s' % uri)
 
-    userinfo, host, port = authority_mo.groups()
+    # This should've been simply authority.encode(..).decode(..) but idna breaks on
+    # anythong starting with '.' so we have to encode it in chunks
+    authority = '.'.join(chunk.encode('idna').decode('ascii') for chunk in authority.split('.'))
+    if ':' in authority:
+        host, port = authority.split(':', 1)
+        if not port or (scheme, port) in [('http', '80'), ('https', '443')]:
+            authority = host
 
-    if userinfo is None:
-        userinfo = ''
-
-    if '%' in host:
-        host = host.lower()
-        host = pct_encoded_re.sub(_pct_encoded_replace, host)
-        host = host.encode('idna').decode()
-    else:
-        host = host.lower()
-
-    if port:
-        if (port == ':' or
-            (scheme == 'http' and port == ':80') or
-            (scheme == 'https' and port == ':443')):
-            port = ''
-    else:
-        port = ''
-
-    authority = userinfo + host + port
-
-    path = uri_mo.group(5)
     path = pct_encoded_re.sub(_pct_encoded_replace_unreserved, path)
     path = remove_dot_segments(path)
     if not path:
         path = '/'
 
-    query = uri_mo.group(6)
-    if query is None:
-        query = ''
-
-    fragment = uri_mo.group(8)
-    if fragment is None:
-        fragment = ''
-
-    return scheme + '://' + authority + path + query + fragment
+    uri = urllib.parse.urlunparse((scheme, authority, path, params, query, fragment))
+    illegal_mo = uri_illegal_char_re.search(uri)
+    if illegal_mo:
+        raise ValueError('Illegal characters in URI: %r at position %s' %
+                         (illegal_mo.group(), illegal_mo.start()))
+    return uri
