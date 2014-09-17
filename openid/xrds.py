@@ -113,6 +113,15 @@ def getLocalID(service_element, is_v1, is_v2):
     return local_id
 
 
+def _priority(element):
+    '''
+    Sort key for elements sorted by priority attribute. Represented as tuple
+    to ensure None is sorted after int values.
+    '''
+    value = element.get('priority')
+    return (0, int(value)) if value else (1, 0)
+
+
 def iterServices(tree):
     """Return an iterable over the Service elements in the Yadis XRD
     sorted by priority"""
@@ -121,7 +130,7 @@ def iterServices(tree):
     except IndexError:
         raise XRDSError('No XRD elements found')
     elements = xrd.findall(t('xrd:Service'))
-    return sorted(elements, key=lambda e: int(e.get('priority', 1000)))
+    return sorted(elements, key=_priority)
 
 
 def getURI(service_element):
