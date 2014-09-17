@@ -65,7 +65,6 @@ def pyUnitTests():
         'pape_draft5',
         'rpverify',
         'extension',
-        'codecutil',
         'yadis',
         'fetchers',
         'discover',
