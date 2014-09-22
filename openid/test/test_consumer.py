@@ -13,7 +13,7 @@ from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      DiscoveryFailure, OPENID_1_1_TYPE
 from openid.consumer.consumer import \
-     AuthRequest, GenericConsumer, SUCCESS, FAILURE, CANCEL, SETUP_NEEDED, \
+     AuthRequest, GenericConsumer, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
@@ -199,7 +199,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         message = Message.fromPostArgs(query)
         message = assoc.signMessage(message)
         info = consumer.complete(message, request.endpoint, new_return_to)
-        assert info.status == SUCCESS, info.message
+        assert info.status == 'success', info.message
         assert info.identity_url == user_url
 
     with mock.patch('openid.fetchers.fetch', fetcher.fetch):
@@ -405,20 +405,20 @@ class TestComplete(TestIdRes):
         self.consumer._checkSetupNeeded = raiseSetupNeeded
 
         response = self.consumer.complete(message, None, None)
-        self.assertEqual(SETUP_NEEDED, response.status)
+        self.assertEqual('setup_needed', response.status)
         self.assertTrue(setup_url_sentinel is response.setup_url)
 
     def test_cancel(self):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
-        self.assertEqual(r.status, CANCEL)
+        self.assertEqual(r.status, 'cancel')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
 
     def test_cancel_with_return_to(self):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
         r = self.consumer.complete(message, self.endpoint, self.return_to)
-        self.assertEqual(r.status, CANCEL)
+        self.assertEqual(r.status, 'cancel')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
 
     def test_error(self):
@@ -428,7 +428,7 @@ class TestComplete(TestIdRes):
                  })
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
         self.assertEqual(r.message, msg)
 
@@ -441,7 +441,7 @@ class TestComplete(TestIdRes):
                  })
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
         self.assertTrue(r.contact == contact)
         self.assertTrue(r.reference is None)
@@ -456,7 +456,7 @@ class TestComplete(TestIdRes):
                  'openid.contact': contact, 'openid.ns': OPENID2_NS,
                  })
         r = self.consumer.complete(message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
         self.assertTrue(r.contact == contact)
         self.assertTrue(r.reference == reference)
@@ -465,12 +465,12 @@ class TestComplete(TestIdRes):
     def test_noMode(self):
         message = Message.fromPostArgs({})
         r = self.consumer.complete(message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
         self.assertTrue(r.identity_url == self.endpoint.claimed_id)
 
     def test_idResMissingField(self):
         # XXX - this test is passing, but not necessarily by what it
-        # is supposed to test for.  status in FAILURE, but it's because
+        # is supposed to test for.  status in 'failure', but it's because
         # *check_auth* failed, not because it's missing an arg, exactly.
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
         self.assertRaises(ProtocolError, self.consumer._doIdRes,
@@ -558,31 +558,31 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
             OPENID_NS, 'signed',
             'return_to,response_nonce,assoc_handle,claimed_id')
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
 
     def test_idResMissingReturnToSig(self):
         self.message.setArg(
             OPENID_NS, 'signed',
             'identity,response_nonce,assoc_handle,claimed_id')
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
 
     def test_idResMissingAssocHandleSig(self):
         self.message.setArg(
             OPENID_NS, 'signed',
             'identity,response_nonce,return_to,claimed_id')
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
 
     def test_idResMissingClaimedIDSig(self):
         self.message.setArg(
             OPENID_NS, 'signed',
             'identity,response_nonce,return_to,assoc_handle')
         r = self.consumer.complete(self.message, self.endpoint, None)
-        self.assertEqual(r.status, FAILURE)
+        self.assertEqual(r.status, 'failure')
 
     def failUnlessSuccess(self, response):
-        if response.status != SUCCESS:
+        if response.status != 'success':
             self.fail("Non-successful response: %s" % (response,))
 
 
@@ -1071,7 +1071,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         message = good_assoc.signMessage(message)
         self.disableReturnToChecking()
         info = self.consumer._doIdRes(message, self.endpoint, None)
-        self.assertEqual(info.status, SUCCESS, info.message)
+        self.assertEqual(info.status, 'success', info.message)
         self.assertEqual(self.consumer_id, info.identity_url)
 
 
@@ -1524,7 +1524,7 @@ class ConsumerTest(unittest.TestCase):
         self.consumer.consumer.complete = checkEndpoint
 
         response = self.consumer.complete({}, None)
-        self.assertEqual(response.status, FAILURE)
+        self.assertEqual(response.status, 'failure')
         self.assertEqual(response.message, text)
         self.assertTrue(response.identity_url is None)
 
@@ -1702,7 +1702,7 @@ class IDPDrivenTest(unittest.TestCase):
                               message, self.endpoint, None)
 
     def failUnlessSuccess(self, response):
-        if response.status != SUCCESS:
+        if response.status != 'success':
             self.fail("Non-successful response: %s" % (response,))
 
 

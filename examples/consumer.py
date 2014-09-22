@@ -235,14 +235,14 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         css_class = 'error'
         display_identifier = info.getDisplayIdentifier()
 
-        if info.status == consumer.FAILURE and display_identifier:
+        if info.status == 'failure' and display_identifier:
             # In the case of failure, if info is non-None, it is the
             # URL that we were verifying. We include it in the error
             # message to help the user figure out what happened.
             fmt = "Verification of %s failed: %s"
             message = fmt % (cgi.escape(display_identifier),
                              info.message)
-        elif info.status == consumer.SUCCESS:
+        elif info.status == 'success':
             # Success means that the transaction completed without
             # error. If info is None, it means that the user cancelled
             # the verification.
@@ -262,10 +262,10 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
                 # i-name registration expires and is bought by someone else.
                 message += ("  This is an i-name, and its persistent ID is %s"
                             % (cgi.escape(info.endpoint.canonicalID),))
-        elif info.status == consumer.CANCEL:
+        elif info.status == 'cancel':
             # cancelled
             message = 'Verification cancelled'
-        elif info.status == consumer.SETUP_NEEDED:
+        elif info.status == 'setup_needed':
             if info.setup_url:
                 message = '<a href=%s>Setup needed</a>' % (
                     quoteattr(info.setup_url),)

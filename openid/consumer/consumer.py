@@ -172,19 +172,6 @@ USING THIS LIBRARY
     There are multiple possible return types possible from that
     method. These indicate whether or not the login was successful,
     and include any additional information appropriate for their type.
-
-@var SUCCESS: constant used as the status for
-    L{SuccessResponse<openid.consumer.consumer.SuccessResponse>} objects.
-
-@var FAILURE: constant used as the status for
-    L{FailureResponse<openid.consumer.consumer.FailureResponse>} objects.
-
-@var CANCEL: constant used as the status for
-    L{CancelResponse<openid.consumer.consumer.CancelResponse>} objects.
-
-@var SETUP_NEEDED: constant used as the status for
-    L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
-    objects.
 """
 
 import copy
@@ -211,7 +198,6 @@ from openid import urinorm
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse',
-           'SUCCESS', 'FAILURE', 'CANCEL', 'SETUP_NEEDED',
            ]
 
 
@@ -371,11 +357,11 @@ class Consumer(object):
             request framework and specify it here to have it checked
             against the openid.return_to value in the response.  If
             the return_to URL check fails, the status of the
-            completion will be FAILURE.
+            completion will be 'failure'.
 
         @returns: a subclass of Response. The type of response is
             indicated by the status attribute, which will be one of
-            SUCCESS, CANCEL, FAILURE, or SETUP_NEEDED.
+            'success', 'cancel', 'failure', or 'setup_needed'.
 
         @see: L{SuccessResponse<openid.consumer.consumer.SuccessResponse>}
         @see: L{CancelResponse<openid.consumer.consumer.CancelResponse>}
@@ -1659,11 +1645,6 @@ class AuthRequest(object):
         """
         return self.endpoint.compat_mode()
 
-FAILURE = 'failure'
-SUCCESS = 'success'
-CANCEL = 'cancel'
-SETUP_NEEDED = 'setup_needed'
-
 
 class Response(object):
     status = None
@@ -1695,7 +1676,7 @@ class Response(object):
 
 
 class SuccessResponse(Response):
-    """A response with a status of SUCCESS. Indicates that this request is a
+    """Indicates that this request is a
     successful acknowledgement from the OpenID server that the
     supplied URL is, indeed controlled by the requesting agent.
 
@@ -1711,11 +1692,9 @@ class SuccessResponse(Response):
 
     @ivar signed_fields: The arguments in the server's response that
         were signed and verified.
-
-    @cvar status: SUCCESS
     """
 
-    status = SUCCESS
+    status = 'success'
 
     def __init__(self, endpoint, message, signed_fields=None):
         # Don't use setEndpoint, because endpoint should never be None
@@ -1816,7 +1795,7 @@ class SuccessResponse(Response):
 
 
 class FailureResponse(Response):
-    """A response with a status of FAILURE. Indicates that the OpenID
+    """Indicates that the OpenID
     protocol has failed. This could be locally or remotely triggered.
 
     @ivar identity_url:  The identity URL for which authenitcation was
@@ -1824,11 +1803,9 @@ class FailureResponse(Response):
 
     @ivar message: A message indicating why the request failed, if one
         is supplied. otherwise, None.
-
-    @cvar status: FAILURE
     """
 
-    status = FAILURE
+    status = 'failure'
 
     def __init__(self, endpoint, message=None, contact=None,
                  reference=None):
@@ -1844,23 +1821,21 @@ class FailureResponse(Response):
 
 
 class CancelResponse(Response):
-    """A response with a status of CANCEL. Indicates that the user
+    """Indicates that the user
     cancelled the OpenID authentication request.
 
     @ivar identity_url: The identity URL for which authenitcation was
         attempted, if it can be determined. Otherwise, None.
-
-    @cvar status: CANCEL
     """
 
-    status = CANCEL
+    status = 'cancel'
 
     def __init__(self, endpoint):
         self.setEndpoint(endpoint)
 
 
 class SetupNeededResponse(Response):
-    """A response with a status of SETUP_NEEDED. Indicates that the
+    """Indicates that the
     request was in immediate mode, and the server is unable to
     authenticate the user without further interaction.
 
@@ -1871,11 +1846,9 @@ class SetupNeededResponse(Response):
         server to set up for authentication. The user should be
         redirected in to the setup_url, either in the current window
         or in a new browser window.  C{None} in OpenID 2.0.
-
-    @cvar status: SETUP_NEEDED
     """
 
-    status = SETUP_NEEDED
+    status = 'setup_needed'
 
     def __init__(self, endpoint, setup_url=None):
         self.setEndpoint(endpoint)
