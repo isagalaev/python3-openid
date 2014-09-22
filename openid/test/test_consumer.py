@@ -200,7 +200,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
         message = assoc.signMessage(message)
         info = consumer.complete(message, request.endpoint, new_return_to)
         assert info.status == 'success', info.message
-        assert info.identity_url == user_url
+        assert info.identity() == user_url
 
     with mock.patch('openid.fetchers.fetch', fetcher.fetch):
         assert fetcher.num_assocs == 0
@@ -413,13 +413,13 @@ class TestComplete(TestIdRes):
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
         self.assertEqual(r.status, 'cancel')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
 
     def test_cancel_with_return_to(self):
         message = Message.fromPostArgs({'openid.mode': 'cancel'})
         r = self.consumer.complete(message, self.endpoint, self.return_to)
         self.assertEqual(r.status, 'cancel')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
 
     def test_error(self):
         msg = 'an error message'
@@ -429,7 +429,7 @@ class TestComplete(TestIdRes):
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
         self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
         self.assertEqual(r.message, msg)
 
     def test_errorWithNoOptionalKeys(self):
@@ -442,7 +442,7 @@ class TestComplete(TestIdRes):
         self.disableReturnToChecking()
         r = self.consumer.complete(message, self.endpoint)
         self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
         self.assertTrue(r.contact == contact)
         self.assertTrue(r.reference is None)
         self.assertEqual(r.message, msg)
@@ -457,7 +457,7 @@ class TestComplete(TestIdRes):
                  })
         r = self.consumer.complete(message, self.endpoint, None)
         self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
         self.assertTrue(r.contact == contact)
         self.assertTrue(r.reference == reference)
         self.assertEqual(r.message, msg)
@@ -466,7 +466,7 @@ class TestComplete(TestIdRes):
         message = Message.fromPostArgs({})
         r = self.consumer.complete(message, self.endpoint, None)
         self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity_url == self.endpoint.claimed_id)
+        self.assertTrue(r.identity() == self.endpoint.claimed_id)
 
     def test_idResMissingField(self):
         # XXX - this test is passing, but not necessarily by what it
@@ -1072,7 +1072,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.disableReturnToChecking()
         info = self.consumer._doIdRes(message, self.endpoint, None)
         self.assertEqual(info.status, 'success', info.message)
-        self.assertEqual(self.consumer_id, info.identity_url)
+        self.assertEqual(self.consumer_id, info.identity())
 
 
 class TestReturnToArgs(unittest.TestCase):
@@ -1430,14 +1430,14 @@ class ConsumerTest(unittest.TestCase):
     Its GenericConsumer component is stubbed out with StubConsumer.
     """
     def setUp(self):
-        self.endpoint = Service()
-        self.endpoint.claimed_id = self.identity_url = 'http://identity.url/'
+        self.identity = 'http://identity.url/'
+        self.endpoint = Service([], '', self.identity)
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
         self.consumer.consumer = StubConsumer()
         self.discovery = Discovery(self.session,
-                                   self.identity_url,
+                                   self.identity,
                                    self.consumer.session_key_prefix)
 
     def test_setAssociationPreference(self):
@@ -1526,7 +1526,7 @@ class ConsumerTest(unittest.TestCase):
         response = self.consumer.complete({}, None)
         self.assertEqual(response.status, 'failure')
         self.assertEqual(response.message, text)
-        self.assertTrue(response.identity_url is None)
+        self.assertTrue(response.identity() is None)
 
     def _doResp(self, auth_req, exp_resp):
         """complete a transaction, using the expected response from
@@ -1542,7 +1542,7 @@ class ConsumerTest(unittest.TestCase):
         # All responses should have the same identity URL, and the
         # session should be cleaned out
         if self.endpoint.claimed_id != IDENTIFIER_SELECT:
-            self.assertTrue(resp.identity_url is self.identity_url)
+            self.assertTrue(resp.identity() is self.identity)
 
         self.assertFalse(self.consumer._token_key in self.session)
 
@@ -1580,8 +1580,8 @@ class ConsumerTest(unittest.TestCase):
     # Yadis manager, and have it put its values in the session.
     def _doRespDisco(self, is_clean, exp_resp):
         """Set up and execute a transaction, with discovery"""
-        self.discovery.createManager([self.endpoint], self.identity_url)
-        auth_req = self.consumer.begin(self.identity_url)
+        self.discovery.createManager([self.endpoint], self.identity)
+        auth_req = self.consumer.begin(self.identity)
         resp = self._doResp(auth_req, exp_resp)
 
         manager = self.discovery.getManager()
@@ -1619,7 +1619,7 @@ class ConsumerTest(unittest.TestCase):
         request.
         """
         # Set up a request endpoint describing an IDP URL
-        self.identity_url = 'http://idp.url/'
+        self.identity = 'http://idp.url/'
         self.endpoint.claimed_id = self.endpoint.local_id = IDENTIFIER_SELECT
 
         # Use a response endpoint with a different URL (asserted by
@@ -1631,9 +1631,9 @@ class ConsumerTest(unittest.TestCase):
         self.assertTrue(self.discovery.getManager(force=True) is None)
 
     def test_begin(self):
-        self.discovery.createManager([self.endpoint], self.identity_url)
+        self.discovery.createManager([self.endpoint], self.identity)
         # Should not raise an exception
-        auth_req = self.consumer.begin(self.identity_url)
+        auth_req = self.consumer.begin(self.identity)
         self.assertTrue(isinstance(auth_req, AuthRequest))
         self.assertTrue(auth_req.endpoint is self.endpoint)
         self.assertTrue(auth_req.endpoint is self.consumer.consumer.endpoint)
@@ -1678,7 +1678,7 @@ class IDPDrivenTest(unittest.TestCase):
         response = self.consumer._doIdRes(message, self.endpoint, None)
 
         self.failUnlessSuccess(response)
-        self.assertEqual(response.identity_url, "=directed_identifier")
+        self.assertEqual(response.identity(), "=directed_identifier")
 
         # assert that discovery attempt happens and returns good
         self.assertEqual(iverified, [discovered_endpoint])

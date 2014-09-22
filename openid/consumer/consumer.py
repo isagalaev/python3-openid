@@ -380,10 +380,10 @@ class Consumer(object):
             pass
 
         if (response.status in ['success', 'cancel'] and
-            response.identity_url is not None):
+            response.identity() is not None):
 
             disco = Discovery(self.session,
-                              response.identity_url,
+                              response.identity(),
                               self.session_key_prefix)
             # This is OK to do even if we did not do discovery in
             # the first place.
@@ -1649,12 +1649,11 @@ class AuthRequest(object):
 class Response(object):
     status = None
 
-    def setEndpoint(self, endpoint):
+    def __init__(self, endpoint):
         self.endpoint = endpoint
-        if endpoint is None:
-            self.identity_url = None
-        else:
-            self.identity_url = endpoint.claimed_id
+
+    def identity(self):
+        return self.endpoint and self.endpoint.claimed_id
 
     def getDisplayIdentifier(self):
         """Return the display identifier for this response.
@@ -1680,10 +1679,6 @@ class SuccessResponse(Response):
     successful acknowledgement from the OpenID server that the
     supplied URL is, indeed controlled by the requesting agent.
 
-    @ivar identity_url: The identity URL that has been authenticated;
-          the Claimed Identifier.
-        See also L{getDisplayIdentifier}.
-
     @ivar endpoint: The endpoint that authenticated the identifier.  You
         may access other discovered information related to this endpoint,
         such as the CanonicalID of an XRI, through this object.
@@ -1697,10 +1692,7 @@ class SuccessResponse(Response):
     status = 'success'
 
     def __init__(self, endpoint, message, signed_fields=None):
-        # Don't use setEndpoint, because endpoint should never be None
-        # for a successfull transaction.
-        self.endpoint = endpoint
-        self.identity_url = endpoint.claimed_id
+        super().__init__(endpoint)
 
         self.message = message
 
@@ -1779,7 +1771,6 @@ class SuccessResponse(Response):
     def __eq__(self, other):
         return (
             (self.endpoint == other.endpoint) and
-            (self.identity_url == other.identity_url) and
             (self.message == other.message) and
             (self.signed_fields == other.signed_fields) and
             (self.status == other.status))
@@ -1791,15 +1782,12 @@ class SuccessResponse(Response):
         return '<%s.%s id=%r signed=%r>' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self.identity_url, self.signed_fields)
+            self.identity(), self.signed_fields)
 
 
 class FailureResponse(Response):
     """Indicates that the OpenID
     protocol has failed. This could be locally or remotely triggered.
-
-    @ivar identity_url:  The identity URL for which authenitcation was
-        attempted, if it can be determined. Otherwise, None.
 
     @ivar message: A message indicating why the request failed, if one
         is supplied. otherwise, None.
@@ -1809,7 +1797,7 @@ class FailureResponse(Response):
 
     def __init__(self, endpoint, message=None, contact=None,
                  reference=None):
-        self.setEndpoint(endpoint)
+        super().__init__(endpoint)
         self.message = message
         self.contact = contact
         self.reference = reference
@@ -1817,31 +1805,21 @@ class FailureResponse(Response):
     def __repr__(self):
         return "<%s.%s id=%r message=%r>" % (
             self.__class__.__module__, self.__class__.__name__,
-            self.identity_url, self.message)
+            self.identity(), self.message)
 
 
 class CancelResponse(Response):
     """Indicates that the user
     cancelled the OpenID authentication request.
-
-    @ivar identity_url: The identity URL for which authenitcation was
-        attempted, if it can be determined. Otherwise, None.
     """
 
     status = 'cancel'
-
-    def __init__(self, endpoint):
-        self.setEndpoint(endpoint)
 
 
 class SetupNeededResponse(Response):
     """Indicates that the
     request was in immediate mode, and the server is unable to
     authenticate the user without further interaction.
-
-    @ivar identity_url:  The identity URL for which authenitcation was
-        attempted.
-
     @ivar setup_url: A URL that can be used to send the user to the
         server to set up for authentication. The user should be
         redirected in to the setup_url, either in the current window
@@ -1851,5 +1829,5 @@ class SetupNeededResponse(Response):
     status = 'setup_needed'
 
     def __init__(self, endpoint, setup_url=None):
-        self.setEndpoint(endpoint)
+        super().__init__(endpoint)
         self.setup_url = setup_url
