@@ -1675,12 +1675,8 @@ class SuccessResponse(Response):
 
     def __init__(self, endpoint, message, signed_fields=None):
         super().__init__(endpoint)
-
         self.message = message
-
-        if signed_fields is None:
-            signed_fields = []
-        self.signed_fields = signed_fields
+        self.signed_fields = signed_fields or []
 
     def isOpenID1(self):
         """Was this authentication response an OpenID 1 authentication
