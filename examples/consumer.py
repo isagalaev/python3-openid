@@ -233,7 +233,7 @@ class OpenIDRequestHandler(BaseHTTPRequestHandler):
         sreg_resp = None
         pape_resp = None
         css_class = 'error'
-        display_identifier = info.getDisplayIdentifier()
+        display_identifier = info.endpoint.claimed_id
 
         if info.status == 'failure' and display_identifier:
             # In the case of failure, if info is non-None, it is the
