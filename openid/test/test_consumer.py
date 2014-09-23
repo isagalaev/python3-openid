@@ -155,10 +155,11 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     def run():
         trust_root = str(consumer_url, encoding="utf-8")
 
-        consumer = GenericConsumer(store)
-        setConsumerSession(consumer)
+        consumer = Consumer({}, store)
+        generic_consumer = consumer.consumer
+        setConsumerSession(generic_consumer)
 
-        request = consumer.begin(endpoint)
+        request = consumer.beginWithoutDiscovery(endpoint)
         return_to = str(consumer_url, encoding="utf-8")
 
         m = request.getMessage(trust_root, return_to, immediate)
@@ -198,7 +199,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         message = Message.fromPostArgs(query)
         message = assoc.signMessage(message)
-        info = consumer.complete(message, request.endpoint, new_return_to)
+        info = generic_consumer.complete(message, request.endpoint, new_return_to)
         assert info.status == 'success', info.message
         assert info.identity() == user_url
 
@@ -1414,16 +1415,21 @@ class StubConsumer(object):
         self.response = None
         self.endpoint = None
 
-    def begin(self, service):
-        auth_req = AuthRequest(service, self.assoc)
-        self.endpoint = service
-        return auth_req
-
     def complete(self, message, endpoint, return_to):
         assert endpoint is self.endpoint
         return self.response
 
+def _beginWithoutDiscovery(self, service, anonymous=False):
+    request = AuthRequest(service, self.consumer.assoc)
+    self.consumer.endpoint = service
+    self.session[self._token_key] = request.endpoint
+    try:
+        request.setAnonymous(anonymous)
+    except ValueError as why:
+        raise ProtocolError(str(why))
+    return request
 
+@mock.patch.object(Consumer, 'beginWithoutDiscovery', _beginWithoutDiscovery)
 class ConsumerTest(unittest.TestCase):
     """Tests for high-level consumer.Consumer functions.
 
@@ -1643,13 +1649,13 @@ class ConsumerTest(unittest.TestCase):
 class IDPDrivenTest(unittest.TestCase):
     def setUp(self):
         self.store = GoodAssocStore()
-        self.consumer = GenericConsumer(self.store)
+        self.consumer = Consumer({}, self.store)
         self.endpoint = Service()
         self.endpoint.server_url = "http://idp.unittest/"
 
     def test_idpDrivenBegin(self):
         # Testing here that the token-handling doesn't explode...
-        self.consumer.begin(self.endpoint)
+        self.consumer.beginWithoutDiscovery(self.endpoint)
 
     def test_idpDrivenComplete(self):
         identifier = '=directed_identifier'
@@ -1672,10 +1678,10 @@ class IDPDrivenTest(unittest.TestCase):
             iverified.append(discovered_endpoint)
             return discovered_endpoint
 
-        self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        self.consumer._idResCheckNonce = lambda *args: True
-        self.consumer._checkReturnTo = lambda unused1, unused2: True
-        response = self.consumer._doIdRes(message, self.endpoint, None)
+        self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
+        self.consumer.consumer._idResCheckNonce = lambda *args: True
+        self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
+        response = self.consumer.consumer._doIdRes(message, self.endpoint, None)
 
         self.failUnlessSuccess(response)
         self.assertEqual(response.identity(), "=directed_identifier")
@@ -1696,9 +1702,9 @@ class IDPDrivenTest(unittest.TestCase):
         def verifyDiscoveryResults(identifier, endpoint):
             raise DiscoveryFailure("PHREAK!", None)
 
-        self.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        self.consumer._checkReturnTo = lambda unused1, unused2: True
-        self.assertRaises(DiscoveryFailure, self.consumer._doIdRes,
+        self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
+        self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
+        self.assertRaises(DiscoveryFailure, self.consumer.consumer._doIdRes,
                               message, self.endpoint, None)
 
     def failUnlessSuccess(self, response):
@@ -1943,26 +1949,17 @@ else:
 
 class TestNoStore(unittest.TestCase):
     def setUp(self):
-        self.consumer = GenericConsumer(None)
+        self.consumer = Consumer({}, None)
 
     def test_completeNoGetAssoc(self):
         """_getAssociation is never called when the store is None"""
         def notCalled(unused):
             self.fail('This method was unexpectedly called')
 
-        endpoint = Service()
-        endpoint.claimed_id = 'identity_url'
-
-        self.consumer._getAssociation = notCalled
-        auth_request = self.consumer.begin(endpoint)
+        endpoint = Service([], '', 'identity_url')
+        self.consumer.consumer._getAssociation = notCalled
+        auth_request = self.consumer.beginWithoutDiscovery(endpoint)
         # _getAssociation was not called
-
-
-class NonAnonymousAuthRequest(object):
-    endpoint = 'unused'
-
-    def setAnonymous(self, unused):
-        raise ValueError('Should trigger ProtocolError')
 
 
 class TestConsumerAnonymous(unittest.TestCase):
@@ -1970,15 +1967,14 @@ class TestConsumerAnonymous(unittest.TestCase):
         """Make sure that ValueError for setting an auth request
         anonymous gets converted to a ProtocolError
         """
-        sess = {}
-        consumer = Consumer(sess, None)
-
-        def bogusBegin(unused):
-            return NonAnonymousAuthRequest()
-        consumer.consumer.begin = bogusBegin
-        self.assertRaises(
-            ProtocolError,
-            consumer.beginWithoutDiscovery, None)
+        with mock.patch.object(AuthRequest,
+                               'setAnonymous',
+                               mock.Mock(side_effect=ValueError)):
+            consumer = Consumer({}, None)
+            self.assertRaises(
+                ProtocolError,
+                consumer.beginWithoutDiscovery, Service([], '')
+            )
 
 
 class TestDiscoverAndVerify(unittest.TestCase):

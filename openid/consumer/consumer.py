@@ -334,15 +334,26 @@ class Consumer(object):
         @See: Openid.consumer.consumer.Consumer.begin
         @see: openid.consumer.discover
         """
-        auth_req = self.consumer.begin(service)
-        self.session[self._token_key] = auth_req.endpoint
+        if self.consumer.store is None:
+            assoc = None
+        else:
+            assoc = self.consumer._getAssociation(service)
+
+        request = AuthRequest(service, assoc)
+        request.return_to_args[self.consumer.openid1_nonce_query_arg_name] = mkNonce()
+
+        if request.message.isOpenID1():
+            request.return_to_args[self.consumer.openid1_return_to_identifier_name] = \
+                request.endpoint.claimed_id
+
+        self.session[self._token_key] = request.endpoint
 
         try:
-            auth_req.setAnonymous(anonymous)
+            request.setAnonymous(anonymous)
         except ValueError as why:
             raise ProtocolError(str(why))
 
-        return auth_req
+        return request
 
     def complete(self, query, current_url):
         """Called to interpret the server's response to an OpenID
@@ -554,24 +565,6 @@ class GenericConsumer(object):
     def __init__(self, store):
         self.store = store
         self.negotiator = default_negotiator.copy()
-
-    def begin(self, service_endpoint):
-        """Create an AuthRequest object for the specified
-        service_endpoint. This method will create an association if
-        necessary."""
-        if self.store is None:
-            assoc = None
-        else:
-            assoc = self._getAssociation(service_endpoint)
-
-        request = AuthRequest(service_endpoint, assoc)
-        request.return_to_args[self.openid1_nonce_query_arg_name] = mkNonce()
-
-        if request.message.isOpenID1():
-            request.return_to_args[self.openid1_return_to_identifier_name] = \
-                request.endpoint.claimed_id
-
-        return request
 
     def complete(self, message, endpoint, return_to):
         """Process the OpenID message, using the specified endpoint
