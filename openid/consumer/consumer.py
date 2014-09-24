@@ -200,6 +200,16 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
            'SetupNeededResponse', 'CancelResponse', 'FailureResponse',
            ]
 
+# The name of the query parameter that gets added to the return_to
+# URL when using OpenID1. Don't make it start with 'openid',
+# because it's not a standard protocol thing for OpenID1.
+# OpenID2 has a standard parameter for it.
+NONCE_ARG = 'janrain_nonce'
+
+# Another query parameter that gets added to the return_to for
+# OpenID 1; if the user's session state is lost, use this claimed
+# identifier to do discovery when verifying the response.
+IDENTIFIER_ARG = 'openid1_claimed_id'
 
 def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
@@ -340,11 +350,10 @@ class Consumer(object):
             assoc = self.consumer._getAssociation(service)
 
         request = AuthRequest(service, assoc)
-        request.return_to_args[self.consumer.openid1_nonce_query_arg_name] = mkNonce()
+        request.return_to_args[NONCE_ARG] = mkNonce()
 
         if request.message.isOpenID1():
-            request.return_to_args[self.consumer.openid1_return_to_identifier_name] = \
-                request.endpoint.claimed_id
+            request.return_to_args[IDENTIFIER_ARG] = request.endpoint.claimed_id
 
         self.session[self._token_key] = request.endpoint
 
@@ -541,19 +550,6 @@ class GenericConsumer(object):
     @type negotiator: C{L{openid.association.SessionNegotiator}}
     """
 
-    # The name of the query parameter that gets added to the return_to
-    # URL when using OpenID1. You can change this value if you want or
-    # need a different name, but don't make it start with openid,
-    # because it's not a standard protocol thing for OpenID1. For
-    # OpenID2, the library will take care of the nonce using standard
-    # OpenID query parameter names.
-    openid1_nonce_query_arg_name = 'janrain_nonce'
-
-    # Another query parameter that gets added to the return_to for
-    # OpenID 1; if the user's session state is lost, use this claimed
-    # identifier to do discovery when verifying the response.
-    openid1_return_to_identifier_name = 'openid1_claimed_id'
-
     session_types = {
         'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
         'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
@@ -707,11 +703,9 @@ class GenericConsumer(object):
         return_to arguments are the same as those in the response
         message.
 
-        See the openid1_nonce_query_arg_name class variable
-
         @returns: The nonce as a string or None
         """
-        return message.getArg(BARE_NS, self.openid1_nonce_query_arg_name)
+        return message.getArg(BARE_NS, NONCE_ARG)
 
     def _idResCheckNonce(self, message, endpoint):
         if message.isOpenID1():
@@ -906,8 +900,7 @@ class GenericConsumer(object):
         return endpoint
 
     def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
-        claimed_id = resp_msg.getArg(BARE_NS,
-                                     self.openid1_return_to_identifier_name)
+        claimed_id = resp_msg.getArg(BARE_NS, IDENTIFIER_ARG)
 
         if endpoint is None and claimed_id is None:
             raise RuntimeError(

@@ -17,7 +17,7 @@ from openid.consumer.consumer import \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost
+     ProtocolError, makeKVPost, NONCE_ARG
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -873,7 +873,6 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
     def setUp(self):
         CatchLogs.setUp(self)
         TestIdRes.setUp(self)
-        self.consumer.openid1_nonce_query_arg_name = 'nonce'
 
     def tearDown(self):
         CatchLogs.tearDown(self)
@@ -881,9 +880,11 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
     def test_openid1Success(self):
         """use consumer-generated nonce"""
         nonce_value = mkNonce()
-        self.return_to = 'http://rt.unittest/?nonce=%s' % (nonce_value,)
+
+        query = urllib.parse.urlencode({NONCE_ARG: nonce_value})
+        self.return_to = 'http://rt.unittest/?' + query
         self.response = Message.fromOpenIDArgs({'return_to': self.return_to})
-        self.response.setArg(BARE_NS, 'nonce', nonce_value)
+        self.response.setArg(BARE_NS, NONCE_ARG, nonce_value)
         self.consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
