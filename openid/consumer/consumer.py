@@ -211,6 +211,7 @@ NONCE_ARG = 'janrain_nonce'
 # identifier to do discovery when verifying the response.
 IDENTIFIER_ARG = 'openid1_claimed_id'
 
+
 def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
     result as a Message object.
@@ -486,6 +487,13 @@ class PlainTextConsumerSession(object):
         mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
         return oidutil.fromBase64(mac_key64)
 
+def create_session(type):
+    return {
+        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
+        'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
+        'no-encryption': PlainTextConsumerSession,
+    }[type]()
+
 
 class SetupNeededError(Exception):
     """Internally-used exception that indicates that an immediate-mode
@@ -549,12 +557,6 @@ class GenericConsumer(object):
         for how associations are made.
     @type negotiator: C{L{openid.association.SessionNegotiator}}
     """
-
-    session_types = {
-        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
-        'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
-        'no-encryption': PlainTextConsumerSession,
-        }
 
     _discover = staticmethod(discover)
 
@@ -1251,8 +1253,7 @@ class GenericConsumer(object):
         @rtype: (association session type (depends on session_type),
                  openid.message.Message)
         """
-        session_type_class = self.session_types[session_type]
-        assoc_session = session_type_class()
+        assoc_session = create_session(session_type)
 
         args = {
             'mode': 'associate',

@@ -121,16 +121,13 @@ class TestFetcher(object):
         raise urllib.error.HTTPError(url, 404, '', {}, io.BytesIO(b'Not found'))
 
 
-def makeFastConsumerSession():
+def create_session(type):
     """
     Create custom DH object so tests run quickly.
     """
+    assert type == 'DH-SHA1'
     dh = DiffieHellman(100389557, 2)
     return DiffieHellmanSHA1ConsumerSession(dh)
-
-
-def setConsumerSession(con):
-    con.session_types = {'DH-SHA1': makeFastConsumerSession}
 
 
 def _test_success(server_url, user_url, delegate_url, links, immediate=False):
@@ -152,12 +149,12 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint = Service([OPENID_1_1_TYPE], server_url, user_url, delegate_url)
     fetcher = TestFetcher(None, None, assocs[0])
 
+    @mock.patch('openid.consumer.consumer.create_session', create_session)
     def run():
         trust_root = str(consumer_url, encoding="utf-8")
 
         consumer = Consumer({}, store)
         generic_consumer = consumer.consumer
-        setConsumerSession(generic_consumer)
 
         request = consumer.beginWithoutDiscovery(endpoint)
         return_to = str(consumer_url, encoding="utf-8")
@@ -1834,11 +1831,8 @@ class TestCreateAssociationRequest(unittest.TestCase):
                     'assoc_type': self.assoc_type,
                     }), args)
 
+    @mock.patch('openid.consumer.consumer.create_session', create_session)
     def test_dhSHA1Compatibility(self):
-        # Set the consumer's session type to a fast session since we
-        # need it here.
-        setConsumerSession(self.consumer)
-
         self.endpoint.use_compatibility = True
         session_type = 'DH-SHA1'
         session, args = self.consumer._createAssociateRequest(
