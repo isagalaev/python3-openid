@@ -1,4 +1,6 @@
 import unittest
+from unittest import mock
+
 from openid import message
 from openid.test.support import OpenIDTestMixin
 from openid.consumer import consumer
@@ -218,11 +220,10 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         # fall back to 1.0.
         expected_endpoint = discover.Service([discover.OPENID_1_0_TYPE], None, claimed_id)
         discovered_services = [expected_endpoint]
-        self.consumer._discover = lambda *args: ('unused', discovered_services)
-
-        actual_endpoint = self.consumer._verifyDiscoveryResults(
-            resp_mesg, endpoint)
-        self.assertTrue(actual_endpoint is expected_endpoint)
+        with mock.patch('openid.consumer.consumer.discover', lambda x: ('unused', discovered_services)):
+            actual_endpoint = self.consumer._verifyDiscoveryResults(
+                resp_mesg, endpoint)
+            self.assertTrue(actual_endpoint is expected_endpoint)
 
 # XXX: test the implementation of _discoverAndVerify
 

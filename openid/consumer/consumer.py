@@ -251,8 +251,6 @@ class Consumer(object):
 
     _token = 'last_token'
 
-    _discover = staticmethod(discover)
-
     def __init__(self, session, store, consumer_class=None):
         """Initialize a Consumer instance.
 
@@ -315,7 +313,7 @@ class Consumer(object):
         """
         disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
-            service = disco.getNextService(self._discover)
+            service = disco.getNextService(discover)
         except urllib.error.URLError as why:
             raise DiscoveryFailure('Error fetching XRDS document: %s' % why)
 
@@ -557,8 +555,6 @@ class GenericConsumer(object):
         for how associations are made.
     @type negotiator: C{L{openid.association.SessionNegotiator}}
     """
-
-    _discover = staticmethod(discover)
 
     def __init__(self, store):
         self.store = store
@@ -1001,7 +997,7 @@ class GenericConsumer(object):
         @raises DiscoveryFailure: when discovery fails.
         """
         logging.info('Performing discovery on %s' % (claimed_id,))
-        _, services = self._discover(claimed_id)
+        _, services = discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
         return self._verifyDiscoveredServices(claimed_id, services,
