@@ -1977,13 +1977,6 @@ class TestDiscoverAndVerify(unittest.TestCase):
         self.consumer = GenericConsumer(None)
         self.to_match = Service()
 
-    def failUnlessDiscoveryFailure(self):
-        self.assertRaises(
-            DiscoveryFailure,
-            self.consumer._discoverAndVerify,
-            'http://claimed-id.com/',
-            [self.to_match])
-
     def test_no_matches(self):
         """If no discovered endpoint matches the values from the
         assertion, then we end up raising a ProtocolError
@@ -1992,7 +1985,11 @@ class TestDiscoverAndVerify(unittest.TestCase):
             raise ProtocolError('unit test')
         with mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['unused'])):
             self.consumer._verifyDiscoverySingle = raiseProtocolError
-            self.failUnlessDiscoveryFailure()
+            self.assertRaises(
+                DiscoveryFailure,
+                self.consumer._discoverAndVerify,
+                'http://claimed-id.com/',
+                [self.to_match])
 
     def test_matches(self):
         """If an endpoint matches, we return it
