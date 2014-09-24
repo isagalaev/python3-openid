@@ -387,11 +387,7 @@ class Consumer(object):
         @see: L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
         @see: L{FailureResponse<openid.consumer.consumer.FailureResponse>}
         """
-
-        endpoint = self.session.get(self._token_key)
-
-        message = Message.fromPostArgs(query)
-        response = self.consumer.complete(message, endpoint, current_url)
+        response = self._get_response(Message.fromPostArgs(query), current_url)
 
         try:
             del self.session[self._token_key]
@@ -409,6 +405,49 @@ class Consumer(object):
             disco.cleanup(force=True)
 
         return response
+
+    def _get_response(self, message, current_url):
+        endpoint = self.session.get(self._token_key)
+        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
+        modeMethod = getattr(self, '_complete_' + mode,
+                             self._completeInvalid)
+        return modeMethod(message, endpoint, current_url)
+
+    def _complete_cancel(self, message, endpoint, _):
+        return CancelResponse(endpoint)
+
+    def _complete_error(self, message, endpoint, _):
+        error = message.getArg(OPENID_NS, 'error')
+        contact = message.getArg(OPENID_NS, 'contact')
+        reference = message.getArg(OPENID_NS, 'reference')
+
+        return FailureResponse(endpoint, error, contact=contact,
+                               reference=reference)
+
+    def _complete_setup_needed(self, message, endpoint, _):
+        if not message.isOpenID2():
+            return self._completeInvalid(message, endpoint, _)
+
+        user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
+        return SetupNeededResponse(endpoint, user_setup_url)
+
+    def _complete_id_res(self, message, endpoint, return_to):
+        try:
+            self.consumer._checkSetupNeeded(message)
+        except SetupNeededError as why:
+            return SetupNeededResponse(endpoint, why.user_setup_url)
+        else:
+            try:
+                return self.consumer._doIdRes(message, endpoint, return_to)
+            except (ProtocolError, DiscoveryFailure) as why:
+                return FailureResponse(endpoint, why)
+
+    def _completeInvalid(self, message, endpoint, _):
+        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
+        return FailureResponse(endpoint,
+                               'Invalid openid.mode: %r' % (mode,))
+
+
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
@@ -559,52 +598,6 @@ class GenericConsumer(object):
     def __init__(self, store):
         self.store = store
         self.negotiator = default_negotiator.copy()
-
-    def complete(self, message, endpoint, return_to):
-        """Process the OpenID message, using the specified endpoint
-        and return_to URL as context. This method will handle any
-        OpenID message that is sent to the return_to URL.
-        """
-        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
-
-        modeMethod = getattr(self, '_complete_' + mode,
-                             self._completeInvalid)
-
-        return modeMethod(message, endpoint, return_to)
-
-    def _complete_cancel(self, message, endpoint, _):
-        return CancelResponse(endpoint)
-
-    def _complete_error(self, message, endpoint, _):
-        error = message.getArg(OPENID_NS, 'error')
-        contact = message.getArg(OPENID_NS, 'contact')
-        reference = message.getArg(OPENID_NS, 'reference')
-
-        return FailureResponse(endpoint, error, contact=contact,
-                               reference=reference)
-
-    def _complete_setup_needed(self, message, endpoint, _):
-        if not message.isOpenID2():
-            return self._completeInvalid(message, endpoint, _)
-
-        user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
-        return SetupNeededResponse(endpoint, user_setup_url)
-
-    def _complete_id_res(self, message, endpoint, return_to):
-        try:
-            self._checkSetupNeeded(message)
-        except SetupNeededError as why:
-            return SetupNeededResponse(endpoint, why.user_setup_url)
-        else:
-            try:
-                return self._doIdRes(message, endpoint, return_to)
-            except (ProtocolError, DiscoveryFailure) as why:
-                return FailureResponse(endpoint, why)
-
-    def _completeInvalid(self, message, endpoint, _):
-        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
-        return FailureResponse(endpoint,
-                               'Invalid openid.mode: %r' % (mode,))
 
     def _checkReturnTo(self, message, return_to):
         """Check an OpenID message and its openid.return_to value
