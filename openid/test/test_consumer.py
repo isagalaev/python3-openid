@@ -1984,13 +1984,7 @@ class TestDiscoverAndVerify(unittest.TestCase):
             'http://claimed-id.com/',
             [self.to_match])
 
-    def test_noServices(self):
-        """Discovery returning no results results in a
-        DiscoveryFailure exception"""
-        with mock.patch('openid.consumer.consumer.discover', lambda x: (None, [])):
-            self.failUnlessDiscoveryFailure()
-
-    def test_noMatches(self):
+    def test_no_matches(self):
         """If no discovered endpoint matches the values from the
         assertion, then we end up raising a ProtocolError
         """
