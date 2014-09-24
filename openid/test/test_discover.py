@@ -31,7 +31,7 @@ class Discovery(unittest.TestCase):
         """
         Check page with unicode and HTML entities
         """
-        id_url, services = discover.discover('http://unittest/unicode.html')
+        services = discover.discover('http://unittest/unicode.html')
         self.assertEqual(len(services), 0)
 
     def test_unicode_undecodable_html2(self):
@@ -41,21 +41,21 @@ class Discovery(unittest.TestCase):
         """
         with open(os.path.join(support.DATAPATH, 'unicode3.html'), encoding='utf-8') as f:
             self.assertRaises(UnicodeDecodeError, f.read)
-        id_url, services = discover.discover('http://unittest/unicode3.html')
+        services = discover.discover('http://unittest/unicode3.html')
         self.assertEqual(len(services), 1)
 
     def test_noOpenID(self):
-        url, services = discover.discover('http://unittest/junk.txt')
+        services = discover.discover('http://unittest/junk.txt')
         self.assertFalse(services)
 
     def test_yadisEmpty(self):
-        url, services = discover.discover('http://unittest/yadis_0entries.xrds')
+        services = discover.discover('http://unittest/yadis_0entries.xrds')
         self.assertFalse(services)
 
     def test_html_yadis_empty(self):
         # The HTML document contains OpenID links but also refers to an empty Yadis
         # document which we should prefer, by the Yadis spec.
-        url, services = discover.discover('http://unittest/openid_and_yadis.html')
+        services = discover.discover('http://unittest/openid_and_yadis.html')
         self.assertFalse(services)
 
     def test_xrds_with_header(self):
@@ -64,13 +64,12 @@ class Discovery(unittest.TestCase):
         location_url = 'http://unittest/openid2_xrds.xrds'
         params = {'header': 'X-XRDS-Location: %s' % location_url}
         url = 'http://unittest/openid_1_and_2_xrds.xrds?' + urlencode(params)
-        url, services = discover.discover(url)
+        services = discover.discover(url)
         self.assertEqual(support.urlopen.request.get_full_url(), location_url)
 
     def test_fragment(self):
         url = 'http://unittest/openid.html'
-        id_url, services = discover.discover(url + '#fragment')
-        self.assertEqual(id_url, url)
+        services = discover.discover(url + '#fragment')
         self.assertEqual(services[0].claimed_id, url)
 
     def test_add_protocol(self):
@@ -84,7 +83,7 @@ class Discovery(unittest.TestCase):
 
     def test_html1And2(self):
         url = 'http://unittest/openid_1_and_2.html'
-        id_url, services = discover.discover(url)
+        services = discover.discover(url)
         self.assertEqual(len(services), 2)
         for s in services:
             self.assertEqual(s.server_url, 'http://www.myopenid.com/server')
@@ -92,13 +91,13 @@ class Discovery(unittest.TestCase):
             self.assertEqual(s.claimed_id, url)
 
     def test_type_order(self):
-        url, services = discover.discover('http://unittest/yadis_two_services.xrds')
+        services = discover.discover('http://unittest/yadis_two_services.xrds')
         self.assertEqual(len(services), 2)
         self.assertTrue(discover.OPENID_2_0_TYPE in services[0].types)
         self.assertTrue(discover.OPENID_1_0_TYPE in services[1].types)
 
     def test_idp_type_order(self):
-        url, services = discover.discover('http://unittest/yadis_idp.xrds')
+        services = discover.discover('http://unittest/yadis_idp.xrds')
         self.assertEqual(len(services), 2)
         self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[0].types)
         self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[1].types)
@@ -106,23 +105,23 @@ class Discovery(unittest.TestCase):
     def test_redirected_claimed_id(self):
         claimed_id = 'http://unittest/openid2_xrds.xrds'
         url = 'http://unittest/200.txt?' + urlencode({'redirect': claimed_id})
-        final_url, services = discover.discover(url)
-        self.assertEqual(claimed_id, final_url)
+        services = discover.discover(url)
+        self.assertEqual(claimed_id, services[0].claimed_id)
 
     def test_xri_idp(self):
-        user_xri, services = discover.discover('=iname.idp')
+        services = discover.discover('=iname.idp')
         self.assertTrue(services)
         self.assertEqual(services[0].server_url, 'http://www.livejournal.com/openid/server.bml')
 
     def test_two_services(self):
-        xri, services = discover.discover('=twoservices')
+        services = discover.discover('=twoservices')
         self.assertEqual(len(services), 2)
         self.assertTrue(services[0].local_id, 'http://smoker.myopenid.com/')
         self.assertTrue(services[1].local_id, 'http://frank.livejournal.com/')
 
     def test_xriNoCanonicalID(self):
         with self.assertLogs('', 'ERROR'):
-            user_xri, services = discover.discover('=iname*empty')
+            services = discover.discover('=iname*empty')
         self.assertFalse(services)
 
 
@@ -146,7 +145,7 @@ class Services(unittest.TestCase):
     ]
 
     def _test(self, url, types, claimed_id, local_id):
-        id_url, services = discover.discover(url)
+        services = discover.discover(url)
         if claimed_id is None:
             claimed_id = url
         if local_id is None:

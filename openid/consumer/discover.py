@@ -141,7 +141,7 @@ def discoverXRI(iname):
         logging.exception(e)
         endpoints = []
 
-    return iname, endpoints
+    return endpoints
 
 
 def discoverURI(url):
@@ -159,7 +159,7 @@ def discoverURI(url):
         services = parse_xrds(url, data)
     except xrds.XRDSError:
         services = parse_html(url, data)
-    return url, services
+    return services
 
 
 def discover(identifier):

@@ -1974,7 +1974,7 @@ class TestConsumerAnonymous(unittest.TestCase):
 
 class TestDiscoverAndVerify(unittest.TestCase):
 
-    @mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['unused']))
+    @mock.patch('openid.consumer.consumer.discover', lambda x: ['unused'])
     @mock.patch.object(GenericConsumer, '_verifyDiscoverySingle', mock.Mock(side_effect=ProtocolError))
     def test_no_matches(self):
         consumer = GenericConsumer(None)
@@ -1983,7 +1983,7 @@ class TestDiscoverAndVerify(unittest.TestCase):
             consumer._discoverAndVerify, 'http://claimed-id.com/', [Service()],
         )
 
-    @mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['endpoint']))
+    @mock.patch('openid.consumer.consumer.discover', lambda x: ['endpoint'])
     @mock.patch.object(GenericConsumer, '_verifyDiscoverySingle', mock.Mock(return_value=True))
     def test_matches(self):
         consumer = GenericConsumer(None)

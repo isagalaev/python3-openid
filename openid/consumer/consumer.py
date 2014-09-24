@@ -997,7 +997,7 @@ class GenericConsumer(object):
         @raises DiscoveryFailure: when discovery fails.
         """
         logging.info('Performing discovery on %s' % (claimed_id,))
-        _, services = discover(claimed_id)
+        services = discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
         return self._verifyDiscoveredServices(claimed_id, services,
