@@ -1973,40 +1973,22 @@ class TestConsumerAnonymous(unittest.TestCase):
 
 
 class TestDiscoverAndVerify(unittest.TestCase):
-    def setUp(self):
-        self.consumer = GenericConsumer(None)
-        self.to_match = Service()
 
+    @mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['unused']))
+    @mock.patch.object(GenericConsumer, '_verifyDiscoverySingle', mock.Mock(side_effect=ProtocolError))
     def test_no_matches(self):
-        """If no discovered endpoint matches the values from the
-        assertion, then we end up raising a ProtocolError
-        """
-        def raiseProtocolError(unused1, unused2):
-            raise ProtocolError('unit test')
-        with mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['unused'])):
-            self.consumer._verifyDiscoverySingle = raiseProtocolError
-            self.assertRaises(
-                DiscoveryFailure,
-                self.consumer._discoverAndVerify,
-                'http://claimed-id.com/',
-                [self.to_match])
+        consumer = GenericConsumer(None)
+        self.assertRaises(
+            DiscoveryFailure,
+            consumer._discoverAndVerify, 'http://claimed-id.com/', [Service()],
+        )
 
+    @mock.patch('openid.consumer.consumer.discover', lambda x: (None, ['endpoint']))
+    @mock.patch.object(GenericConsumer, '_verifyDiscoverySingle', mock.Mock(return_value=True))
     def test_matches(self):
-        """If an endpoint matches, we return it
-        """
-        # Discovery returns a single "endpoint" object
-        matching_endpoint = 'matching endpoint'
-        with mock.patch('openid.consumer.consumer.discover', lambda x: (None, [matching_endpoint])):
-            # Make verifying discovery return True for this endpoint
-            def returnTrue(unused1, unused2):
-                return True
-            self.consumer._verifyDiscoverySingle = returnTrue
-
-            # Since _verifyDiscoverySingle returns True, we should get the
-            # first endpoint that we passed in as a result.
-            result = self.consumer._discoverAndVerify(
-                'http://claimed.id/', [self.to_match])
-            self.assertEqual(matching_endpoint, result)
+        consumer = GenericConsumer(None)
+        result = consumer._discoverAndVerify('http://claimed.id/', [Service()])
+        self.assertEqual('endpoint', result)
 
 
 from openid.extension import Extension
