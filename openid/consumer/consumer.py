@@ -440,7 +440,7 @@ class Consumer(object):
             try:
                 return self.consumer._doIdRes(message, endpoint, return_to)
             except (ProtocolError, DiscoveryFailure) as why:
-                return FailureResponse(endpoint, why)
+                return FailureResponse(endpoint, str(why))
 
     def _completeInvalid(self, message, endpoint, _):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')

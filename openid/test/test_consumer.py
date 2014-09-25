@@ -92,6 +92,12 @@ class GoodAssocStore(memstore.MemoryStore):
         return GoodAssociation()
 
 
+def _nsdict(data):
+    default = {'openid.ns': OPENID2_NS}
+    default.update(data)
+    return default
+
+
 class TestFetcher(object):
     def __init__(self, user_url, user_page, xxx_todo_changeme):
         (assoc_secret, assoc_handle) = xxx_todo_changeme
@@ -386,119 +392,77 @@ class TestQueryFormat(TestIdRes):
             self.fail("expected TypeError, got this instead: %s" % (r,))
 
 
-class TestComplete(TestIdRes):
-    """Testing GenericConsumer.complete.
+class Complete(unittest.TestCase):
+    def setUp(self):
+        self.consumer = Consumer({}, memstore.MemoryStore())
+        self.claimed_id = 'claimed_id'
+        service = Service(
+            [OPENID_1_1_TYPE], 'http://unittest/server',
+            claimed_id=self.claimed_id,
+        )
+        self.consumer.session[self.consumer._token_key] = service
 
-    Other TestIdRes subclasses test more specific aspects.
-    """
-
-    def test_setupNeededIdRes(self):
-        message = Message.fromOpenIDArgs({'mode': 'id_res'})
-        setup_url_sentinel = object()
-
-        def raiseSetupNeeded(msg):
-            self.assertTrue(msg is message)
-            raise SetupNeededError(setup_url_sentinel)
-
-        self.consumer._checkSetupNeeded = raiseSetupNeeded
-
-        response = self.new_consumer._get_response(message, None)
+    def test_id_res_setup_needed(self):
+        query = _nsdict({'openid.mode': 'id_res'})
+        setup_url = 'http://unittest/setup'
+        with mock.patch.object(GenericConsumer, '_checkSetupNeeded') as m:
+            m.side_effect = SetupNeededError(setup_url)
+            response = self.consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
-        self.assertTrue(setup_url_sentinel is response.setup_url)
+        self.assertEqual(response.setup_url, setup_url)
+
+    def test_url_mismatch(self):
+        return_to = 'http://unittest/complete'
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': return_to,
+            'openid.identity': 'something wrong (not self.claimed_id)',
+            'openid.assoc_handle': 'does not matter',
+            'openid.sig': GOODSIG,
+            'openid.signed': 'identity,return_to',
+        }
+        self.consumer.consumer.store = GoodAssocStore()
+
+        with mock.patch.object(GenericConsumer, '_discoverAndVerify') as m:
+            with self.assertLogs('', 'INFO') as logs:
+                self.consumer.complete(query, return_to)
+                self.assertIn('Error attempting to use stored', logs.output[0])
+                self.assertIn('Attempting discovery', logs.output[1])
+            self.assertTrue(m.call_count)
 
     def test_cancel(self):
-        message = Message.fromPostArgs({'openid.mode': 'cancel'})
-        self.disableReturnToChecking()
-        r = self.new_consumer._get_response(message, None)
-        self.assertEqual(r.status, 'cancel')
-        self.assertTrue(r.identity() == self.endpoint.claimed_id)
-
-    def test_cancel_with_return_to(self):
-        message = Message.fromPostArgs({'openid.mode': 'cancel'})
-        r = self.new_consumer._get_response(message, self.return_to)
-        self.assertEqual(r.status, 'cancel')
-        self.assertTrue(r.identity() == self.endpoint.claimed_id)
+        query = _nsdict({'openid.mode': 'cancel'})
+        response = self.consumer.complete(query, 'http://unittest/complete')
+        self.assertEqual(response.status, 'cancel')
+        self.assertEqual(response.identity(), self.claimed_id)
 
     def test_error(self):
-        msg = 'an error message'
-        message = Message.fromPostArgs({'openid.mode': 'error',
-                 'openid.error': msg,
-                 })
-        self.disableReturnToChecking()
-        r = self.new_consumer._get_response(message, None)
-        self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity() == self.endpoint.claimed_id)
-        self.assertEqual(r.message, msg)
+        query = _nsdict({
+            'openid.mode': 'error',
+            'openid.error': 'failed',
+            'openid.contact': 'contact',
+            'openid.reference': 'reference',
+        })
+        response = self.consumer.complete(query, None)
+        self.assertEqual(response.status, 'failure')
+        self.assertEqual(response.message, 'failed')
+        self.assertEqual(response.contact, 'contact')
+        self.assertEqual(response.reference, 'reference')
 
-    def test_errorWithNoOptionalKeys(self):
-        msg = 'an error message'
-        contact = 'some contact info here'
-        message = Message.fromPostArgs({'openid.mode': 'error',
-                 'openid.error': msg,
-                 'openid.contact': contact,
-                 })
-        self.disableReturnToChecking()
-        r = self.new_consumer._get_response(message, None)
-        self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity() == self.endpoint.claimed_id)
-        self.assertTrue(r.contact == contact)
-        self.assertTrue(r.reference is None)
-        self.assertEqual(r.message, msg)
+    def test_default_attributes(self):
+        query = _nsdict({'openid.mode': 'error'})
+        response = self.consumer.complete(query, None)
+        self.assertIsNone(response.message)
 
-    def test_errorWithOptionalKeys(self):
-        msg = 'an error message'
-        contact = 'me'
-        reference = 'support ticket'
-        message = Message.fromPostArgs({'openid.mode': 'error',
-                 'openid.error': msg, 'openid.reference': reference,
-                 'openid.contact': contact, 'openid.ns': OPENID2_NS,
-                 })
-        r = self.new_consumer._get_response(message, None)
-        self.assertEqual(r.status, 'failure')
-        self.assertTrue(r.identity() == self.endpoint.claimed_id)
-        self.assertTrue(r.contact == contact)
-        self.assertTrue(r.reference == reference)
-        self.assertEqual(r.message, msg)
+    def test_missing_field(self):
+        query = _nsdict({'openid.mode': 'id_res'})
+        response = self.consumer.complete(query, None)
+        self.assertEqual(response.status, 'failure')
+        self.assertEqual(response.message, 'Missing required field \'return_to\'')
 
-    def test_noMode(self):
-        message = Message.fromPostArgs({})
-        r = self.new_consumer._get_response(message, None)
-        self.assertEqual(r.status, 'failure')
-
-    def test_idResMissingField(self):
-        # XXX - this test is passing, but not necessarily by what it
-        # is supposed to test for.  status in 'failure', but it's because
-        # *check_auth* failed, not because it's missing an arg, exactly.
-        message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        self.assertRaises(ProtocolError, self.consumer._doIdRes,
-                              message, self.endpoint, None)
-
-    def test_idResURLMismatch(self):
-        class VerifiedError(Exception):
-            pass
-
-        def discoverAndVerify(claimed_id, _to_match_endpoints):
-            raise VerifiedError
-
-        self.consumer._discoverAndVerify = discoverAndVerify
-        self.disableReturnToChecking()
-
-        message = Message.fromPostArgs(
-            {'openid.mode': 'id_res',
-             'openid.return_to': 'return_to (just anything)',
-             'openid.identity': 'something wrong (not self.consumer_id)',
-             'openid.assoc_handle': 'does not matter',
-             'openid.sig': GOODSIG,
-             'openid.signed': 'identity,return_to',
-             })
-        self.consumer.store = GoodAssocStore()
-
-        self.assertRaises(VerifiedError,
-                              self.new_consumer._get_response,
-                              message, None)
-
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
+    def test_no_mode(self):
+        response = self.consumer.complete({}, None)
+        self.assertEqual(response.status, 'failure')
 
 
 class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
