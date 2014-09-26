@@ -6,7 +6,6 @@
 
 import re
 import urllib.parse
-from functools import reduce
 
 
 AUTHORITIES = ['!', '=', '@', '+', '$', '(']
