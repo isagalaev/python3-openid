@@ -468,8 +468,7 @@ class Complete(unittest.TestCase):
 class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
     def setUp(self):
         self.store = GoodAssocStore()
-        self.new_consumer = Consumer({}, self.store)
-        self.consumer = self.new_consumer.consumer
+        self.consumer = Consumer({}, self.store)
         self.server_url = "http://idp.unittest/"
         self.return_to = 'http://unittest/complete'
         CatchLogs.setUp(self)
@@ -491,45 +490,43 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.endpoint = Service()
         self.endpoint.server_url = self.server_url
         self.endpoint.claimed_id = claimed_id
-        self.new_consumer.session[self.new_consumer._token_key] = self.endpoint
+        self.consumer.session[self.consumer._token_key] = self.endpoint
 
     def tearDown(self):
         CatchLogs.tearDown(self)
 
     def test_idResMissingNoSigs(self):
-        def _vrfy(resp_msg, endpoint=None):
-            return endpoint
-
-        self.consumer._verifyDiscoveryResults = _vrfy
-        r = self.new_consumer.complete(self.query, self.return_to)
-        self.failUnlessSuccess(r)
+        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults',
+                               return_value=self.endpoint):
+            r = self.consumer.complete(self.query, self.return_to)
+            self.failUnlessSuccess(r)
 
     def test_idResNoIdentity(self):
         del self.query['openid.identity']
         del self.query['openid.claimed_id']
         self.endpoint.claimed_id = None
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
-        r = self.new_consumer.complete(self.query, self.return_to)
+        r = self.consumer.complete(self.query, self.return_to)
         self.failUnlessSuccess(r)
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
-        r = self.new_consumer.complete(self.query, self.return_to)
+        r = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingReturnToSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,assoc_handle,claimed_id'
-        r = self.new_consumer.complete(self.query, self.return_to)
+        r = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingAssocHandleSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,claimed_id'
-        r = self.new_consumer.complete(self.query, self.return_to)
+        r = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingClaimedIDSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
-        r = self.new_consumer.complete(self.query, self.return_to)
+        r = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(r.status, 'failure')
 
     def failUnlessSuccess(self, response):
