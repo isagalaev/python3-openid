@@ -501,7 +501,7 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
             return endpoint
 
         self.consumer._verifyDiscoveryResults = _vrfy
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.failUnlessSuccess(r)
 
     def test_idResNoIdentity(self):
@@ -509,27 +509,27 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         del self.query['openid.claimed_id']
         self.endpoint.claimed_id = None
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.failUnlessSuccess(r)
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingReturnToSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,assoc_handle,claimed_id'
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingAssocHandleSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,claimed_id'
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingClaimedIDSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
-        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
+        r = self.new_consumer.complete(self.query, None)
         self.assertEqual(r.status, 'failure')
 
     def failUnlessSuccess(self, response):
