@@ -495,7 +495,7 @@ class TestCompleteMissingSig(unittest.TestCase):
         with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults',
                                return_value=self.endpoint):
             r = self.consumer.complete(self.query, self.return_to)
-            self.failUnlessSuccess(r)
+            self.assertEqual(r.status, 'success')
 
     def test_idResNoIdentity(self):
         del self.query['openid.identity']
@@ -503,7 +503,7 @@ class TestCompleteMissingSig(unittest.TestCase):
         self.endpoint.claimed_id = None
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
         r = self.consumer.complete(self.query, self.return_to)
-        self.failUnlessSuccess(r)
+        self.assertEqual(r.status, 'success')
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
@@ -524,10 +524,6 @@ class TestCompleteMissingSig(unittest.TestCase):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
         r = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(r.status, 'failure')
-
-    def failUnlessSuccess(self, response):
-        if response.status != 'success':
-            self.fail("Non-successful response: %s" % (response,))
 
 
 class TestCheckAuthResponse(TestIdRes, CatchLogs):
