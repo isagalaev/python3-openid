@@ -1110,14 +1110,12 @@ class TestReturnToArgs(unittest.TestCase):
             ]
 
         for good, extra in good_return_tos:
-            m = Message(OPENID1_NS)
-            m.setArg(OPENID_NS, 'mode', 'cancel')
-
-            for ns, key in extra:
-                m.setArg(ns, key, extra[(ns, key)])
-
-            m.setArg(OPENID_NS, 'return_to', good)
-            result = self.new_consumer._get_response(m, return_to)
+            query = {
+                'openid.mode': 'cancel',
+                'openid.return_to': 'good',
+            }
+            query.update(('openid.%s' % k[0], v) for k, v in extra.items())
+            result = self.new_consumer.complete(query, return_to)
             self.assertTrue(
                 isinstance(result, CancelResponse),
                 "Expected CancelResponse, got %r for %s" % (result, good))
