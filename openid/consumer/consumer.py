@@ -387,7 +387,12 @@ class Consumer(object):
         @see: L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
         @see: L{FailureResponse<openid.consumer.consumer.FailureResponse>}
         """
-        response = self._get_response(Message.fromPostArgs(query), current_url)
+        message = Message.fromPostArgs(query)
+        endpoint = self.session.get(self._token_key)
+        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
+        modeMethod = getattr(self, '_complete_' + mode,
+                             self._completeInvalid)
+        response = modeMethod(message, endpoint, current_url)
 
         try:
             del self.session[self._token_key]
@@ -405,13 +410,6 @@ class Consumer(object):
             disco.cleanup(force=True)
 
         return response
-
-    def _get_response(self, message, current_url):
-        endpoint = self.session.get(self._token_key)
-        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
-        modeMethod = getattr(self, '_complete_' + mode,
-                             self._completeInvalid)
-        return modeMethod(message, endpoint, current_url)
 
     def _complete_cancel(self, message, endpoint, _):
         return CancelResponse(endpoint)
