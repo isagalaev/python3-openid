@@ -475,18 +475,17 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
 
         claimed_id = 'bogus.claimed'
 
-        self.message = Message.fromOpenIDArgs(
-            {'mode': 'id_res',
-             'return_to': 'return_to (just anything)',
-             'identity': claimed_id,
-             'assoc_handle': 'does not matter',
-             'sig': GOODSIG,
-             'response_nonce': mkNonce(),
-             'signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id,op_endpoint',
-             'claimed_id': claimed_id,
-             'op_endpoint': self.server_url,
-             'ns': OPENID2_NS,
-             })
+        self.query = _nsdict({
+            'openid.mode': 'id_res',
+            'openid.return_to': 'return_to (just anything)',
+            'openid.identity': claimed_id,
+            'openid.assoc_handle': 'does not matter',
+            'openid.sig': GOODSIG,
+            'openid.response_nonce': mkNonce(),
+            'openid.signed': 'identity,return_to,response_nonce,assoc_handle,claimed_id,op_endpoint',
+            'openid.claimed_id': claimed_id,
+            'openid.op_endpoint': self.server_url,
+        })
 
         self.endpoint = Service()
         self.endpoint.server_url = self.server_url
@@ -502,46 +501,35 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
             return endpoint
 
         self.consumer._verifyDiscoveryResults = _vrfy
-        r = self.new_consumer._get_response(self.message, None)
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.failUnlessSuccess(r)
 
     def test_idResNoIdentity(self):
-        self.message.delArg(OPENID_NS, 'identity')
-        self.message.delArg(OPENID_NS, 'claimed_id')
+        del self.query['openid.identity']
+        del self.query['openid.claimed_id']
         self.endpoint.claimed_id = None
-        self.message.setArg(
-            OPENID_NS,
-            'signed',
-            'return_to,response_nonce,assoc_handle,op_endpoint')
-        r = self.new_consumer._get_response(self.message, None)
+        self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.failUnlessSuccess(r)
 
     def test_idResMissingIdentitySig(self):
-        self.message.setArg(
-            OPENID_NS, 'signed',
-            'return_to,response_nonce,assoc_handle,claimed_id')
-        r = self.new_consumer._get_response(self.message, None)
+        self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingReturnToSig(self):
-        self.message.setArg(
-            OPENID_NS, 'signed',
-            'identity,response_nonce,assoc_handle,claimed_id')
-        r = self.new_consumer._get_response(self.message, None)
+        self.query['openid.signed'] = 'identity,response_nonce,assoc_handle,claimed_id'
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingAssocHandleSig(self):
-        self.message.setArg(
-            OPENID_NS, 'signed',
-            'identity,response_nonce,return_to,claimed_id')
-        r = self.new_consumer._get_response(self.message, None)
+        self.query['openid.signed'] = 'identity,response_nonce,return_to,claimed_id'
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.assertEqual(r.status, 'failure')
 
     def test_idResMissingClaimedIDSig(self):
-        self.message.setArg(
-            OPENID_NS, 'signed',
-            'identity,response_nonce,return_to,assoc_handle')
-        r = self.new_consumer._get_response(self.message, None)
+        self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
+        r = self.new_consumer._get_response(Message.fromPostArgs(self.query), None)
         self.assertEqual(r.status, 'failure')
 
     def failUnlessSuccess(self, response):
