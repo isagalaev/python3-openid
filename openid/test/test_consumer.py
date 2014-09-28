@@ -465,13 +465,12 @@ class Complete(unittest.TestCase):
         self.assertEqual(response.status, 'failure')
 
 
-class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
+class TestCompleteMissingSig(unittest.TestCase):
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = Consumer({}, self.store)
         self.server_url = "http://idp.unittest/"
         self.return_to = 'http://unittest/complete'
-        CatchLogs.setUp(self)
 
         claimed_id = 'bogus.claimed'
 
@@ -491,9 +490,6 @@ class TestCompleteMissingSig(unittest.TestCase, CatchLogs):
         self.endpoint.server_url = self.server_url
         self.endpoint.claimed_id = claimed_id
         self.consumer.session[self.consumer._token_key] = self.endpoint
-
-    def tearDown(self):
-        CatchLogs.tearDown(self)
 
     def test_idResMissingNoSigs(self):
         with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults',
