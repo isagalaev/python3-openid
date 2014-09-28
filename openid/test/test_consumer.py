@@ -666,24 +666,18 @@ class TestSetupNeeded(TestIdRes):
         self.consumer._checkSetupNeeded(message)
 
     def test_setupNeededOpenID2(self):
-        message = Message.fromOpenIDArgs({
-            'mode': 'setup_needed',
-            'ns': OPENID2_NS,
-        })
-        self.assertTrue(message.isOpenID2())
-        response = self.new_consumer._get_response(message, None)
+        query = _nsdict({'openid.mode': 'setup_needed'})
+        response = self.new_consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
         self.assertEqual(None, response.setup_url)
 
     def test_setupNeededDoesntWorkForOpenID1(self):
-        message = Message.fromPostArgs({
-            'openid.mode': 'setup_needed',
-        })
+        query = {'openid.mode': 'setup_needed'}
 
         # No SetupNeededError raised
-        self.consumer._checkSetupNeeded(message)
+        self.consumer._checkSetupNeeded(Message.fromPostArgs(query))
 
-        response = self.new_consumer._get_response(message, None)
+        response = self.new_consumer.complete(query, None)
         self.assertEqual('failure', response.status)
         self.assertTrue(response.message.startswith('Invalid openid.mode'))
 
