@@ -1328,14 +1328,8 @@ class TestSuccessResponse(unittest.TestCase):
         self.assertEqual(resp.getReturnTo(), 'return_to')
 
 
-class StubConsumer(object):
-    def __init__(self):
-        self.assoc = object()
-        self.response = None
-        self.endpoint = None
-
 def _beginWithoutDiscovery(self, service, anonymous=False):
-    request = AuthRequest(service, self.consumer.assoc)
+    request = AuthRequest(service, None)
     self.consumer.endpoint = service
     self.session[self._token_key] = request.endpoint
     try:
@@ -1356,7 +1350,6 @@ class ConsumerTest(unittest.TestCase):
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
-        self.consumer.consumer = StubConsumer()
         self.discovery = Discovery(self.session,
                                    self.identity,
                                    self.consumer.session_key_prefix)
@@ -1524,14 +1517,6 @@ class ConsumerTest(unittest.TestCase):
         resp = self._doRespDisco(True, mkSuccess(resp_endpoint, {}))
         self.assertTrue(self.discovery.getManager(force=True) is None)
 
-    def test_begin(self):
-        self.discovery.createManager([self.endpoint], self.identity)
-        # Should not raise an exception
-        auth_req = self.consumer.begin(self.identity)
-        self.assertTrue(isinstance(auth_req, AuthRequest))
-        self.assertTrue(auth_req.endpoint is self.endpoint)
-        self.assertTrue(auth_req.endpoint is self.consumer.consumer.endpoint)
-        self.assertTrue(auth_req.assoc is self.consumer.consumer.assoc)
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
