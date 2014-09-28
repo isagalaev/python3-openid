@@ -1115,9 +1115,7 @@ class TestReturnToArgs(unittest.TestCase):
             }
             query.update(extra.items())
             result = self.new_consumer.complete(query, return_to)
-            self.assertTrue(
-                isinstance(result, CancelResponse),
-                "Expected CancelResponse, got %r for %s" % (result, good))
+            self.assertEqual(result.status, 'cancel')
 
 
 class MockFetcher(object):
