@@ -1099,9 +1099,8 @@ class TestReturnToArgs(unittest.TestCase):
 
         good_return_tos = [
             (return_to, {}),
-            (return_to + "?another=arg", {(BARE_NS, 'another'): 'arg'}),
-            (return_to + "?another=arg#fragment",
-             {(BARE_NS, 'another'): 'arg'}),
+            (return_to + "?another=arg", {'openid.another': 'arg'}),
+            (return_to + "?another=arg#fragment", {'openid.another': 'arg'}),
             ("HTTP" + return_to[4:], {}),
             (return_to.replace('url', 'URL'), {}),
             ("http://some.url:80/path", {}),
@@ -1114,7 +1113,7 @@ class TestReturnToArgs(unittest.TestCase):
                 'openid.mode': 'cancel',
                 'openid.return_to': 'good',
             }
-            query.update(('openid.%s' % k[0], v) for k, v in extra.items())
+            query.update(extra.items())
             result = self.new_consumer.complete(query, return_to)
             self.assertTrue(
                 isinstance(result, CancelResponse),
