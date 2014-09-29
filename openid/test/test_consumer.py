@@ -995,12 +995,12 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.assertEqual(self.consumer_id, info.identity())
 
 
-class TestReturnToArgs(unittest.TestCase):
+class TestReturnTo(unittest.TestCase):
     """Verifying the Return URL paramaters.
     From the specification "Verifying the Return URL"::
 
         To verify that the "openid.return_to" URL matches the URL that is
-        processing this assertion:
+        processing this_checkReturnTo assertion:
 
          - The URL scheme, authority, and path MUST be the same between the
            two URLs.
@@ -1023,8 +1023,7 @@ class TestReturnToArgs(unittest.TestCase):
             'openid.return_to': 'http://example.com/?foo=bar',
             'foo': 'bar',
             }
-        # no return value, success is assumed if there are no exceptions.
-        self.consumer._verifyReturnToArgs(query)
+        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
     def test_returnToArgsUnexpectedArg(self):
         query = {
@@ -1032,28 +1031,21 @@ class TestReturnToArgs(unittest.TestCase):
             'openid.return_to': 'http://example.com/',
             'foo': 'bar',
             }
-        # no return value, success is assumed if there are no exceptions.
-        self.assertRaises(ProtocolError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
     def test_returnToMismatch(self):
         query = {
             'openid.mode': 'id_res',
             'openid.return_to': 'http://example.com/?foo=bar',
             }
-        # fail, query has no key 'foo'.
-        self.assertRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
         query['foo'] = 'baz'
-        # fail, values for 'foo' do not match.
-        self.assertRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
     def test_noReturnTo(self):
         query = {'openid.mode': 'id_res'}
-        self.assertRaises(ValueError,
-                              self.consumer._verifyReturnToArgs, query)
+        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
     def test_completeBadReturnTo(self):
         """Test GenericConsumer.complete()'s handling of bad return_to
@@ -1084,32 +1076,6 @@ class TestReturnToArgs(unittest.TestCase):
         for bad in bad_return_tos:
             m.setArg(OPENID_NS, 'return_to', bad)
             self.assertFalse(self.consumer._checkReturnTo(m, return_to))
-
-    def test_completeGoodReturnTo(self):
-        """Test GenericConsumer.complete()'s handling of good
-        return_to values.
-        """
-        return_to = "http://some.url/path"
-
-        good_return_tos = [
-            (return_to, {}),
-            (return_to + "?another=arg", {'openid.another': 'arg'}),
-            (return_to + "?another=arg#fragment", {'openid.another': 'arg'}),
-            ("HTTP" + return_to[4:], {}),
-            (return_to.replace('url', 'URL'), {}),
-            ("http://some.url:80/path", {}),
-            ("http://some.url/p%61th", {}),
-            ("http://some.url/./path", {}),
-            ]
-
-        for good, extra in good_return_tos:
-            query = {
-                'openid.mode': 'cancel',
-                'openid.return_to': 'good',
-            }
-            query.update(extra.items())
-            result = self.new_consumer.complete(query, return_to)
-            self.assertEqual(result.status, 'cancel')
 
 
 class MockFetcher(object):

@@ -616,14 +616,31 @@ class GenericConsumer(object):
         """
         # Check the openid.return_to args against args in the original
         # message.
-        try:
-            self._verifyReturnToArgs(message.toPostArgs())
-        except ProtocolError as why:
-            logging.exception("Verifying return_to arguments: %s" % (why,))
+        msg_return_to = message.getArg(OPENID_NS, 'return_to')
+
+        if msg_return_to is None:
+            logging.error('Response has no return_to')
             return False
 
-        # Check the return_to base URL against the one in the message.
-        msg_return_to = message.getArg(OPENID_NS, 'return_to')
+        parsed_url = urlparse(msg_return_to)
+        rt_query = parsed_url[4]
+        parsed_args = parse_qsl(rt_query)
+
+        # NOTE -- parsed_args will be a dict of {bytes: bytes}, however it
+        # will be checked against return values from Message methods which are
+        # {str: str}. We need to compare apples to apples.
+        for rt_key, rt_value in parsed_args:
+            try:
+                value = message.getArg(BARE_NS, rt_key)
+                if rt_value != value:
+                    format = ("parameter %s value %r does not match "
+                              "return_to's value %r")
+                    logging.error(format % (rt_key, value, rt_value))
+                    return False
+            except KeyError:
+                format = "return_to parameter %s absent from message %r"
+                logging.error(format % (rt_key, message))
+                return False
 
         # The URL scheme, authority, and path MUST be the same between
         # the two URLs.
@@ -696,46 +713,6 @@ class GenericConsumer(object):
             # _checkAuth.
             if not self._checkAuth(message, server_url):
                 raise ProtocolError('Server denied check_authentication')
-
-    def _verifyReturnToArgs(query):
-        """Verify that the arguments in the return_to URL are present in this
-        response.
-        """
-        # NOTE -- query came from Message.toPostArgs, which returns a dict of
-        # {str: str}
-        message = Message.fromPostArgs(query)
-        return_to = message.getArg(OPENID_NS, 'return_to')
-
-        if return_to is None:
-            raise ProtocolError('Response has no return_to')
-
-        parsed_url = urlparse(return_to)
-        rt_query = parsed_url[4]
-        parsed_args = parse_qsl(rt_query)
-
-        # NOTE -- parsed_args will be a dict of {bytes: bytes}, however it
-        # will be checked against return values from Message methods which are
-        # {str: str}. We need to compare apples to apples.
-        for rt_key, rt_value in parsed_args:
-            try:
-                value = query[rt_key]
-                if rt_value != value:
-                    format = ("parameter %s value %r does not match "
-                              "return_to's value %r")
-                    raise ProtocolError(format % (rt_key, value, rt_value))
-            except KeyError:
-                format = "return_to parameter %s absent from query %r"
-                raise ProtocolError(format % (rt_key, query))
-
-        # Make sure all non-OpenID arguments in the response are also
-        # in the signed return_to.
-        bare_args = message.getArgs(BARE_NS)
-        for pair in bare_args.items():
-            if pair not in parsed_args:
-                raise ProtocolError(
-                    "Parameter %s not in return_to URL" % (pair[0],))
-
-    _verifyReturnToArgs = staticmethod(_verifyReturnToArgs)
 
     def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
         """
