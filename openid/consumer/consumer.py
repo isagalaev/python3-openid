@@ -430,34 +430,29 @@ class Consumer(object):
         return SetupNeededResponse(endpoint, user_setup_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
+        setup_url = self.setup_url(message)
+        if setup_url:
+            return SetupNeededResponse(endpoint, setup_url)
         try:
-            self._checkSetupNeeded(message)
-        except SetupNeededError as why:
-            return SetupNeededResponse(endpoint, why.user_setup_url)
-        else:
-            try:
-                return self.consumer._doIdRes(message, endpoint, return_to)
-            except (ProtocolError, DiscoveryFailure) as why:
-                return FailureResponse(endpoint, str(why))
+            return self.consumer._doIdRes(message, endpoint, return_to)
+        except (ProtocolError, DiscoveryFailure) as why:
+            return FailureResponse(endpoint, str(why))
 
     def _completeInvalid(self, message, endpoint, _):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
         return FailureResponse(endpoint,
                                'Invalid openid.mode: %r' % (mode,))
 
-    def _checkSetupNeeded(self, message):
-        """Check an id_res message to see if it is a
-        checkid_immediate cancel response.
-
-        @raises SetupNeededError: if it is a checkid_immediate cancellation
-        """
+    def setup_url(self, message):
+        '''
+        Returns user_setup_url from an immediate id_res message or
+        None if not found.
+        '''
         # In OpenID 1, we check to see if this is a cancel from
         # immediate mode by the presence of the user_setup_url
         # parameter.
         if message.isOpenID1():
-            user_setup_url = message.getArg(OPENID1_NS, 'user_setup_url')
-            if user_setup_url is not None:
-                raise SetupNeededError(user_setup_url)
+            return message.getArg(OPENID1_NS, 'user_setup_url')
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
@@ -540,14 +535,6 @@ def create_session(type):
         'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
         'no-encryption': PlainTextConsumerSession,
     }[type]()
-
-
-class SetupNeededError(Exception):
-    """Internally-used exception that indicates that an immediate-mode
-    request cancelled."""
-    def __init__(self, user_setup_url=None):
-        Exception.__init__(self, user_setup_url)
-        self.user_setup_url = user_setup_url
 
 
 class ProtocolError(ValueError):

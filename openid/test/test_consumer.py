@@ -16,7 +16,7 @@ from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
-     SetupNeededError, DiffieHellmanSHA256ConsumerSession, ServerError, \
+     DiffieHellmanSHA256ConsumerSession, ServerError, \
      ProtocolError, makeKVPost, NONCE_ARG
 from openid import association
 from openid.server.server import \
@@ -406,8 +406,8 @@ class Complete(unittest.TestCase):
     def test_id_res_setup_needed(self):
         query = _nsdict({'openid.mode': 'id_res'})
         setup_url = 'http://unittest/setup'
-        with mock.patch.object(Consumer, '_checkSetupNeeded') as m:
-            m.side_effect = SetupNeededError(setup_url)
+        with mock.patch.object(Consumer, 'setup_url') as m:
+            m.return_value = setup_url
             response = self.consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
         self.assertEqual(response.setup_url, setup_url)
@@ -629,12 +629,8 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
 
 class TestSetupNeeded(TestIdRes):
     def failUnlessSetupNeeded(self, expected_setup_url, message):
-        try:
-            self.new_consumer._checkSetupNeeded(message)
-        except SetupNeededError as why:
-            self.assertEqual(expected_setup_url, why.user_setup_url)
-        else:
-            self.fail("Expected to find an immediate-mode response")
+        setup_url = self.new_consumer.setup_url(message)
+        self.assertEqual(expected_setup_url, setup_url)
 
     def test_setupNeededOpenID1(self):
         """The minimum conditions necessary to trigger Setup Needed"""
@@ -662,9 +658,7 @@ class TestSetupNeeded(TestIdRes):
         we assume that it's not a cancel response to checkid_immediate"""
         message = Message.fromOpenIDArgs({'mode': 'id_res'})
         self.assertTrue(message.isOpenID1())
-
-        # No SetupNeededError raised
-        self.new_consumer._checkSetupNeeded(message)
+        self.assertIsNone(self.new_consumer.setup_url(message))
 
     def test_setupNeededOpenID2(self):
         query = _nsdict({'openid.mode': 'setup_needed'})
@@ -674,10 +668,7 @@ class TestSetupNeeded(TestIdRes):
 
     def test_setupNeededDoesntWorkForOpenID1(self):
         query = {'openid.mode': 'setup_needed'}
-
-        # No SetupNeededError raised
-        self.new_consumer._checkSetupNeeded(Message.fromPostArgs(query))
-
+        self.assertIsNone(self.new_consumer.setup_url(Message.fromPostArgs(query)))
         response = self.new_consumer.complete(query, None)
         self.assertEqual('failure', response.status)
         self.assertTrue(response.message.startswith('Invalid openid.mode'))
@@ -689,9 +680,7 @@ class TestSetupNeeded(TestIdRes):
             'ns': OPENID2_NS,
             })
         self.assertTrue(message.isOpenID2())
-
-        # No SetupNeededError raised
-        self.new_consumer._checkSetupNeeded(message)
+        self.assertIsNone(self.new_consumer.setup_url(message))
 
 
 class IdResCheckForFieldsTest(TestIdRes):
@@ -727,7 +716,7 @@ class IdResCheckForFieldsTest(TestIdRes):
         {'ns': OPENID2_NS,
          'return_to': 'return',
          'assoc_handle': 'assoc handle',
-         'sig': 'a signature',
+         'sig': 'a siggnature',
          'claimed_id': 'i claim to be me',
          'identity': 'my server knows me as me',
          'op_endpoint': 'my favourite server',
