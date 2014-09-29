@@ -433,53 +433,30 @@ class Consumer(object):
         if message.setup_url():
             return SetupNeededResponse(endpoint, message.setup_url())
         try:
-            return self._doIdRes(message, endpoint, return_to)
+            self.consumer._idResCheckForFields(message)
+
+            if not self.consumer._checkReturnTo(message, return_to):
+                raise ProtocolError(
+                    "return_to does not match return URL. Expected %r, got %r"
+                    % (return_to, message.getArg(OPENID_NS, 'return_to')))
+
+            # Verify discovery information:
+            endpoint = self.consumer._verifyDiscoveryResults(message, endpoint)
+            logging.info("Received id_res response from %s using association %s" %
+                        (endpoint.server_url,
+                         message.getArg(OPENID_NS, 'assoc_handle')))
+
+            self.consumer._idResCheckSignature(message, endpoint.server_url)
+
+            # Will raise a ProtocolError if the nonce is bad
+            self.consumer._idResCheckNonce(message, endpoint)
+
+            signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
+            signed_list = signed_list_str.split(',')
+            signed_fields = ["openid." + s for s in signed_list]
+            return SuccessResponse(endpoint, message, signed_fields)
         except (ProtocolError, DiscoveryFailure) as why:
             return FailureResponse(endpoint, str(why))
-
-    def _doIdRes(self, message, endpoint, return_to):
-        """Handle id_res responses that are not cancellations of
-        immediate mode requests.
-
-        @param message: the response paramaters.
-        @param endpoint: the discovered endpoint object. May be None.
-
-        @raises ProtocolError: If the message contents are not
-            well-formed according to the OpenID specification. This
-            includes missing fields or not signing fields that should
-            be signed.
-
-        @raises DiscoveryFailure: If the subject of the id_res message
-            does not match the supplied endpoint, and discovery on the
-            identifier in the message fails (this should only happen
-            when using OpenID 2)
-
-        @returntype: L{Response}
-        """
-        # Checks for presence of appropriate fields (and checks
-        # signed list fields)
-        self.consumer._idResCheckForFields(message)
-
-        if not self.consumer._checkReturnTo(message, return_to):
-            raise ProtocolError(
-                "return_to does not match return URL. Expected %r, got %r"
-                % (return_to, message.getArg(OPENID_NS, 'return_to')))
-
-        # Verify discovery information:
-        endpoint = self.consumer._verifyDiscoveryResults(message, endpoint)
-        logging.info("Received id_res response from %s using association %s" %
-                    (endpoint.server_url,
-                     message.getArg(OPENID_NS, 'assoc_handle')))
-
-        self.consumer._idResCheckSignature(message, endpoint.server_url)
-
-        # Will raise a ProtocolError if the nonce is bad
-        self.consumer._idResCheckNonce(message, endpoint)
-
-        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
-        signed_list = signed_list_str.split(',')
-        signed_fields = ["openid." + s for s in signed_list]
-        return SuccessResponse(endpoint, message, signed_fields)
 
     def _completeInvalid(self, message, endpoint, _):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')

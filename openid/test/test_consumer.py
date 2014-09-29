@@ -43,6 +43,17 @@ def mkSuccess(endpoint, q):
     signed_list = ['openid.' + k for k in list(q.keys())]
     return SuccessResponse(endpoint, Message.fromOpenIDArgs(q), signed_list)
 
+def _success_query(claimed_id, return_to):
+    nonce = mkNonce()
+    return {
+        'openid.mode': 'id_res',
+        'openid.return_to': return_to + '?' + urllib.parse.urlencode({NONCE_ARG: nonce}),
+        'openid.identity': claimed_id,
+        NONCE_ARG: nonce,
+        'openid.assoc_handle': 'z',
+        'openid.signed': 'identity,return_to',
+        'openid.sig': GOODSIG,
+    }
 
 def parseQuery(qs):
     q = {}
@@ -901,16 +912,17 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.disableDiscoveryVerification()
 
     def test_checkAuthTriggered(self):
-        message = Message.fromPostArgs({
+        query = {
+            'openid.mode': 'id_res',
             'openid.return_to': self.return_to,
             'openid.identity': self.server_id,
             'openid.assoc_handle': 'not_found',
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
-            })
+        }
         self.disableReturnToChecking()
         try:
-            result = self.new_consumer._doIdRes(message, self.endpoint, None)
+            result = self.new_consumer.complete(query, None)
         except CheckAuthHappened:
             pass
         else:
@@ -926,15 +938,16 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, assoc)
         self.disableReturnToChecking()
-        message = Message.fromPostArgs({
+        query = {
+            'openid.mode': 'id_res',
             'openid.return_to': self.return_to,
             'openid.identity': self.server_id,
             'openid.assoc_handle': 'not_found',
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
-            })
+        }
         try:
-            result = self.new_consumer._doIdRes(message, self.endpoint, None)
+            result = self.new_consumer.complete(query, None)
         except CheckAuthHappened:
             pass
         else:
@@ -952,15 +965,17 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.store.storeAssociation(self.server_url, assoc)
 
         message = Message.fromPostArgs({
+            'openid.mode': 'id_res',
             'openid.return_to': self.return_to,
             'openid.identity': self.server_id,
             'openid.assoc_handle': handle,
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
-            })
-        self.disableReturnToChecking()
-        self.assertRaises(ProtocolError, self.new_consumer._doIdRes,
-                              message, self.endpoint, None)
+        })
+        self.assertRaises(
+            ProtocolError,
+            self.consumer._idResCheckSignature, message, self.endpoint.server_url,
+        )
 
     def test_newerAssoc(self):
         lifetime = 1000
@@ -977,16 +992,15 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             bad_handle, 'secret', bad_issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, bad_assoc)
 
-        query = {
+        message = Message.fromOpenIDArgs({
+            'mode': 'id_res',
             'return_to': self.return_to,
             'identity': self.server_id,
             'assoc_handle': good_handle,
-            }
-
-        message = Message.fromOpenIDArgs(query)
+        })
         message = good_assoc.signMessage(message)
         self.disableReturnToChecking()
-        info = self.new_consumer._doIdRes(message, self.endpoint, None)
+        info = self.new_consumer.complete(message.toPostArgs(), None)
         self.assertEqual(info.status, 'success', info.message)
         self.assertEqual(self.consumer_id, info.identity())
 
@@ -1524,15 +1538,7 @@ class Cleanup(unittest.TestCase):
 
         self.return_to = 'http://unittest/complete'
         nonce = mkNonce()
-        self.success_query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': self.return_to + '?' + urllib.parse.urlencode({NONCE_ARG: nonce}),
-            'openid.identity': claimed_id,
-            NONCE_ARG: nonce,
-            'openid.assoc_handle': 'z',
-            'openid.signed': 'identity,return_to',
-            'openid.sig': GOODSIG,
-        }
+        self.success_query = _success_query(claimed_id, self.return_to)
         self.failure_query = {}
 
     def test_success_session(self):
@@ -1558,8 +1564,8 @@ class IDPDrivenTest(unittest.TestCase):
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = Consumer({}, self.store)
-        self.endpoint = Service()
-        self.endpoint.server_url = "http://idp.unittest/"
+        self.endpoint = Service([], 'http://idp.unittest/')
+        self.consumer.session[self.consumer._token_key] = self.endpoint
 
     def test_idpDrivenBegin(self):
         # Testing here that the token-handling doesn't explode...
@@ -1567,13 +1573,14 @@ class IDPDrivenTest(unittest.TestCase):
 
     def test_idpDrivenComplete(self):
         identifier = '=directed_identifier'
-        message = Message.fromPostArgs({
+        query = {
+            'openid.mode': 'id_res',
             'openid.identity': '=directed_identifier',
             'openid.return_to': 'x',
             'openid.assoc_handle': 'z',
             'openid.signed': 'identity,return_to',
             'openid.sig': GOODSIG,
-            })
+        }
 
         discovered_endpoint = Service()
         discovered_endpoint.claimed_id = identifier
@@ -1589,7 +1596,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer.consumer._idResCheckNonce = lambda *args: True
         self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
-        response = self.consumer._doIdRes(message, self.endpoint, None)
+        response = self.consumer.complete(query, None)
 
         self.failUnlessSuccess(response)
         self.assertEqual(response.identity(), "=directed_identifier")
@@ -1598,22 +1605,12 @@ class IDPDrivenTest(unittest.TestCase):
         self.assertEqual(iverified, [discovered_endpoint])
 
     def test_idpDrivenCompleteFraud(self):
-        # crap with an identifier that doesn't match discovery info
-        message = Message.fromPostArgs({
-            'openid.identity': '=directed_identifier',
-            'openid.return_to': 'x',
-            'openid.assoc_handle': 'z',
-            'openid.signed': 'identity,return_to',
-            'openid.sig': GOODSIG,
-            })
-
-        def verifyDiscoveryResults(identifier, endpoint):
-            raise DiscoveryFailure("PHREAK!", None)
-
-        self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
-        self.assertRaises(DiscoveryFailure, self.consumer._doIdRes,
-                              message, self.endpoint, None)
+        return_to = 'http://unittest/complete'
+        query = _success_query('=directed_identifier', return_to)
+        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults') as m:
+            m.side_effect = DiscoveryFailure
+            response = self.consumer.complete(query, return_to)
+        self.assertEqual(response.status, 'failure')
 
     def failUnlessSuccess(self, response):
         if response.status != 'success':
