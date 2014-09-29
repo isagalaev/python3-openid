@@ -1598,7 +1598,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
         response = self.consumer.complete(query, None)
 
-        self.failUnlessSuccess(response)
+        self.assertEqual(response.status, 'success', str(response))
         self.assertEqual(response.identity(), "=directed_identifier")
 
         # assert that discovery attempt happens and returns good
@@ -1611,10 +1611,6 @@ class IDPDrivenTest(unittest.TestCase):
             m.side_effect = DiscoveryFailure
             response = self.consumer.complete(query, return_to)
         self.assertEqual(response.status, 'failure')
-
-    def failUnlessSuccess(self, response):
-        if response.status != 'success':
-            self.fail("Non-successful response: %s" % (response,))
 
 
 class TestDiscoveryVerification(unittest.TestCase):
