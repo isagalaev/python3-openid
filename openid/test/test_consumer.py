@@ -1573,14 +1573,8 @@ class IDPDrivenTest(unittest.TestCase):
 
     def test_idpDrivenComplete(self):
         identifier = '=directed_identifier'
-        query = {
-            'openid.mode': 'id_res',
-            'openid.identity': '=directed_identifier',
-            'openid.return_to': 'x',
-            'openid.assoc_handle': 'z',
-            'openid.signed': 'identity,return_to',
-            'openid.sig': GOODSIG,
-        }
+        return_to = 'http://unittest/complete'
+        query = _success_query(identifier, return_to)
 
         discovered_endpoint = Service()
         discovered_endpoint.claimed_id = identifier
@@ -1588,18 +1582,15 @@ class IDPDrivenTest(unittest.TestCase):
         discovered_endpoint.local_id = identifier
         iverified = []
 
-        def verifyDiscoveryResults(identifier, endpoint):
-            self.assertTrue(endpoint is self.endpoint)
+        def verifyDiscoveryResults(self, identifier, endpoint):
             iverified.append(discovered_endpoint)
             return discovered_endpoint
 
-        self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
-        self.consumer.consumer._idResCheckNonce = lambda *args: True
-        self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
-        response = self.consumer.complete(query, None)
+        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults', verifyDiscoveryResults):
+            response = self.consumer.complete(query, return_to)
 
         self.assertEqual(response.status, 'success', str(response))
-        self.assertEqual(response.identity(), "=directed_identifier")
+        self.assertEqual(response.identity(), identifier)
 
         # assert that discovery attempt happens and returns good
         self.assertEqual(iverified, [discovered_endpoint])
