@@ -46,12 +46,6 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                               self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
-    def test_openID2NoOPEndpointArg(self):
-        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS})
-        self.assertRaises(KeyError,
-                              self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
-
     def test_openID2LocalIDNoClaimed(self):
         msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
                                               'op_endpoint': 'Phone Home',

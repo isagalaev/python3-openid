@@ -678,11 +678,12 @@ class GenericConsumer(object):
             return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
 
     def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
-        to_match = Service([OPENID_2_0_TYPE], None, resp_msg.getArg(OPENID2_NS, 'claimed_id'), resp_msg.getArg(OPENID2_NS, 'identity'))
-
-        # Raises a KeyError when the op_endpoint is not present
-        to_match.server_url = resp_msg.getArg(
-            OPENID2_NS, 'op_endpoint', no_default)
+        to_match = Service(
+            [OPENID_2_0_TYPE],
+            resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
+            resp_msg.getArg(OPENID2_NS, 'claimed_id'),
+            resp_msg.getArg(OPENID2_NS, 'identity'),
+        )
 
         # claimed_id and identifier must both be present or both
         # be absent
