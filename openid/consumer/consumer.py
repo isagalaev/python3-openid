@@ -626,8 +626,6 @@ class GenericConsumer(object):
 
         return True
 
-    _makeKVPost = staticmethod(makeKVPost)
-
     def _checkSetupNeeded(self, message):
         """Check an id_res message to see if it is a
         checkid_immediate cancel response.
@@ -1030,7 +1028,7 @@ class GenericConsumer(object):
         if request is None:
             return False
         try:
-            response = self._makeKVPost(request, server_url)
+            response = makeKVPost(request, server_url)
         except (urllib.error.URLError, ServerError) as e:
             e0 = e.args[0]
             logging.exception('check_authentication failed: %s' % e0)
@@ -1197,7 +1195,7 @@ class GenericConsumer(object):
             endpoint, assoc_type, session_type)
 
         try:
-            response = self._makeKVPost(args, endpoint.server_url)
+            response = makeKVPost(args, endpoint.server_url)
         except urllib.error.URLError as why:
             logging.exception('openid.associate request failed: %s' % why)
             return None

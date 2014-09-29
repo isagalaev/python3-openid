@@ -341,12 +341,12 @@ class TestIdResCheckSignature(TestIdRes):
             ProtocolError, self.consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
+    @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
     def test_stateless(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._processCheckAuthResponse = (
             lambda response, server_url: True)
-        self.consumer._makeKVPost = lambda args, server_url: {}
         self.consumer._idResCheckSignature(self.message,
                                            self.endpoint.server_url)
 
@@ -358,13 +358,13 @@ class TestIdResCheckSignature(TestIdRes):
             ProtocolError, self.consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
+    @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
     def test_stateless_noStore(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer.store = None
         self.consumer._processCheckAuthResponse = (
             lambda response, server_url: True)
-        self.consumer._makeKVPost = lambda args, server_url: {}
         self.consumer._idResCheckSignature(self.message,
                                            self.endpoint.server_url)
 
@@ -1251,7 +1251,7 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
         self.fetcher = ExceptionRaisingMockFetcher()
         with mock.patch('openid.fetchers.fetch', self.fetcher.fetch):
             self.assertRaises(self.fetcher.MyException,
-                                  self.consumer._makeKVPost,
+                                  makeKVPost,
                                   Message.fromPostArgs({'mode': 'associate'}),
                                   "http://server_url")
 
