@@ -255,6 +255,13 @@ class Message(object):
     def isOpenID2(self):
         return self.getOpenIDNamespace() == OPENID2_NS
 
+    def setup_url(self):
+        '''
+        Returns user_setup_url from an immediate id_res message or
+        None if none found.
+        '''
+        return self.getArg(OPENID1_NS, 'user_setup_url')
+
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""
         return cls.fromOpenIDArgs(kvform.kvToDict(kvform_string))

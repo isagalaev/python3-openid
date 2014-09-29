@@ -406,7 +406,7 @@ class Complete(unittest.TestCase):
     def test_id_res_setup_needed(self):
         query = _nsdict({'openid.mode': 'id_res'})
         setup_url = 'http://unittest/setup'
-        with mock.patch.object(Consumer, 'setup_url') as m:
+        with mock.patch.object(Message, 'setup_url') as m:
             m.return_value = setup_url
             response = self.consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
@@ -629,7 +629,7 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
 
 class TestSetupNeeded(TestIdRes):
     def failUnlessSetupNeeded(self, expected_setup_url, message):
-        setup_url = self.new_consumer.setup_url(message)
+        setup_url = message.setup_url()
         self.assertEqual(expected_setup_url, setup_url)
 
     def test_setupNeededOpenID1(self):
@@ -658,7 +658,7 @@ class TestSetupNeeded(TestIdRes):
         we assume that it's not a cancel response to checkid_immediate"""
         message = Message.fromOpenIDArgs({'mode': 'id_res'})
         self.assertTrue(message.isOpenID1())
-        self.assertIsNone(self.new_consumer.setup_url(message))
+        self.assertIsNone(message.setup_url())
 
     def test_setupNeededOpenID2(self):
         query = _nsdict({'openid.mode': 'setup_needed'})
@@ -668,7 +668,7 @@ class TestSetupNeeded(TestIdRes):
 
     def test_setupNeededDoesntWorkForOpenID1(self):
         query = {'openid.mode': 'setup_needed'}
-        self.assertIsNone(self.new_consumer.setup_url(Message.fromPostArgs(query)))
+        self.assertIsNone(Message.fromPostArgs(query).setup_url())
         response = self.new_consumer.complete(query, None)
         self.assertEqual('failure', response.status)
         self.assertTrue(response.message.startswith('Invalid openid.mode'))
@@ -680,7 +680,7 @@ class TestSetupNeeded(TestIdRes):
             'ns': OPENID2_NS,
             })
         self.assertTrue(message.isOpenID2())
-        self.assertIsNone(self.new_consumer.setup_url(message))
+        self.assertIsNone(message.setup_url())
 
 
 class IdResCheckForFieldsTest(TestIdRes):

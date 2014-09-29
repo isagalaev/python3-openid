@@ -430,9 +430,8 @@ class Consumer(object):
         return SetupNeededResponse(endpoint, user_setup_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
-        setup_url = self.setup_url(message)
-        if setup_url:
-            return SetupNeededResponse(endpoint, setup_url)
+        if message.setup_url():
+            return SetupNeededResponse(endpoint, message.setup_url())
         try:
             return self.consumer._doIdRes(message, endpoint, return_to)
         except (ProtocolError, DiscoveryFailure) as why:
@@ -442,17 +441,6 @@ class Consumer(object):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
         return FailureResponse(endpoint,
                                'Invalid openid.mode: %r' % (mode,))
-
-    def setup_url(self, message):
-        '''
-        Returns user_setup_url from an immediate id_res message or
-        None if not found.
-        '''
-        # In OpenID 1, we check to see if this is a cancel from
-        # immediate mode by the presence of the user_setup_url
-        # parameter.
-        if message.isOpenID1():
-            return message.getArg(OPENID1_NS, 'user_setup_url')
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
