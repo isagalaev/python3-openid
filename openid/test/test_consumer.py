@@ -997,34 +997,33 @@ class ReturnTo(unittest.TestCase):
            accepting URL.
     '''
     def test_missing(self):
-        query = {'openid.mode': 'id_res'}
-        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
+        message = Message.fromPostArgs({'openid.mode': 'id_res'})
+        self.assertTrue('return_to' in message.validate_return_to('http://example.com/'))
 
     def test_bad_url(self):
-        query = {
-            'openid.return_to': 'http://unittest/complete'
-        }
-        message = Message.fromPostArgs(query)
-        self.assertFalse(message.validate_return_to('http://fraud/complete'))
-        self.assertFalse(message.validate_return_to('http://unittest/complete/'))
-        self.assertFalse(message.validate_return_to('https://unittest/complete'))
+        message = Message.fromPostArgs({'openid.return_to': 'http://unittest/complete'})
+        self.assertTrue('return_to' in message.validate_return_to('http://fraud/complete'))
+        self.assertTrue('return_to' in message.validate_return_to('http://unittest/complete/'))
+        self.assertTrue('return_to' in message.validate_return_to('https://unittest/complete'))
 
     def test_good_args(self):
-        query = {
+        message = Message.fromPostArgs({
             'openid.return_to': 'http://example.com/?foo=bar',
             'foo': 'bar',
             'stray': 'value', # unknown values are okay
-        }
-        self.assertTrue(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
+        })
+        self.assertFalse(message.validate_return_to('http://example.com/'))
 
     def test_bad_args(self):
-        query = {
+        message = Message.fromPostArgs({
             'openid.mode': 'id_res',
-            'openid.return_to': 'http://example.com/?foo=bar',
-        }
-        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
-        query['foo'] = 'baz'
-        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
+            'openid.return_to': 'http://example.com/?foo=bar&xxx=yyy',
+            'xxx': 'not yyy',
+        })
+        self.assertEqual(
+                message.validate_return_to('http://example.com/').get('return_to_args'),
+                [('foo', None), ('xxx', 'not yyy')],
+            )
 
 
 class MockFetcher(object):

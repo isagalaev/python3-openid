@@ -433,16 +433,11 @@ class Consumer(object):
             return SetupNeededResponse(endpoint, message.setup_url())
         errors = {}
         errors.update(message.validate_fields())
+        errors.update(message.validate_return_to(return_to))
         # more to come
         if errors:
             return FailureResponse(endpoint, errors)
         try:
-
-            if not message.validate_return_to(return_to):
-                raise ProtocolError(
-                    "return_to does not match return URL. Expected %r, got %r"
-                    % (return_to, message.getArg(OPENID_NS, 'return_to')))
-
             # Verify discovery information:
             endpoint = self.consumer._verifyDiscoveryResults(message, endpoint)
             logging.info("Received id_res response from %s using association %s" %
