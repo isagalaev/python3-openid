@@ -1501,25 +1501,6 @@ class ConsumerTest(unittest.TestCase):
             SetupNeededResponse(self.endpoint, setup_url))
         self.assertTrue(resp.setup_url is setup_url)
 
-    @unittest.skip
-    def test_successDifferentURL(self):
-        """
-        Be sure that the session gets cleaned up when the response is
-        successful and has a different URL than the one in the
-        request.
-        """
-        # Set up a request endpoint describing an IDP URL
-        self.identity = 'http://idp.url/'
-        self.endpoint.claimed_id = self.endpoint.local_id = IDENTIFIER_SELECT
-
-        # Use a response endpoint with a different URL (asserted by
-        # the IDP)
-        resp_endpoint = Service()
-        resp_endpoint.claimed_id = "http://user.url/"
-
-        resp = self._doRespDisco(True, mkSuccess(resp_endpoint, {}))
-        self.assertTrue(self.discovery.getManager(force=True) is None)
-
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
