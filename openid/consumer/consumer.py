@@ -833,14 +833,6 @@ class GenericConsumer(object):
         services = discover(claimed_id)
         if not services:
             raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
-        return self._verifyDiscoveredServices(claimed_id, services,
-                                              to_match_endpoints)
-
-    def _verifyDiscoveredServices(self, claimed_id, services, to_match_endpoints):
-        """See @L{_discoverAndVerify}"""
-
-        # Search the services resulting from discovery to find one
-        # that matches the information from the assertion
         failure_messages = []
         for endpoint in services:
             for to_match_endpoint in to_match_endpoints:
