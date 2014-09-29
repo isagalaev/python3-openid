@@ -432,8 +432,12 @@ class Consumer(object):
     def _complete_id_res(self, message, endpoint, return_to):
         if message.setup_url():
             return SetupNeededResponse(endpoint, message.setup_url())
+        errors = {}
+        errors.update(message.validate_fields())
+        # more to come
+        if errors:
+            return FailureResponse(endpoint, errors)
         try:
-            self.consumer._idResCheckForFields(message)
 
             if not self.consumer._checkReturnTo(message, return_to):
                 raise ProtocolError(
@@ -692,41 +696,6 @@ class GenericConsumer(object):
             # _checkAuth.
             if not self._checkAuth(message, server_url):
                 raise ProtocolError('Server denied check_authentication')
-
-    def _idResCheckForFields(self, message):
-        # XXX: this should be handled by the code that processes the
-        # response (that is, if a field is missing, we should not have
-        # to explicitly check that it's present, just make sure that
-        # the fields are actually being used by the rest of the code
-        # in tests). Although, which fields are signed does need to be
-        # checked somewhere.
-        basic_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
-        basic_sig_fields = ['return_to', 'identity']
-
-        require_fields = {
-            OPENID2_NS: basic_fields + ['op_endpoint'],
-            OPENID1_NS: basic_fields + ['identity'],
-            }
-
-        require_sigs = {
-            OPENID2_NS: basic_sig_fields + ['response_nonce',
-                                            'claimed_id',
-                                            'assoc_handle',
-                                            'op_endpoint'],
-            OPENID1_NS: basic_sig_fields,
-            }
-
-        for field in require_fields[message.getOpenIDNamespace()]:
-            if not message.hasKey(OPENID_NS, field):
-                raise ProtocolError('Missing required field %r' % (field,))
-
-        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
-        signed_list = signed_list_str.split(',')
-
-        for field in require_sigs[message.getOpenIDNamespace()]:
-            # Field is present and not in signed list
-            if message.hasKey(OPENID_NS, field) and field not in signed_list:
-                raise ProtocolError('"%s" not signed' % (field,))
 
     def _verifyReturnToArgs(query):
         """Verify that the arguments in the return_to URL are present in this

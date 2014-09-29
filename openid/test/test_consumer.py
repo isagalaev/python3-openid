@@ -470,7 +470,7 @@ class Complete(unittest.TestCase):
         query = _nsdict({'openid.mode': 'id_res'})
         response = self.consumer.complete(query, None)
         self.assertEqual(response.status, 'failure')
-        self.assertEqual(response.message, 'Missing required field \'return_to\'')
+        self.assertTrue('return_to' in response.message.get('missing', []))
 
     def test_no_mode(self):
         response = self.consumer.complete({}, None)
@@ -694,15 +694,13 @@ class TestSetupNeeded(TestIdRes):
         self.assertIsNone(message.setup_url())
 
 
-class IdResCheckForFieldsTest(TestIdRes):
-    def setUp(self):
-        self.consumer = GenericConsumer(None)
+class FieldValidation(unittest.TestCase):
 
     def mkSuccessTest(openid_args, signed_list):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
             message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
-            self.consumer._idResCheckForFields(message)
+            self.assertFalse(message.validate_fields())
         return test
 
     test_openid1Success = mkSuccessTest(
@@ -739,23 +737,15 @@ class IdResCheckForFieldsTest(TestIdRes):
     def mkMissingFieldTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
-            try:
-                self.consumer._idResCheckForFields(message)
-            except ProtocolError as why:
-                self.assertTrue(str(why).startswith('Missing required'))
-            else:
-                self.fail('Expected an error, but none occurred')
+            errors = message.validate_fields()
+            self.assertTrue('missing' in errors)
         return test
 
     def mkMissingSignedTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
-            try:
-                self.consumer._idResCheckForFields(message)
-            except ProtocolError as why:
-                self.assertTrue(str(why).endswith('not signed'))
-            else:
-                self.fail('Expected an error, but none occurred')
+            errors = message.validate_fields()
+            self.assertTrue('unsigned' in errors)
         return test
 
     test_openid1Missing_returnToSig = mkMissingSignedTest(

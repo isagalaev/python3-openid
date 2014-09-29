@@ -8,6 +8,7 @@ import copy
 import warnings
 import urllib.request
 import urllib.error
+from collections import defaultdict
 
 from openid import oidutil
 from openid import kvform
@@ -261,6 +262,44 @@ class Message(object):
         None if none found.
         '''
         return self.getArg(OPENID1_NS, 'user_setup_url')
+
+    def validate_fields(self):
+        '''
+        Looks for missing required fields and unsigned fields.
+        Returns an error dict in the form {'missing': [..], 'unsigned': [..]}.
+        Keys are omitted if everything fine so the result can be simply
+        checked for truth-ness.
+        '''
+        basic_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
+        basic_sig_fields = ['return_to', 'identity']
+
+        require_fields = {
+            OPENID2_NS: basic_fields + ['op_endpoint'],
+            OPENID1_NS: basic_fields + ['identity'],
+            }
+
+        require_sigs = {
+            OPENID2_NS: basic_sig_fields + ['response_nonce',
+                                            'claimed_id',
+                                            'assoc_handle',
+                                            'op_endpoint'],
+            OPENID1_NS: basic_sig_fields,
+            }
+
+        errors = defaultdict(list)
+
+        for field in require_fields[self.getOpenIDNamespace()]:
+            if not self.hasKey(OPENID_NS, field):
+                errors['missing'].append(field)
+
+        signed_list_str = self.getArg(OPENID_NS, 'signed', '')
+        signed_list = signed_list_str.split(',')
+
+        for field in require_sigs[self.getOpenIDNamespace()]:
+            if self.hasKey(OPENID_NS, field) and field not in signed_list:
+                errors['unsigned'].append(field)
+
+        return errors
 
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""
