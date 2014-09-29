@@ -910,7 +910,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             })
         self.disableReturnToChecking()
         try:
-            result = self.consumer._doIdRes(message, self.endpoint, None)
+            result = self.new_consumer._doIdRes(message, self.endpoint, None)
         except CheckAuthHappened:
             pass
         else:
@@ -934,7 +934,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
             })
         try:
-            result = self.consumer._doIdRes(message, self.endpoint, None)
+            result = self.new_consumer._doIdRes(message, self.endpoint, None)
         except CheckAuthHappened:
             pass
         else:
@@ -959,7 +959,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
             })
         self.disableReturnToChecking()
-        self.assertRaises(ProtocolError, self.consumer._doIdRes,
+        self.assertRaises(ProtocolError, self.new_consumer._doIdRes,
                               message, self.endpoint, None)
 
     def test_newerAssoc(self):
@@ -986,7 +986,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         message = Message.fromOpenIDArgs(query)
         message = good_assoc.signMessage(message)
         self.disableReturnToChecking()
-        info = self.consumer._doIdRes(message, self.endpoint, None)
+        info = self.new_consumer._doIdRes(message, self.endpoint, None)
         self.assertEqual(info.status, 'success', info.message)
         self.assertEqual(self.consumer_id, info.identity())
 
@@ -1589,7 +1589,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer.consumer._idResCheckNonce = lambda *args: True
         self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
-        response = self.consumer.consumer._doIdRes(message, self.endpoint, None)
+        response = self.consumer._doIdRes(message, self.endpoint, None)
 
         self.failUnlessSuccess(response)
         self.assertEqual(response.identity(), "=directed_identifier")
@@ -1612,7 +1612,7 @@ class IDPDrivenTest(unittest.TestCase):
 
         self.consumer.consumer._verifyDiscoveryResults = verifyDiscoveryResults
         self.consumer.consumer._checkReturnTo = lambda unused1, unused2: True
-        self.assertRaises(DiscoveryFailure, self.consumer.consumer._doIdRes,
+        self.assertRaises(DiscoveryFailure, self.consumer._doIdRes,
                               message, self.endpoint, None)
 
     def failUnlessSuccess(self, response):
