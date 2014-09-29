@@ -1489,6 +1489,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.assertEqual(response.status, 'failure')
 
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestDiscoveryVerification(unittest.TestCase):
     services = []
 
@@ -1498,8 +1499,8 @@ class TestDiscoveryVerification(unittest.TestCase):
 
         self.consumer._discover = self.discoveryFunc
 
-        self.identifier = "http://idp.unittest/1337"
-        self.server_url = "http://endpoint.unittest/"
+        self.identifier = "http://unittest/example-xrds.xml"
+        self.server_url = "http://unittest/"
 
         self.message = Message.fromPostArgs({
             'openid.ns': OPENID2_NS,
