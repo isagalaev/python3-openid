@@ -995,8 +995,9 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         self.assertEqual(self.consumer_id, info.identity())
 
 
-class TestReturnTo(unittest.TestCase):
-    """Verifying the Return URL paramaters.
+class ReturnTo(unittest.TestCase):
+    '''
+    Verifying the Return URL paramaters.
     From the specification "Verifying the Return URL"::
 
         To verify that the "openid.return_to" URL matches the URL that is
@@ -1008,74 +1009,40 @@ class TestReturnTo(unittest.TestCase):
          - Any query parameters that are present in the "openid.return_to"
            URL MUST also be present with the same values in the
            accepting URL.
-
-    XXX: So far we have only tested the second item on the list above.
-    XXX: _verifyReturnToArgs is not invoked anywhere.
-    """
-
+    '''
     def setUp(self):
-        self.new_consumer = Consumer({}, object())
-        self.consumer = self.new_consumer.consumer
+        consumer = Consumer({}, None)
+        self.consumer = consumer.consumer
 
-    def test_returnToArgsOkay(self):
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'http://example.com/?foo=bar',
-            'foo': 'bar',
-            }
-        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
-
-    def test_returnToArgsUnexpectedArg(self):
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'http://example.com/',
-            'foo': 'bar',
-            }
-        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
-
-    def test_returnToMismatch(self):
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': 'http://example.com/?foo=bar',
-            }
-        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
-
-        query['foo'] = 'baz'
-        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
-
-    def test_noReturnTo(self):
+    def test_missing(self):
         query = {'openid.mode': 'id_res'}
         self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
-    def test_completeBadReturnTo(self):
-        """Test GenericConsumer.complete()'s handling of bad return_to
-        values.
-        """
-        return_to = "http://some.url/path?foo=bar"
+    def test_bad_url(self):
+        query = {
+            'openid.return_to': 'http://unittest/complete'
+        }
+        message = Message.fromPostArgs(query)
+        self.assertFalse(self.consumer._checkReturnTo(message, 'http://fraud/complete'))
+        self.assertFalse(self.consumer._checkReturnTo(message, 'http://unittest/complete/'))
+        self.assertFalse(self.consumer._checkReturnTo(message, 'https://unittest/complete'))
 
-        # Scheme, authority, and path differences are checked by
-        # GenericConsumer._checkReturnTo.  Query args checked by
-        # GenericConsumer._verifyReturnToArgs.
-        bad_return_tos = [
-            # Scheme only
-            "https://some.url/path?foo=bar",
-            # Authority only
-            "http://some.url.invalid/path?foo=bar",
-            # Path only
-            "http://some.url/path_extra?foo=bar",
-            # Query args differ
-            "http://some.url/path?foo=bar2",
-            "http://some.url/path?foo2=bar",
-            ]
+    def test_good_args(self):
+        query = {
+            'openid.return_to': 'http://example.com/?foo=bar',
+            'foo': 'bar',
+            'stray': 'value', # unknown values are okay
+        }
+        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
-        m = Message(OPENID1_NS)
-        m.setArg(OPENID_NS, 'mode', 'cancel')
-        m.setArg(BARE_NS, 'foo', 'bar')
-        endpoint = None
-
-        for bad in bad_return_tos:
-            m.setArg(OPENID_NS, 'return_to', bad)
-            self.assertFalse(self.consumer._checkReturnTo(m, return_to))
+    def test_bad_args(self):
+        query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': 'http://example.com/?foo=bar',
+        }
+        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
+        query['foo'] = 'baz'
+        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
 
 
 class MockFetcher(object):
