@@ -431,7 +431,7 @@ class Consumer(object):
 
     def _complete_id_res(self, message, endpoint, return_to):
         try:
-            self.consumer._checkSetupNeeded(message)
+            self._checkSetupNeeded(message)
         except SetupNeededError as why:
             return SetupNeededResponse(endpoint, why.user_setup_url)
         else:
@@ -445,7 +445,19 @@ class Consumer(object):
         return FailureResponse(endpoint,
                                'Invalid openid.mode: %r' % (mode,))
 
+    def _checkSetupNeeded(self, message):
+        """Check an id_res message to see if it is a
+        checkid_immediate cancel response.
 
+        @raises SetupNeededError: if it is a checkid_immediate cancellation
+        """
+        # In OpenID 1, we check to see if this is a cancel from
+        # immediate mode by the presence of the user_setup_url
+        # parameter.
+        if message.isOpenID1():
+            user_setup_url = message.getArg(OPENID1_NS, 'user_setup_url')
+            if user_setup_url is not None:
+                raise SetupNeededError(user_setup_url)
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
@@ -625,20 +637,6 @@ class GenericConsumer(object):
                 return False
 
         return True
-
-    def _checkSetupNeeded(self, message):
-        """Check an id_res message to see if it is a
-        checkid_immediate cancel response.
-
-        @raises SetupNeededError: if it is a checkid_immediate cancellation
-        """
-        # In OpenID 1, we check to see if this is a cancel from
-        # immediate mode by the presence of the user_setup_url
-        # parameter.
-        if message.isOpenID1():
-            user_setup_url = message.getArg(OPENID1_NS, 'user_setup_url')
-            if user_setup_url is not None:
-                raise SetupNeededError(user_setup_url)
 
     def _doIdRes(self, message, endpoint, return_to):
         """Handle id_res responses that are not cancellations of

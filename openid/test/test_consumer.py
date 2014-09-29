@@ -406,7 +406,7 @@ class Complete(unittest.TestCase):
     def test_id_res_setup_needed(self):
         query = _nsdict({'openid.mode': 'id_res'})
         setup_url = 'http://unittest/setup'
-        with mock.patch.object(GenericConsumer, '_checkSetupNeeded') as m:
+        with mock.patch.object(Consumer, '_checkSetupNeeded') as m:
             m.side_effect = SetupNeededError(setup_url)
             response = self.consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
@@ -630,7 +630,7 @@ class TestCheckAuthResponse(TestIdRes, CatchLogs):
 class TestSetupNeeded(TestIdRes):
     def failUnlessSetupNeeded(self, expected_setup_url, message):
         try:
-            self.consumer._checkSetupNeeded(message)
+            self.new_consumer._checkSetupNeeded(message)
         except SetupNeededError as why:
             self.assertEqual(expected_setup_url, why.user_setup_url)
         else:
@@ -664,7 +664,7 @@ class TestSetupNeeded(TestIdRes):
         self.assertTrue(message.isOpenID1())
 
         # No SetupNeededError raised
-        self.consumer._checkSetupNeeded(message)
+        self.new_consumer._checkSetupNeeded(message)
 
     def test_setupNeededOpenID2(self):
         query = _nsdict({'openid.mode': 'setup_needed'})
@@ -676,7 +676,7 @@ class TestSetupNeeded(TestIdRes):
         query = {'openid.mode': 'setup_needed'}
 
         # No SetupNeededError raised
-        self.consumer._checkSetupNeeded(Message.fromPostArgs(query))
+        self.new_consumer._checkSetupNeeded(Message.fromPostArgs(query))
 
         response = self.new_consumer.complete(query, None)
         self.assertEqual('failure', response.status)
@@ -691,7 +691,7 @@ class TestSetupNeeded(TestIdRes):
         self.assertTrue(message.isOpenID2())
 
         # No SetupNeededError raised
-        self.consumer._checkSetupNeeded(message)
+        self.new_consumer._checkSetupNeeded(message)
 
 
 class IdResCheckForFieldsTest(TestIdRes):
