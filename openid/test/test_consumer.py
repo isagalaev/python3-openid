@@ -300,7 +300,7 @@ class TestIdRes(unittest.TestCase, CatchLogs):
         self.store = memstore.MemoryStore()
         self.new_consumer = Consumer({}, self.store)
         self.consumer = self.new_consumer.consumer
-        self.return_to = "nonny"
+        self.return_to = 'http://unittest/complete'
         self.consumer_id = "consu"
         self.server_url = "serlie"
         self.server_id = "sirod"
@@ -313,17 +313,6 @@ class TestIdRes(unittest.TestCase, CatchLogs):
         def dummyVerifyDiscover(_, endpoint):
             return endpoint
         self.consumer._verifyDiscoveryResults = dummyVerifyDiscover
-
-    def disableReturnToChecking(self):
-        def checkReturnTo(unused1, unused2):
-            return True
-        self.consumer._checkReturnTo = checkReturnTo
-        # complete = self.consumer.complete
-
-        # def callCompleteWithoutReturnTo(message, endpoint):
-        #     return complete(message, endpoint, None)
-        # self.consumer.complete = callCompleteWithoutReturnTo
-
 
 class TestIdResCheckSignature(TestIdRes):
     def setUp(self):
@@ -910,9 +899,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.sig': GOODSIG,
             'openid.signed': 'identity,return_to',
         }
-        self.disableReturnToChecking()
         try:
-            result = self.new_consumer.complete(query, None)
+            result = self.new_consumer.complete(query, self.return_to)
         except CheckAuthHappened:
             pass
         else:
@@ -927,7 +915,6 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         assoc = association.Association(
             'handle', 'secret', issued, lifetime, 'HMAC-SHA1')
         self.store.storeAssociation(self.server_url, assoc)
-        self.disableReturnToChecking()
         query = {
             'openid.mode': 'id_res',
             'openid.return_to': self.return_to,
@@ -937,7 +924,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
         }
         try:
-            result = self.new_consumer.complete(query, None)
+            result = self.new_consumer.complete(query, self.return_to)
         except CheckAuthHappened:
             pass
         else:
@@ -989,8 +976,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'assoc_handle': good_handle,
         })
         message = good_assoc.signMessage(message)
-        self.disableReturnToChecking()
-        info = self.new_consumer.complete(message.toPostArgs(), None)
+        info = self.new_consumer.complete(message.toPostArgs(), self.return_to)
         self.assertEqual(info.status, 'success', info.message)
         self.assertEqual(self.consumer_id, info.identity())
 
@@ -1010,22 +996,18 @@ class ReturnTo(unittest.TestCase):
            URL MUST also be present with the same values in the
            accepting URL.
     '''
-    def setUp(self):
-        consumer = Consumer({}, None)
-        self.consumer = consumer.consumer
-
     def test_missing(self):
         query = {'openid.mode': 'id_res'}
-        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
+        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
 
     def test_bad_url(self):
         query = {
             'openid.return_to': 'http://unittest/complete'
         }
         message = Message.fromPostArgs(query)
-        self.assertFalse(self.consumer._checkReturnTo(message, 'http://fraud/complete'))
-        self.assertFalse(self.consumer._checkReturnTo(message, 'http://unittest/complete/'))
-        self.assertFalse(self.consumer._checkReturnTo(message, 'https://unittest/complete'))
+        self.assertFalse(message.validate_return_to('http://fraud/complete'))
+        self.assertFalse(message.validate_return_to('http://unittest/complete/'))
+        self.assertFalse(message.validate_return_to('https://unittest/complete'))
 
     def test_good_args(self):
         query = {
@@ -1033,16 +1015,16 @@ class ReturnTo(unittest.TestCase):
             'foo': 'bar',
             'stray': 'value', # unknown values are okay
         }
-        self.assertTrue(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
+        self.assertTrue(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
 
     def test_bad_args(self):
         query = {
             'openid.mode': 'id_res',
             'openid.return_to': 'http://example.com/?foo=bar',
         }
-        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
+        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
         query['foo'] = 'baz'
-        self.assertFalse(self.consumer._checkReturnTo(Message.fromPostArgs(query), 'http://example.com/'))
+        self.assertFalse(Message.fromPostArgs(query).validate_return_to('http://example.com/'))
 
 
 class MockFetcher(object):

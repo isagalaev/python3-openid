@@ -8,10 +8,12 @@ import copy
 import warnings
 import urllib.request
 import urllib.error
+import urllib.parse
 from collections import defaultdict
 
 from openid import oidutil
 from openid import kvform
+from openid import urinorm
 try:
     from lxml import etree as ET
 except ImportError:
@@ -300,6 +302,49 @@ class Message(object):
                 errors['unsigned'].append(field)
 
         return errors
+
+    def validate_return_to(self, return_to):
+        """Check an OpenID message and its openid.return_to value
+        against a return_to URL from an application.  Return True on
+        success, False on failure.
+        """
+        # Check the openid.return_to args against args in the original
+        # message.
+        msg_return_to = self.getArg(OPENID_NS, 'return_to')
+
+        if msg_return_to is None:
+            return False
+
+        parsed_url = urllib.parse.urlparse(msg_return_to)
+        rt_query = parsed_url[4]
+        parsed_args = urllib.parse.parse_qsl(rt_query)
+
+        # NOTE -- parsed_args will be a dict of {bytes: bytes}, however it
+        # will be checked against return values from Message methods which are
+        # {str: str}. We need to compare apples to apples.
+        for rt_key, rt_value in parsed_args:
+            try:
+                value = self.getArg(BARE_NS, rt_key)
+                if rt_value != value:
+                    format = ("parameter %s value %r does not match "
+                              "return_to's value %r")
+                    return False
+            except KeyError:
+                format = "return_to parameter %s absent from message %r"
+                return False
+
+        # The URL scheme, authority, and path MUST be the same between
+        # the two URLs.
+        app_parts = urllib.parse.urlparse(urinorm.urinorm(return_to))
+        msg_parts = urllib.parse.urlparse(urinorm.urinorm(msg_return_to))
+
+        # (addressing scheme, network location, path) must be equal in
+        # both URLs.
+        for part in range(0, 3):
+            if app_parts[part] != msg_parts[part]:
+                return False
+
+        return True
 
     def fromKVForm(cls, kvform_string):
         """Create a Message from a KVForm string"""

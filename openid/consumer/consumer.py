@@ -176,7 +176,7 @@ USING THIS LIBRARY
 
 import copy
 import logging
-from urllib.parse import urlparse, urldefrag, parse_qsl
+from urllib.parse import urldefrag
 import urllib.error
 
 from openid import fetchers
@@ -193,7 +193,6 @@ from openid.association import Association, default_negotiator, \
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.yadis.manager import Discovery
-from openid import urinorm
 
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
@@ -439,7 +438,7 @@ class Consumer(object):
             return FailureResponse(endpoint, errors)
         try:
 
-            if not self.consumer._checkReturnTo(message, return_to):
+            if not message.validate_return_to(return_to):
                 raise ProtocolError(
                     "return_to does not match return URL. Expected %r, got %r"
                     % (return_to, message.getArg(OPENID_NS, 'return_to')))
@@ -608,52 +607,6 @@ class GenericConsumer(object):
     def __init__(self, store):
         self.store = store
         self.negotiator = default_negotiator.copy()
-
-    def _checkReturnTo(self, message, return_to):
-        """Check an OpenID message and its openid.return_to value
-        against a return_to URL from an application.  Return True on
-        success, False on failure.
-        """
-        # Check the openid.return_to args against args in the original
-        # message.
-        msg_return_to = message.getArg(OPENID_NS, 'return_to')
-
-        if msg_return_to is None:
-            logging.error('Response has no return_to')
-            return False
-
-        parsed_url = urlparse(msg_return_to)
-        rt_query = parsed_url[4]
-        parsed_args = parse_qsl(rt_query)
-
-        # NOTE -- parsed_args will be a dict of {bytes: bytes}, however it
-        # will be checked against return values from Message methods which are
-        # {str: str}. We need to compare apples to apples.
-        for rt_key, rt_value in parsed_args:
-            try:
-                value = message.getArg(BARE_NS, rt_key)
-                if rt_value != value:
-                    format = ("parameter %s value %r does not match "
-                              "return_to's value %r")
-                    logging.error(format % (rt_key, value, rt_value))
-                    return False
-            except KeyError:
-                format = "return_to parameter %s absent from message %r"
-                logging.error(format % (rt_key, message))
-                return False
-
-        # The URL scheme, authority, and path MUST be the same between
-        # the two URLs.
-        app_parts = urlparse(urinorm.urinorm(return_to))
-        msg_parts = urlparse(urinorm.urinorm(msg_return_to))
-
-        # (addressing scheme, network location, path) must be equal in
-        # both URLs.
-        for part in range(0, 3):
-            if app_parts[part] != msg_parts[part]:
-                return False
-
-        return True
 
     def _idResGetNonceOpenID1(self, message, endpoint):
         """Extract the nonce from an OpenID 1 response.  Return the
