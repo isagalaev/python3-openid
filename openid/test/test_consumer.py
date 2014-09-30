@@ -1527,6 +1527,8 @@ class DiscoveryVerification(unittest.TestCase):
         )
 
     def test_nothing_discovered(self):
+        # This will discover information located at claimed_id which
+        # in our case doesn't match the message
         self.assertRaises(
             DiscoveryFailure,
             self.consumer._verifyDiscoveryResults, self.message, None)
