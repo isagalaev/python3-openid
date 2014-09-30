@@ -42,9 +42,6 @@ class Service(object):
         self.claimed_id = claimed_id
         self.local_id = local_id
 
-    def uses_extension(self, extension_uri):
-        return extension_uri in self.types
-
     def ns(self):
         return OPENID1_NS if self.compat_mode() else OPENID2_NS
 

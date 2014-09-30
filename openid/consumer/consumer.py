@@ -768,11 +768,8 @@ class GenericConsumer(object):
         @raises ProtocolError: when the endpoint does not match the
             discovered information.
         """
-        # Every type URI that's in the to_match endpoint has to be
-        # present in the discovered endpoint.
-        for t in to_match.types:
-            if not endpoint.uses_extension(t):
-                raise TypeURIMismatch(t, endpoint)
+        if not set(to_match.types).issubset(set(endpoint.types)):
+            raise TypeURIMismatch(to_match, endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
         # claimed identifier with a fragment to discovered information.

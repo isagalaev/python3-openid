@@ -177,11 +177,6 @@ class Services(unittest.TestCase):
 
 
 class Endpoint(unittest.TestCase):
-    def test_uses_extension(self):
-        url = 'http://example.com/extension'
-        endpoint = discover.Service([discover.OPENID_2_0_TYPE, url])
-        self.assertTrue(endpoint.uses_extension(url))
-
     def test_openid_2(self):
         endpoint = discover.Service()
         self.assertFalse(endpoint.compat_mode())
