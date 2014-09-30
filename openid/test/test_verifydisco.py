@@ -18,17 +18,6 @@ def const(result):
 
 
 class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
-    def test_openID1NoLocalID(self):
-        endpoint = discover.Service()
-        endpoint.claimed_id = 'bogus'
-
-        msg = message.Message.fromOpenIDArgs({})
-        self.assertRaisesRegex(
-            consumer.ProtocolError,
-            'Missing required field openid.identity',
-            self.consumer._verifyDiscoveryResults, msg, endpoint)
-        self.failUnlessLogEmpty()
-
     def test_openID1NoEndpoint(self):
         msg = message.Message.fromOpenIDArgs({'identity': 'snakes on a plane'})
         self.assertRaises(RuntimeError,

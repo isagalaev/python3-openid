@@ -732,9 +732,6 @@ class GenericConsumer(object):
             claimed_id = endpoint.claimed_id
 
         to_match = Service([OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
-        if to_match.local_id is None:
-            raise ProtocolError('Missing required field openid.identity')
-
         to_match_1_0 = copy.copy(to_match)
         to_match_1_0.types = [OPENID_1_0_TYPE]
 
