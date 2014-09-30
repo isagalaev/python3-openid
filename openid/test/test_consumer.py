@@ -23,9 +23,9 @@ from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
 from openid.yadis.manager import Discovery
 from openid.dh import DiffieHellman
-
 from openid import fetchers
 from openid.store import memstore
+from openid.extension import Extension
 
 from . import support
 from .support import CatchLogs, HTTPResponse
@@ -411,23 +411,6 @@ class Complete(unittest.TestCase):
             response = self.consumer.complete(query, None)
         self.assertEqual('setup_needed', response.status)
         self.assertEqual(response.setup_url, setup_url)
-
-    def test_url_mismatch(self):
-        return_to = 'http://unittest/complete'
-        query = {
-            'openid.mode': 'id_res',
-            'openid.return_to': return_to,
-            'openid.identity': 'something wrong (not self.claimed_id)',
-            'openid.assoc_handle': 'does not matter',
-            'openid.sig': GOODSIG,
-            'openid.signed': 'identity,return_to',
-        }
-        self.consumer.consumer.store = GoodAssocStore()
-
-        # Shouldn't rediscover after verifying supplied endpoint
-        with mock.patch.object(GenericConsumer, '_discoverAndVerify') as m:
-            self.consumer.complete(query, return_to)
-            self.assertFalse(m.call_count)
 
     def test_cancel(self):
         query = _nsdict({'openid.mode': 'cancel'})
@@ -1580,7 +1563,11 @@ class DiscoveryVerification(unittest.TestCase):
         with mock.patch('openid.consumer.consumer.discover') as discover:
             discover.return_value = [self.endpoint]
             self.consumer._verifyDiscoveryResults(self.message2, None)
-            discover.assert_called_with(self.identifier)
+            discover.assert_called_once_with(self.identifier)
+
+            discover.reset_mock()
+            self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
+            self.assertFalse(discover.call_count)
 
 
 class TestCreateAssociationRequest(unittest.TestCase):
@@ -1761,28 +1748,6 @@ class TestConsumerAnonymous(unittest.TestCase):
                 ProtocolError,
                 consumer.beginWithoutDiscovery, Service([], '')
             )
-
-
-class TestDiscoverAndVerify(unittest.TestCase):
-
-    @mock.patch('openid.consumer.consumer.discover', lambda x: ['unused'])
-    @mock.patch.object(GenericConsumer, '_verify_discovery_info', mock.Mock(side_effect=ProtocolError))
-    def test_no_matches(self):
-        consumer = GenericConsumer(None)
-        self.assertRaises(
-            DiscoveryFailure,
-            consumer._discoverAndVerify, 'http://claimed-id.com/', [Service()],
-        )
-
-    @mock.patch('openid.consumer.consumer.discover', lambda x: ['endpoint'])
-    @mock.patch.object(GenericConsumer, '_verify_discovery_info', mock.Mock(return_value=True))
-    def test_matches(self):
-        consumer = GenericConsumer(None)
-        result = consumer._discoverAndVerify('http://claimed.id/', [Service()])
-        self.assertEqual('endpoint', result)
-
-
-from openid.extension import Extension
 
 
 class SillyExtension(Extension):

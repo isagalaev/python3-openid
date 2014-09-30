@@ -691,18 +691,11 @@ class GenericConsumer(object):
         if to_match.claimed_id is None:
             return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
 
-        # The claimed ID doesn't match, so we have to do discovery
-        # again. This covers not using sessions, OP identifier
-        # endpoints and responses that didn't match the original
-        # request.
-        if not endpoint:
-            logging.info('No pre-discovered information supplied.')
-            endpoint = self._discoverAndVerify(to_match.claimed_id, to_match)
-        else:
-            # The claimed ID matches, so we use the endpoint that we
-            # discovered in initiation. This should be the most common
-            # case.
-            self._verify_discovery_info(endpoint, to_match)
+        if (endpoint is None or
+            endpoint.claimed_id == IDENTIFIER_SELECT or
+            endpoint.claimed_id != to_match.claimed_id):
+            endpoint = discover(to_match.claimed_id)[0]
+        self._verify_discovery_info(endpoint, to_match)
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
@@ -725,11 +718,12 @@ class GenericConsumer(object):
 
         to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
 
-        if endpoint is not None:
-            self._verify_discovery_info(endpoint, to_match)
-            return endpoint
-        else:
-            return self._discoverAndVerify(claimed_id, to_match)
+        if (endpoint is None or
+            endpoint.claimed_id != to_match.claimed_id):
+            endpoint = discover(to_match.claimed_id)[0]
+
+        self._verify_discovery_info(endpoint, to_match)
+        return endpoint
 
     def _verify_discovery_info(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
@@ -775,41 +769,6 @@ class GenericConsumer(object):
         elif to_match.server_url != endpoint.server_url:
             raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
                                 (to_match.server_url, endpoint.server_url))
-
-    def _discoverAndVerify(self, claimed_id, to_match):
-        """Given an endpoint object created from the information in an
-        OpenID response, perform discovery and verify the discovery
-        results, returning the matching endpoint that is the result of
-        doing that discovery.
-
-        @type to_match: openid.consumer.discover.Service
-        @param to_match: The endpoint whose information we're confirming
-
-        @rtype: openid.consumer.discover.Service
-        @returns: The result of performing discovery on the claimed
-            identifier in `to_match'
-
-        @raises DiscoveryFailure: when discovery fails.
-        """
-        logging.info('Performing discovery on %s' % (claimed_id,))
-        services = discover(claimed_id)
-        failure_messages = []
-        for endpoint in services:
-            try:
-                self._verify_discovery_info(endpoint, to_match)
-            except ProtocolError as why:
-                failure_messages.append(str(why))
-            else:
-                # It matches, so discover verification has
-                # succeeded. Return this endpoint.
-                return endpoint
-        else:
-            logging.error('Discovery verification failure for %s' %
-                        (claimed_id,))
-            for failure_message in failure_messages:
-                logging.error(' * Endpoint mismatch: ' + failure_message)
-
-            raise DiscoveryFailure('No matching endpoint found after discovering %s' % claimed_id)
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.
