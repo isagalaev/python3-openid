@@ -703,7 +703,7 @@ class GenericConsumer(object):
             # discovered in initiation. This should be the most common
             # case.
             try:
-                self._verifyDiscoverySingle(endpoint, to_match)
+                self._verify_discovery_info(endpoint, to_match)
             except ProtocolError as e:
                 logging.exception(
                     "Error attempting to use stored discovery information: " +
@@ -734,7 +734,7 @@ class GenericConsumer(object):
 
         if endpoint is not None:
             try:
-                self._verifyDiscoverySingle(endpoint, to_match)
+                self._verify_discovery_info(endpoint, to_match)
             except ProtocolError as e:
                 logging.exception(
                     "Error attempting to use stored discovery information: " +
@@ -746,7 +746,7 @@ class GenericConsumer(object):
         # Endpoint is either bad (failed verification) or None
         return self._discoverAndVerify(claimed_id, to_match)
 
-    def _verifyDiscoverySingle(self, endpoint, to_match):
+    def _verify_discovery_info(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
         extracted from the OpenID assertion, and raise an exception if
         there is a mismatch.
@@ -813,7 +813,7 @@ class GenericConsumer(object):
         failure_messages = []
         for endpoint in services:
             try:
-                self._verifyDiscoverySingle(endpoint, to_match)
+                self._verify_discovery_info(endpoint, to_match)
             except ProtocolError as why:
                 failure_messages.append(str(why))
             else:

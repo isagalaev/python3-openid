@@ -215,7 +215,7 @@ class TestVerifyDiscoverySingle(TestIdRes):
         to_match.server_url = "http://localhost:8000/openidserver"
         to_match.claimed_id = "http://localhost:8000/id/id-jo"
         to_match.local_id = "http://localhost:8000/id/id-jo"
-        result = self.consumer._verifyDiscoverySingle(endpoint, to_match)
+        result = self.consumer._verify_discovery_info(endpoint, to_match)
         # result should always be None, raises exception on failure.
         self.assertEqual(result, None)
         self.failUnlessLogEmpty()
