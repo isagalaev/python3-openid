@@ -1490,14 +1490,12 @@ class IDPDrivenTest(unittest.TestCase):
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
-class TestDiscoveryVerification(unittest.TestCase):
+class DiscoveryVerification(unittest.TestCase):
     services = []
 
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = GenericConsumer(self.store)
-
-        self.consumer._discover = self.discoveryFunc
 
         self.identifier = "http://unittest/example-xrds.xml"
         self.server_url = "http://unittest/"
@@ -1509,65 +1507,29 @@ class TestDiscoveryVerification(unittest.TestCase):
             'openid.op_endpoint': self.server_url,
             })
 
-        self.endpoint = Service()
-        self.endpoint.server_url = self.server_url
-
-    def test_theGoodStuff(self):
+    def test_prediscovered_match(self):
         endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, self.identifier)
-        self.services = [endpoint]
         r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
-
         self.assertEqual(r, endpoint)
 
-    def test_otherServer(self):
-        text = "verify failed"
+    def test_wrong_server_url(self):
+        endpoint = Service([OPENID_2_0_TYPE], 'wrong', self.identifier, self.identifier)
+        self.assertRaises(
+            DiscoveryFailure,
+            self.consumer._verifyDiscoveryResults, self.message, endpoint
+        )
 
-        def discoverAndVerify(claimed_id, to_match):
-            self.assertEqual(claimed_id, self.identifier)
-            self.assertEqual(claimed_id, to_match.claimed_id)
-            raise ProtocolError(text)
+    def test_wrong_local_id(self):
+        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, 'wrong')
+        self.assertRaises(
+            DiscoveryFailure,
+            self.consumer._verifyDiscoveryResults, self.message, endpoint
+        )
 
-        self.consumer._discoverAndVerify = discoverAndVerify
-
-        # a set of things without the stuff
-        endpoint = Service([OPENID_2_0_TYPE], "http://the-MOON.unittest/", self.identifier, self.identifier)
-        self.services = [endpoint]
-        try:
-            r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
-        except ProtocolError as e:
-            # Should we make more ProtocolError subclasses?
-            self.assertTrue(str(e), text)
-        else:
-            self.fail("expected ProtocolError, %r returned." % (r,))
-
-    def test_foreignDelegate(self):
-        text = "verify failed"
-
-        def discoverAndVerify(claimed_id, to_match):
-            self.assertEqual(claimed_id, self.identifier)
-            self.assertEqual(claimed_id, to_match.claimed_id)
-            raise ProtocolError(text)
-
-        self.consumer._discoverAndVerify = discoverAndVerify
-
-        # a set of things with the server stuff but other delegate
-        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, "http://unittest/juan-carlos")
-        try:
-            r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
-        except ProtocolError as e:
-            self.assertEqual(str(e), text)
-        else:
-            self.fail("Exepected ProtocolError, %r returned" % (r,))
-
-    def test_nothingDiscovered(self):
-        # a set of no things.
-        self.services = []
-        self.assertRaises(DiscoveryFailure,
-                              self.consumer._verifyDiscoveryResults,
-                              self.message, self.endpoint)
-
-    def discoveryFunc(self, identifier):
-        return identifier, self.services
+    def test_nothing_discovered(self):
+        self.assertRaises(
+            DiscoveryFailure,
+            self.consumer._verifyDiscoveryResults, self.message, None)
 
 
 class TestCreateAssociationRequest(unittest.TestCase):
