@@ -11,7 +11,7 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
 from openid import cryptutil, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
-     DiscoveryFailure, OPENID_1_1_TYPE
+     OPENID_1_1_TYPE, OPENID_1_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
@@ -1528,6 +1528,150 @@ class DiscoveryVerification(unittest.TestCase):
             DiscoveryFailure,
             self.consumer._verifyDiscoveryResults, self.message, None
         )
+
+
+class DiscoveryVerificationTest(TestIdRes):
+    def test_openID1NoEndpoint(self):
+        msg = Message.fromOpenIDArgs({'identity': 'snakes on a plane'})
+        self.assertRaises(RuntimeError,
+                              self.consumer._verifyDiscoveryResults, msg)
+        self.failUnlessLogEmpty()
+
+    def test_openID2LocalIDClaimedId(self):
+        variants = [
+            Message.fromOpenIDArgs({
+                'ns': OPENID2_NS,
+                'op_endpoint': 'Phone Home',
+                'identity': 'Jose Lius Borges',
+            }),
+            Message.fromOpenIDArgs({
+                'ns': OPENID2_NS,
+                'op_endpoint': 'Phone Home',
+                'claimed_id': 'Manuel Noriega',
+            }),
+        ]
+        for m in variants:
+            self.assertRaisesRegex(
+                ProtocolError,
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent',
+                self.consumer._verifyDiscoveryResults, m
+            )
+        self.failUnlessLogEmpty()
+
+    def test_openID2NoIdentifiers(self):
+        op_endpoint = 'Phone Home'
+        msg = Message.fromOpenIDArgs({'ns': OPENID2_NS,
+                                              'op_endpoint': op_endpoint})
+        result_endpoint = self.consumer._verifyDiscoveryResults(msg)
+        self.assertTrue(result_endpoint.is_op_identifier())
+        self.assertEqual(op_endpoint, result_endpoint.server_url)
+        self.assertEqual(None, result_endpoint.claimed_id)
+        self.failUnlessLogEmpty()
+
+    def test_openID2NoEndpointDoesDisco(self):
+        op_endpoint = 'Phone Home'
+        sentinel = Service()
+        sentinel.claimed_id = 'monkeysoft'
+        self.consumer._discoverAndVerify = lambda *args, **kwargs: sentinel
+        msg = Message.fromOpenIDArgs(
+            {'ns': OPENID2_NS,
+             'identity': 'sour grapes',
+             'claimed_id': 'monkeysoft',
+             'op_endpoint': op_endpoint})
+        result = self.consumer._verifyDiscoveryResults(msg)
+        self.assertEqual(sentinel, result)
+        self.failUnlessLogMatches('No pre-discovered')
+
+    def test_openid2UsePreDiscovered(self):
+        endpoint = Service([OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
+        msg = Message.fromOpenIDArgs(
+            {'ns': OPENID2_NS,
+             'identity': endpoint.local_id,
+             'claimed_id': endpoint.claimed_id,
+             'op_endpoint': endpoint.server_url})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        self.assertTrue(result is endpoint)
+        self.failUnlessLogEmpty()
+
+    def test_openid1UsePreDiscovered(self):
+        endpoint = Service([OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
+
+        msg = Message.fromOpenIDArgs(
+            {'ns': OPENID1_NS,
+             'identity': endpoint.local_id})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+        self.assertTrue(result is endpoint)
+        self.failUnlessLogEmpty()
+
+    def test_openid1UsePreDiscoveredWrongType(self):
+        endpoint = Service([OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
+        msg = Message.fromOpenIDArgs({
+            'ns': OPENID1_NS,
+            'identity': endpoint.local_id,
+        })
+
+        self.assertRaises(
+            ProtocolError,
+            self.consumer._verifyDiscoveryResults, msg, endpoint)
+
+
+    def test_openid2Fragment(self):
+        claimed_id = "http://unittest.invalid/"
+        claimed_id_frag = claimed_id + "#fragment"
+        endpoint = Service([OPENID_2_0_TYPE], 'Phone Home', claimed_id, 'my identity')
+        msg = Message.fromOpenIDArgs(
+            {'ns': OPENID2_NS,
+             'identity': endpoint.local_id,
+             'claimed_id': claimed_id_frag,
+             'op_endpoint': endpoint.server_url})
+        result = self.consumer._verifyDiscoveryResults(msg, endpoint)
+
+        self.assertEqual(result.local_id, endpoint.local_id)
+        self.assertEqual(result.server_url, endpoint.server_url)
+        self.assertEqual(result.types, endpoint.types)
+
+        self.assertEqual(result.claimed_id, claimed_id_frag)
+
+        self.failUnlessLogEmpty()
+
+    def test_openid1Fallback1_0(self):
+        claimed_id = 'http://claimed.id/'
+        endpoint = None
+        resp_mesg = Message.fromOpenIDArgs({
+            'ns': OPENID1_NS,
+            'identity': claimed_id})
+        # Pass the OpenID 1 claimed_id this way since we're passing
+        # None for the endpoint.
+        resp_mesg.setArg(BARE_NS, 'openid1_claimed_id', claimed_id)
+
+        # We expect the OpenID 1 discovery verification to try
+        # matching the discovered endpoint against the 1.1 type and
+        # fall back to 1.0.
+        expected_endpoint = Service([OPENID_1_0_TYPE], None, claimed_id)
+        discovered_services = [expected_endpoint]
+        with mock.patch('openid.consumer.consumer.discover', lambda x: discovered_services):
+            actual_endpoint = self.consumer._verifyDiscoveryResults(
+                resp_mesg, endpoint)
+            self.assertTrue(actual_endpoint is expected_endpoint)
+
+
+class TestVerifyDiscoverySingle(TestIdRes):
+    # XXX: more test the implementation of _verifyDiscoverySingle
+    def test_endpointWithoutLocalID(self):
+        # An endpoint like this with no local_id is generated as a result of
+        # e.g. Yadis discovery with no LocalID tag.
+        endpoint = Service()
+        endpoint.server_url = "http://localhost:8000/openidserver"
+        endpoint.claimed_id = "http://localhost:8000/id/id-jo"
+        to_match = Service()
+        to_match.server_url = "http://localhost:8000/openidserver"
+        to_match.claimed_id = "http://localhost:8000/id/id-jo"
+        to_match.local_id = "http://localhost:8000/id/id-jo"
+        result = self.consumer._verify_discovery_info(endpoint, to_match)
+        # result should always be None, raises exception on failure.
+        self.assertEqual(result, None)
+        self.failUnlessLogEmpty()
 
 
 class TestCreateAssociationRequest(unittest.TestCase):

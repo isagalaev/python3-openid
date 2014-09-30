@@ -43,7 +43,6 @@ def pyUnitTests():
         'association_response',
         'auth_request',
         'negotiation',
-        'verifydisco',
         'sreg',
         'ax',
         'pape',
