@@ -808,8 +808,6 @@ class GenericConsumer(object):
         """
         logging.info('Performing discovery on %s' % (claimed_id,))
         services = discover(claimed_id)
-        if not services:
-            raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
         failure_messages = []
         for endpoint in services:
             try:
