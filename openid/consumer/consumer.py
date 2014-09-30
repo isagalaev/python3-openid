@@ -205,11 +205,6 @@ __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
 # OpenID2 has a standard parameter for it.
 NONCE_ARG = 'janrain_nonce'
 
-# Another query parameter that gets added to the return_to for
-# OpenID 1; if the user's session state is lost, use this claimed
-# identifier to do discovery when verifying the response.
-IDENTIFIER_ARG = 'openid1_claimed_id'
-
 
 def makeKVPost(request_message, server_url):
     """Make a Direct Request to an OpenID Provider and return the
@@ -349,9 +344,6 @@ class Consumer(object):
 
         request = AuthRequest(service, assoc)
         request.return_to_args[NONCE_ARG] = mkNonce()
-
-        if request.message.isOpenID1():
-            request.return_to_args[IDENTIFIER_ARG] = request.endpoint.claimed_id
 
         self.session[self._token_key] = request.endpoint
 
@@ -705,23 +697,10 @@ class GenericConsumer(object):
         return endpoint
 
     def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
-        claimed_id = resp_msg.getArg(BARE_NS, IDENTIFIER_ARG)
+        if endpoint is None:
+            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
 
-        if endpoint is None and claimed_id is None:
-            raise RuntimeError(
-                'When using OpenID 1, the claimed ID must be supplied, '
-                'either by passing it through as a return_to parameter '
-                'or by using a session, and supplied to the GenericConsumer '
-                'as the argument to complete()')
-        elif endpoint is not None and claimed_id is None:
-            claimed_id = endpoint.claimed_id
-
-        to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
-
-        if (endpoint is None or
-            endpoint.claimed_id != to_match.claimed_id):
-            endpoint = discover(to_match.claimed_id)[0]
-
+        to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, endpoint.claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
         self._verify_discovery_info(endpoint, to_match)
         return endpoint
 

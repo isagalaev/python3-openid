@@ -1517,7 +1517,7 @@ class DiscoveryVerification(unittest.TestCase):
 
     def test_openid1_no_endpoint(self):
         self.assertRaises(
-            RuntimeError,
+            ProtocolError,
             self.consumer._verifyDiscoveryResults, self.message1, None
         )
 
