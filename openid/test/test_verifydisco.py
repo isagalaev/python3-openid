@@ -70,25 +70,6 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         self.assertEqual(sentinel, result)
         self.failUnlessLogMatches('No pre-discovered')
 
-    def test_openID2MismatchedDoesDisco(self):
-        mismatched = discover.Service()
-        mismatched.identity = 'nothing special, but different'
-        mismatched.local_id = 'green cheese'
-
-        op_endpoint = 'Phone Home'
-        sentinel = discover.Service()
-        sentinel.claimed_id = 'monkeysoft'
-        self.consumer._discoverAndVerify = const(sentinel)
-        msg = message.Message.fromOpenIDArgs(
-            {'ns': message.OPENID2_NS,
-             'identity': 'sour grapes',
-             'claimed_id': 'monkeysoft',
-             'op_endpoint': op_endpoint})
-        result = self.consumer._verifyDiscoveryResults(msg, mismatched)
-        self.assertEqual(sentinel, result)
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
-
     def test_openid2UsePreDiscovered(self):
         endpoint = discover.Service([discover.OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
         msg = message.Message.fromOpenIDArgs(
@@ -99,35 +80,6 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         result = self.consumer._verifyDiscoveryResults(msg, endpoint)
         self.assertTrue(result is endpoint)
         self.failUnlessLogEmpty()
-
-    def test_openid2UsePreDiscoveredWrongType(self):
-        text = "verify failed"
-
-        endpoint = discover.Service([discover.OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
-
-        def discoverAndVerify(claimed_id, to_match):
-            self.assertEqual(claimed_id, endpoint.claimed_id)
-            self.assertEqual(claimed_id, to_match.claimed_id)
-            raise consumer.ProtocolError(text)
-
-        self.consumer._discoverAndVerify = discoverAndVerify
-
-        msg = message.Message.fromOpenIDArgs(
-            {'ns': message.OPENID2_NS,
-             'identity': endpoint.local_id,
-             'claimed_id': endpoint.claimed_id,
-             'op_endpoint': endpoint.server_url})
-
-        try:
-            r = self.consumer._verifyDiscoveryResults(msg, endpoint)
-        except consumer.ProtocolError as e:
-            # Should we make more ProtocolError subclasses?
-            self.assertTrue(str(e), text)
-        else:
-            self.fail("expected ProtocolError, %r returned." % (r,))
-
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
 
     def test_openid1UsePreDiscovered(self):
         endpoint = discover.Service([discover.OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
@@ -140,26 +92,16 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
         self.failUnlessLogEmpty()
 
     def test_openid1UsePreDiscoveredWrongType(self):
-        class VerifiedError(Exception):
-            pass
-
-
-        def discoverAndVerify(claimed_id, _to_match):
-            raise VerifiedError
-
-        self.consumer._discoverAndVerify = discoverAndVerify
-
         endpoint = discover.Service([discover.OPENID_2_0_TYPE], 'Phone Home', 'i am sam', 'my identity')
-        msg = message.Message.fromOpenIDArgs(
-            {'ns': message.OPENID1_NS,
-             'identity': endpoint.local_id})
+        msg = message.Message.fromOpenIDArgs({
+            'ns': message.OPENID1_NS,
+            'identity': endpoint.local_id,
+        })
 
         self.assertRaises(
-            VerifiedError,
+            consumer.ProtocolError,
             self.consumer._verifyDiscoveryResults, msg, endpoint)
 
-        self.failUnlessLogMatches('Error attempting to use stored',
-                                  'Attempting discovery')
 
     def test_openid2Fragment(self):
         claimed_id = "http://unittest.invalid/"

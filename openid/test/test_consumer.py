@@ -424,12 +424,10 @@ class Complete(unittest.TestCase):
         }
         self.consumer.consumer.store = GoodAssocStore()
 
+        # Shouldn't rediscover after verifying supplied endpoint
         with mock.patch.object(GenericConsumer, '_discoverAndVerify') as m:
-            with self.assertLogs('', 'INFO') as logs:
-                self.consumer.complete(query, return_to)
-                self.assertIn('Error attempting to use stored', logs.output[0])
-                self.assertIn('Attempting discovery', logs.output[1])
-            self.assertTrue(m.call_count)
+            self.consumer.complete(query, return_to)
+            self.assertFalse(m.call_count)
 
     def test_cancel(self):
         query = _nsdict({'openid.mode': 'cancel'})
@@ -1512,14 +1510,14 @@ class DiscoveryVerification(unittest.TestCase):
     def test_wrong_server_url(self):
         endpoint = Service([OPENID_2_0_TYPE], 'wrong', self.identifier, self.identifier)
         self.assertRaises(
-            DiscoveryFailure,
+            ProtocolError,
             self.consumer._verifyDiscoveryResults, self.message, endpoint
         )
 
     def test_wrong_local_id(self):
         endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, 'wrong')
         self.assertRaises(
-            DiscoveryFailure,
+            ProtocolError,
             self.consumer._verifyDiscoveryResults, self.message, endpoint
         )
 

@@ -702,14 +702,7 @@ class GenericConsumer(object):
             # The claimed ID matches, so we use the endpoint that we
             # discovered in initiation. This should be the most common
             # case.
-            try:
-                self._verify_discovery_info(endpoint, to_match)
-            except ProtocolError as e:
-                logging.exception(
-                    "Error attempting to use stored discovery information: " +
-                    str(e))
-                logging.info("Attempting discovery to verify endpoint")
-                endpoint = self._discoverAndVerify(to_match.claimed_id, to_match)
+            self._verify_discovery_info(endpoint, to_match)
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
@@ -733,18 +726,10 @@ class GenericConsumer(object):
         to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
 
         if endpoint is not None:
-            try:
-                self._verify_discovery_info(endpoint, to_match)
-            except ProtocolError as e:
-                logging.exception(
-                    "Error attempting to use stored discovery information: " +
-                    str(e))
-                logging.info("Attempting discovery to verify endpoint")
-            else:
-                return endpoint
-
-        # Endpoint is either bad (failed verification) or None
-        return self._discoverAndVerify(claimed_id, to_match)
+            self._verify_discovery_info(endpoint, to_match)
+            return endpoint
+        else:
+            return self._discoverAndVerify(claimed_id, to_match)
 
     def _verify_discovery_info(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
