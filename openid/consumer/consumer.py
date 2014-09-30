@@ -697,7 +697,7 @@ class GenericConsumer(object):
         # request.
         if not endpoint:
             logging.info('No pre-discovered information supplied.')
-            endpoint = self._discoverAndVerify(to_match.claimed_id, [to_match])
+            endpoint = self._discoverAndVerify(to_match.claimed_id, to_match)
         else:
             # The claimed ID matches, so we use the endpoint that we
             # discovered in initiation. This should be the most common
@@ -709,8 +709,7 @@ class GenericConsumer(object):
                     "Error attempting to use stored discovery information: " +
                     str(e))
                 logging.info("Attempting discovery to verify endpoint")
-                endpoint = self._discoverAndVerify(
-                    to_match.claimed_id, [to_match])
+                endpoint = self._discoverAndVerify(to_match.claimed_id, to_match)
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
@@ -745,7 +744,7 @@ class GenericConsumer(object):
                 return endpoint
 
         # Endpoint is either bad (failed verification) or None
-        return self._discoverAndVerify(claimed_id, [to_match])
+        return self._discoverAndVerify(claimed_id, to_match)
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
@@ -792,7 +791,7 @@ class GenericConsumer(object):
             raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
                                 (to_match.server_url, endpoint.server_url))
 
-    def _discoverAndVerify(self, claimed_id, to_match_endpoints):
+    def _discoverAndVerify(self, claimed_id, to_match):
         """Given an endpoint object created from the information in an
         OpenID response, perform discovery and verify the discovery
         results, returning the matching endpoint that is the result of
@@ -813,16 +812,14 @@ class GenericConsumer(object):
             raise DiscoveryFailure('No OpenID information found at %s' % claimed_id)
         failure_messages = []
         for endpoint in services:
-            for to_match_endpoint in to_match_endpoints:
-                try:
-                    self._verifyDiscoverySingle(
-                        endpoint, to_match_endpoint)
-                except ProtocolError as why:
-                    failure_messages.append(str(why))
-                else:
-                    # It matches, so discover verification has
-                    # succeeded. Return this endpoint.
-                    return endpoint
+            try:
+                self._verifyDiscoverySingle(endpoint, to_match)
+            except ProtocolError as why:
+                failure_messages.append(str(why))
+            else:
+                # It matches, so discover verification has
+                # succeeded. Return this endpoint.
+                return endpoint
         else:
             logging.error('Discovery verification failure for %s' %
                         (claimed_id,))

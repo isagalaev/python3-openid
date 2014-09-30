@@ -1522,10 +1522,9 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_otherServer(self):
         text = "verify failed"
 
-        def discoverAndVerify(claimed_id, to_match_endpoints):
+        def discoverAndVerify(claimed_id, to_match):
             self.assertEqual(claimed_id, self.identifier)
-            for to_match in to_match_endpoints:
-                self.assertEqual(claimed_id, to_match.claimed_id)
+            self.assertEqual(claimed_id, to_match.claimed_id)
             raise ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify
@@ -1544,10 +1543,9 @@ class TestDiscoveryVerification(unittest.TestCase):
     def test_foreignDelegate(self):
         text = "verify failed"
 
-        def discoverAndVerify(claimed_id, to_match_endpoints):
+        def discoverAndVerify(claimed_id, to_match):
             self.assertEqual(claimed_id, self.identifier)
-            for to_match in to_match_endpoints:
-                self.assertEqual(claimed_id, to_match.claimed_id)
+            self.assertEqual(claimed_id, to_match.claimed_id)
             raise ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify

@@ -105,10 +105,9 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
 
         endpoint = discover.Service([discover.OPENID_1_1_TYPE], 'Phone Home', 'i am sam', 'my identity')
 
-        def discoverAndVerify(claimed_id, to_match_endpoints):
+        def discoverAndVerify(claimed_id, to_match):
             self.assertEqual(claimed_id, endpoint.claimed_id)
-            for to_match in to_match_endpoints:
-                self.assertEqual(claimed_id, to_match.claimed_id)
+            self.assertEqual(claimed_id, to_match.claimed_id)
             raise consumer.ProtocolError(text)
 
         self.consumer._discoverAndVerify = discoverAndVerify
