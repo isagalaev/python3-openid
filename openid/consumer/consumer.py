@@ -665,28 +665,33 @@ class GenericConsumer(object):
         @returns: the verified endpoint
         """
         if resp_msg.getOpenIDNamespace() == OPENID2_NS:
-            return self._verifyDiscoveryResultsOpenID2(resp_msg, endpoint)
+            to_match = Service(
+                [OPENID_2_0_TYPE],
+                resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
+                resp_msg.getArg(OPENID2_NS, 'claimed_id'),
+                resp_msg.getArg(OPENID2_NS, 'identity'),
+            )
+            if (to_match.claimed_id is None) != (to_match.local_id is None):
+                raise ProtocolError(
+                    'openid.identity and openid.claimed_id should be either both '
+                    'present or both absent')
+            if to_match.claimed_id is None:
+                return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
+
+            if (endpoint is None or
+                endpoint.claimed_id == IDENTIFIER_SELECT or
+                endpoint.claimed_id != to_match.claimed_id):
+                endpoint = discover(to_match.claimed_id)[0]
         else:
-            return self._verifyDiscoveryResultsOpenID1(resp_msg, endpoint)
+            if endpoint is None:
+                raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
+            to_match = Service(
+                [OPENID_1_0_TYPE, OPENID_1_1_TYPE],
+                None,
+                endpoint.claimed_id,
+                resp_msg.getArg(OPENID1_NS, 'identity')
+            )
 
-    def _verifyDiscoveryResultsOpenID2(self, resp_msg, endpoint):
-        to_match = Service(
-            [OPENID_2_0_TYPE],
-            resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
-            resp_msg.getArg(OPENID2_NS, 'claimed_id'),
-            resp_msg.getArg(OPENID2_NS, 'identity'),
-        )
-        if (to_match.claimed_id is None) != (to_match.local_id is None):
-            raise ProtocolError(
-                'openid.identity and openid.claimed_id should be either both '
-                'present or both absent')
-        if to_match.claimed_id is None:
-            return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
-
-        if (endpoint is None or
-            endpoint.claimed_id == IDENTIFIER_SELECT or
-            endpoint.claimed_id != to_match.claimed_id):
-            endpoint = discover(to_match.claimed_id)[0]
         self._verify_discovery_info(endpoint, to_match)
 
         # The endpoint we return should have the claimed ID from the
@@ -694,14 +699,7 @@ class GenericConsumer(object):
         if endpoint.claimed_id != to_match.claimed_id:
             endpoint = copy.copy(endpoint)
             endpoint.claimed_id = to_match.claimed_id
-        return endpoint
 
-    def _verifyDiscoveryResultsOpenID1(self, resp_msg, endpoint):
-        if endpoint is None:
-            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
-
-        to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, endpoint.claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
-        self._verify_discovery_info(endpoint, to_match)
         return endpoint
 
     def _verify_discovery_info(self, endpoint, to_match):
