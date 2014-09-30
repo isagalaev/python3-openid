@@ -731,16 +731,11 @@ class GenericConsumer(object):
         elif endpoint is not None and claimed_id is None:
             claimed_id = endpoint.claimed_id
 
-        to_match = Service([OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
-        to_match_1_0 = copy.copy(to_match)
-        to_match_1_0.types = [OPENID_1_0_TYPE]
+        to_match = Service([OPENID_1_0_TYPE, OPENID_1_1_TYPE], None, claimed_id, resp_msg.getArg(OPENID1_NS, 'identity'))
 
         if endpoint is not None:
             try:
-                try:
-                    self._verifyDiscoverySingle(endpoint, to_match)
-                except TypeURIMismatch:
-                    self._verifyDiscoverySingle(endpoint, to_match_1_0)
+                self._verifyDiscoverySingle(endpoint, to_match)
             except ProtocolError as e:
                 logging.exception(
                     "Error attempting to use stored discovery information: " +
@@ -750,7 +745,7 @@ class GenericConsumer(object):
                 return endpoint
 
         # Endpoint is either bad (failed verification) or None
-        return self._discoverAndVerify(claimed_id, [to_match, to_match_1_0])
+        return self._discoverAndVerify(claimed_id, [to_match])
 
     def _verifyDiscoverySingle(self, endpoint, to_match):
         """Verify that the given endpoint matches the information
@@ -765,7 +760,7 @@ class GenericConsumer(object):
         @raises ProtocolError: when the endpoint does not match the
             discovered information.
         """
-        if not set(to_match.types).issubset(set(endpoint.types)):
+        if not any(t in endpoint.types for t in to_match.types):
             raise TypeURIMismatch(to_match, endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
