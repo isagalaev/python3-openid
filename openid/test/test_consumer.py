@@ -1491,23 +1491,24 @@ class IDPDrivenTest(unittest.TestCase):
 class DiscoveryVerification(unittest.TestCase):
     def setUp(self):
         self.consumer = GenericConsumer(None)
-        self.identifier = "http://unittest/example-xrds.xml"
-        self.server_url = "http://unittest/"
+        self.identifier = 'http://unittest/openid2_xrds.xrds'
+        self.local_id = 'http://smoker.myopenid.com/'
+        self.server_url = 'http://www.myopenid.com/server'
         self.message1 = Message.fromPostArgs({
             'openid.ns': OPENID1_NS,
-            'openid.identity': self.identifier,
+            'openid.identity': self.local_id,
         })
         self.message2 = Message.fromPostArgs({
             'openid.ns': OPENID2_NS,
-            'openid.identity': self.identifier,
-            'openid.claimed_id': self.identifier,
             'openid.op_endpoint': self.server_url,
+            'openid.claimed_id': self.identifier,
+            'openid.identity': self.local_id,
         })
         self.endpoint = Service(
             [OPENID_2_0_TYPE],
             self.server_url,
             self.identifier,
-            self.identifier,
+            self.local_id,
         )
 
     def test_prediscovered_match(self):
@@ -1566,7 +1567,7 @@ class DiscoveryVerification(unittest.TestCase):
 
     def test_wrong_info(self):
         endpoints = [
-            Service([OPENID_2_0_TYPE], 'wrong', self.identifier, self.identifier),
+            Service([OPENID_2_0_TYPE], 'wrong', self.identifier, self.local_id),
             Service([OPENID_2_0_TYPE], self.server_url, self.identifier, 'wrong'),
         ]
         for endpoint in endpoints:
@@ -1576,12 +1577,10 @@ class DiscoveryVerification(unittest.TestCase):
             )
 
     def test_rediscover(self):
-        # This will discover information located at claimed_id which
-        # in our case doesn't match the message
-        self.assertRaises(
-            DiscoveryFailure,
-            self.consumer._verifyDiscoveryResults, self.message2, None
-        )
+        with mock.patch('openid.consumer.consumer.discover') as discover:
+            discover.return_value = [self.endpoint]
+            self.consumer._verifyDiscoveryResults(self.message2, None)
+            discover.assert_called_with(self.identifier)
 
 
 class TestCreateAssociationRequest(unittest.TestCase):
