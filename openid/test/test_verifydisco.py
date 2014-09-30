@@ -46,22 +46,25 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
                               self.consumer._verifyDiscoveryResults, msg)
         self.failUnlessLogEmpty()
 
-    def test_openID2LocalIDNoClaimed(self):
-        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
-                                              'op_endpoint': 'Phone Home',
-                                              'identity': 'Jose Lius Borges'})
-        self.failUnlessProtocolError(
-            'openid.identity is present without',
-            self.consumer._verifyDiscoveryResults, msg)
-        self.failUnlessLogEmpty()
-
-    def test_openID2NoLocalIDClaimed(self):
-        msg = message.Message.fromOpenIDArgs({'ns': message.OPENID2_NS,
-                                              'op_endpoint': 'Phone Home',
-                                              'claimed_id': 'Manuel Noriega'})
-        self.failUnlessProtocolError(
-            'openid.claimed_id is present without',
-            self.consumer._verifyDiscoveryResults, msg)
+    def test_openID2LocalIDClaimedId(self):
+        variants = [
+            message.Message.fromOpenIDArgs({
+                'ns': message.OPENID2_NS,
+                'op_endpoint': 'Phone Home',
+                'identity': 'Jose Lius Borges',
+            }),
+            message.Message.fromOpenIDArgs({
+                'ns': message.OPENID2_NS,
+                'op_endpoint': 'Phone Home',
+                'claimed_id': 'Manuel Noriega',
+            }),
+        ]
+        for m in variants:
+            with self.assertRaisesRegex(
+                consumer.ProtocolError,
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent'):
+                self.consumer._verifyDiscoveryResults(m)
         self.failUnlessLogEmpty()
 
     def test_openID2NoIdentifiers(self):

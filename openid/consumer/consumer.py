@@ -684,23 +684,11 @@ class GenericConsumer(object):
             resp_msg.getArg(OPENID2_NS, 'claimed_id'),
             resp_msg.getArg(OPENID2_NS, 'identity'),
         )
-
-        # claimed_id and identifier must both be present or both
-        # be absent
-        if (to_match.claimed_id is None and
-            to_match.local_id is not None):
+        if (to_match.claimed_id is None) != (to_match.local_id is None):
             raise ProtocolError(
-                'openid.identity is present without openid.claimed_id')
-
-        elif (to_match.claimed_id is not None and
-              to_match.local_id is None):
-            raise ProtocolError(
-                'openid.claimed_id is present without openid.identity')
-
-        # This is a response without identifiers, so there's really no
-        # checking that we can do, so return an endpoint that's for
-        # the specified `openid.op_endpoint'
-        elif to_match.claimed_id is None:
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent')
+        if to_match.claimed_id is None:
             return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
 
         # The claimed ID doesn't match, so we have to do discovery
