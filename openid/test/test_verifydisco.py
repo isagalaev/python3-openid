@@ -18,24 +18,13 @@ def const(result):
 
 
 class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
-    def failUnlessProtocolError(self, prefix, callable, *args, **kwargs):
-        try:
-            result = callable(*args, **kwargs)
-        except consumer.ProtocolError as e:
-            e_arg = e.args[0]
-            self.assertTrue(
-                e_arg.startswith(prefix),
-                'Expected message prefix %r, got message %r' % (prefix, e_arg))
-        else:
-            self.fail('Expected ProtocolError with prefix %r, '
-                      'got successful return %r' % (prefix, result))
-
     def test_openID1NoLocalID(self):
         endpoint = discover.Service()
         endpoint.claimed_id = 'bogus'
 
         msg = message.Message.fromOpenIDArgs({})
-        self.failUnlessProtocolError(
+        self.assertRaisesRegex(
+            consumer.ProtocolError,
             'Missing required field openid.identity',
             self.consumer._verifyDiscoveryResults, msg, endpoint)
         self.failUnlessLogEmpty()
@@ -60,11 +49,12 @@ class DiscoveryVerificationTest(OpenIDTestMixin, TestIdRes):
             }),
         ]
         for m in variants:
-            with self.assertRaisesRegex(
+            self.assertRaisesRegex(
                 consumer.ProtocolError,
                 'openid.identity and openid.claimed_id should be either both '
-                'present or both absent'):
-                self.consumer._verifyDiscoveryResults(m)
+                'present or both absent',
+                self.consumer._verifyDiscoveryResults, m
+            )
         self.failUnlessLogEmpty()
 
     def test_openID2NoIdentifiers(self):
