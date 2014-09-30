@@ -1491,11 +1491,8 @@ class IDPDrivenTest(unittest.TestCase):
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class DiscoveryVerification(unittest.TestCase):
-    services = []
-
     def setUp(self):
-        self.store = GoodAssocStore()
-        self.consumer = GenericConsumer(self.store)
+        self.consumer = GenericConsumer(None)
 
         self.identifier = "http://unittest/example-xrds.xml"
         self.server_url = "http://unittest/"
@@ -1526,12 +1523,13 @@ class DiscoveryVerification(unittest.TestCase):
             self.consumer._verifyDiscoveryResults, self.message, endpoint
         )
 
-    def test_nothing_discovered(self):
+    def test_rediscover(self):
         # This will discover information located at claimed_id which
         # in our case doesn't match the message
         self.assertRaises(
             DiscoveryFailure,
-            self.consumer._verifyDiscoveryResults, self.message, None)
+            self.consumer._verifyDiscoveryResults, self.message, None
+        )
 
 
 class TestCreateAssociationRequest(unittest.TestCase):
