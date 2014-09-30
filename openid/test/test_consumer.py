@@ -1491,53 +1491,50 @@ class IDPDrivenTest(unittest.TestCase):
 class DiscoveryVerification(unittest.TestCase):
     def setUp(self):
         self.consumer = GenericConsumer(None)
-
         self.identifier = "http://unittest/example-xrds.xml"
         self.server_url = "http://unittest/"
-
-        self.message = Message.fromPostArgs(_nsdict({
+        self.message1 = Message.fromPostArgs({
+            'openid.ns': OPENID1_NS,
+            'openid.identity': self.identifier,
+        })
+        self.message2 = Message.fromPostArgs({
+            'openid.ns': OPENID2_NS,
             'openid.identity': self.identifier,
             'openid.claimed_id': self.identifier,
             'openid.op_endpoint': self.server_url,
-        }))
+        })
+        self.endpoint = Service(
+            [OPENID_2_0_TYPE],
+            self.server_url,
+            self.identifier,
+            self.identifier,
+        )
 
     def test_prediscovered_match(self):
-        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, self.identifier)
-        r = self.consumer._verifyDiscoveryResults(self.message, endpoint)
-        self.assertEqual(r, endpoint)
+        result = self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
+        self.assertEqual(result, self.endpoint)
 
     def test_openid1_prediscovered_match(self):
-        endpoint = Service([OPENID_1_1_TYPE], self.server_url, self.identifier, self.identifier)
-        message = Message.fromOpenIDArgs({
-            'ns': OPENID1_NS,
-            'identity': self.identifier,
-        })
-        result = self.consumer._verifyDiscoveryResults(message, endpoint)
-        self.assertTrue(result is endpoint)
+        self.endpoint.types = [OPENID_1_1_TYPE]
+        result = self.consumer._verifyDiscoveryResults(self.message1, self.endpoint)
+        self.assertEqual(result, self.endpoint)
 
     def test_fragment(self):
         claimed_id = self.identifier + '#fragment'
-        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, self.identifier)
-        self.message.setArg(OPENID2_NS, 'claimed_id', claimed_id)
-        result = self.consumer._verifyDiscoveryResults(self.message, endpoint)
+        self.message2.setArg(OPENID2_NS, 'claimed_id', claimed_id)
+        result = self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
         self.assertEqual(result.claimed_id, claimed_id)
 
     def test_prediscovered_wrong_type(self):
-        endpoint = Service([OPENID_2_0_TYPE], self.server_url, self.identifier, self.identifier)
-        message = Message.fromOpenIDArgs({
-            'ns': OPENID1_NS,
-            'identity': self.identifier,
-        })
         self.assertRaises(
             ProtocolError,
-            self.consumer._verifyDiscoveryResults, message, endpoint
+            self.consumer._verifyDiscoveryResults, self.message1, self.endpoint
         )
 
     def test_openid1_no_endpoint(self):
-        message = Message.fromPostArgs({'openid.identity': 'identity'})
         self.assertRaises(
             RuntimeError,
-            self.consumer._verifyDiscoveryResults, message
+            self.consumer._verifyDiscoveryResults, self.message1, None
         )
 
     def test_openid2_claimed_id_local_id(self):
@@ -1560,9 +1557,9 @@ class DiscoveryVerification(unittest.TestCase):
             )
 
     def test_openid2_no_claimed_id(self):
-        self.message.delArg(OPENID2_NS, 'claimed_id')
-        self.message.delArg(OPENID2_NS, 'identity')
-        endpoint = self.consumer._verifyDiscoveryResults(self.message)
+        self.message2.delArg(OPENID2_NS, 'claimed_id')
+        self.message2.delArg(OPENID2_NS, 'identity')
+        endpoint = self.consumer._verifyDiscoveryResults(self.message2, None)
         self.assertTrue(endpoint.is_op_identifier())
         self.assertEqual(self.server_url, endpoint.server_url)
         self.assertEqual(None, endpoint.claimed_id)
@@ -1575,7 +1572,7 @@ class DiscoveryVerification(unittest.TestCase):
         for endpoint in endpoints:
             self.assertRaises(
                 ProtocolError,
-                self.consumer._verifyDiscoveryResults, self.message, endpoint
+                self.consumer._verifyDiscoveryResults, self.message2, endpoint
             )
 
     def test_rediscover(self):
@@ -1583,7 +1580,7 @@ class DiscoveryVerification(unittest.TestCase):
         # in our case doesn't match the message
         self.assertRaises(
             DiscoveryFailure,
-            self.consumer._verifyDiscoveryResults, self.message, None
+            self.consumer._verifyDiscoveryResults, self.message2, None
         )
 
 
