@@ -14,7 +14,7 @@ from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
-     SuccessResponse, SetupNeededResponse, CancelResponse, \
+     SuccessResponse, SetupNeededResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
      ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError
@@ -409,6 +409,12 @@ class Complete(unittest.TestCase):
             self.consumer.complete(query, self.return_to)
         self.assertEqual(cm.exception.args[0], 'failed')
         self.assertEqual(cm.exception.response.getArg(OPENID2_NS, 'contact'), 'contact')
+
+    def test_cancel(self):
+        query = _nsdict({'openid.mode': 'cancel'})
+        with self.assertRaises(AuthenticationError) as cm:
+            self.consumer.complete(query, self.return_to)
+
 
     def test_missing_field(self):
         query = _nsdict({'openid.mode': 'id_res'})

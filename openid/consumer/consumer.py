@@ -354,16 +354,14 @@ class Consumer(object):
         message = Message.fromPostArgs(query)
         endpoint = self.session.pop(self._token_key, None)
         mode = message.getArg(OPENID_NS, 'mode', '')
+        if mode in ['cancel', 'error']:
+            if mode == 'cancel':
+                error = 'Authentication cancelled by OpenID provider'
+            raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
         method = getattr(self, '_complete_' + mode, None)
         if method is None:
             raise AuthenticationError('Mode missing or invalid', message)
         return method(message, endpoint, current_url)
-
-    def _complete_cancel(self, message, endpoint, _):
-        return CancelResponse(endpoint)
-
-    def _complete_error(self, message, endpoint, _):
-        raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
 
     def _complete_setup_needed(self, message, endpoint, _):
         if not message.isOpenID2():
@@ -1335,14 +1333,6 @@ class SuccessResponse(Response):
             self.__class__.__module__,
             self.__class__.__name__,
             self.identity(), self.signed_fields)
-
-
-class CancelResponse(Response):
-    """Indicates that the user
-    cancelled the OpenID authentication request.
-    """
-
-    status = 'cancel'
 
 
 class SetupNeededResponse(Response):
