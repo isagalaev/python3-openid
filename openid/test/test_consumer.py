@@ -11,7 +11,7 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
 from openid import cryptutil, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
 from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
-     OPENID_1_1_TYPE, OPENID_1_0_TYPE, DiscoveryFailure
+     OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
      SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
@@ -307,13 +307,6 @@ class TestIdRes(unittest.TestCase, CatchLogs):
         self.endpoint = Service([OPENID_1_1_TYPE], self.server_url, self.consumer_id, self.server_id)
         self.new_consumer.session[self.new_consumer._token_key] = self.endpoint
 
-    def disableDiscoveryVerification(self):
-        """Set the discovery verification to a no-op for test cases in
-        which we don't care."""
-        def dummyVerifyDiscover(_, endpoint):
-            return endpoint
-        self.consumer._verifyDiscoveryResults = dummyVerifyDiscover
-
 class TestIdResCheckSignature(TestIdRes):
     def setUp(self):
         TestIdRes.setUp(self)
@@ -468,16 +461,12 @@ class TestCompleteMissingSig(unittest.TestCase):
             'openid.op_endpoint': self.server_url,
         })
 
-        self.endpoint = Service()
-        self.endpoint.server_url = self.server_url
-        self.endpoint.claimed_id = claimed_id
+        self.endpoint = Service([OPENID_2_0_TYPE], self.server_url, claimed_id)
         self.consumer.session[self.consumer._token_key] = self.endpoint
 
     def test_idResMissingNoSigs(self):
-        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults',
-                               return_value=self.endpoint):
-            r = self.consumer.complete(self.query, self.return_to)
-            self.assertEqual(r.status, 'success')
+        r = self.consumer.complete(self.query, self.return_to)
+        self.assertEqual(r.status, 'success')
 
     def test_idResNoIdentity(self):
         del self.query['openid.identity']
@@ -869,7 +858,6 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
     def setUp(self):
         TestIdRes.setUp(self)
         CatchLogs.setUp(self)
-        self.disableDiscoveryVerification()
 
     def test_checkAuthTriggered(self):
         query = {
@@ -1426,48 +1414,38 @@ class Cleanup(unittest.TestCase):
         self.assertFalse(self.discovery.getManager() is None, manager)
 
 
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class IDPDrivenTest(unittest.TestCase):
     def setUp(self):
         self.store = GoodAssocStore()
         self.consumer = Consumer({}, self.store)
-        self.endpoint = Service([], 'http://idp.unittest/')
+        self.endpoint = Service([OPENID_IDP_2_0_TYPE], 'http://unittest/')
         self.consumer.session[self.consumer._token_key] = self.endpoint
+        self.return_to = 'http://unittest/complete'
+        self.query = _nsdict({
+            'openid.mode': 'id_res',
+            'openid.return_to': self.return_to,
+            'openid.op_endpoint': 'http://www.myopenid.com/server',
+            'openid.claimed_id': 'http://unittest/openid2_xrds.xrds',
+            'openid.identity': 'http://smoker.myopenid.com/',
+            'openid.response_nonce': mkNonce(),
+            'openid.assoc_handle': 'z',
+            'openid.signed': 'return_to,identity,response_nonce,claimed_id,assoc_handle,op_endpoint',
+            'openid.sig': GOODSIG,
+        })
 
     def test_idpDrivenBegin(self):
         # Testing here that the token-handling doesn't explode...
         self.consumer.beginWithoutDiscovery(self.endpoint)
 
     def test_idpDrivenComplete(self):
-        identifier = '=directed_identifier'
-        return_to = 'http://unittest/complete'
-        query = _success_query(identifier, return_to)
-
-        discovered_endpoint = Service()
-        discovered_endpoint.claimed_id = identifier
-        discovered_endpoint.server_url = self.endpoint.server_url
-        discovered_endpoint.local_id = identifier
-        iverified = []
-
-        def verifyDiscoveryResults(self, identifier, endpoint):
-            iverified.append(discovered_endpoint)
-            return discovered_endpoint
-
-        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults', verifyDiscoveryResults):
-            response = self.consumer.complete(query, return_to)
-
+        response = self.consumer.complete(self.query, self.return_to)
         self.assertEqual(response.status, 'success', str(response))
-        self.assertEqual(response.identity(), identifier)
-
-        # assert that discovery attempt happens and returns good
-        self.assertEqual(iverified, [discovered_endpoint])
 
     def test_idpDrivenCompleteFraud(self):
-        return_to = 'http://unittest/complete'
-        query = _success_query('=directed_identifier', return_to)
-        with mock.patch.object(GenericConsumer, '_verifyDiscoveryResults') as m:
-            m.side_effect = DiscoveryFailure
-            response = self.consumer.complete(query, return_to)
-        self.assertEqual(response.status, 'failure')
+        self.query['openid.claimed_id'] = 'http://unittest/openid2_xrds_no_local_id.xrds'
+        response = self.consumer.complete(self.query, self.return_to)
+        self.assertEqual(response.status, 'failure', str(response))
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
@@ -1495,30 +1473,30 @@ class DiscoveryVerification(unittest.TestCase):
         )
 
     def test_prediscovered_match(self):
-        result = self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
+        result = self.consumer._verify_openid2(self.message2, self.endpoint)
         self.assertEqual(result, self.endpoint)
 
     def test_openid1_prediscovered_match(self):
         self.endpoint.types = [OPENID_1_1_TYPE]
-        result = self.consumer._verifyDiscoveryResults(self.message1, self.endpoint)
+        result = self.consumer._verify_openid1(self.message1, self.endpoint)
         self.assertEqual(result, self.endpoint)
 
     def test_fragment(self):
         claimed_id = self.identifier + '#fragment'
         self.message2.setArg(OPENID2_NS, 'claimed_id', claimed_id)
-        result = self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
+        result = self.consumer._verify_openid2(self.message2, self.endpoint)
         self.assertEqual(result.claimed_id, claimed_id)
 
     def test_prediscovered_wrong_type(self):
         self.assertRaises(
             ProtocolError,
-            self.consumer._verifyDiscoveryResults, self.message1, self.endpoint
+            self.consumer._verify_openid1, self.message1, self.endpoint
         )
 
     def test_openid1_no_endpoint(self):
         self.assertRaises(
             ProtocolError,
-            self.consumer._verifyDiscoveryResults, self.message1, None
+            self.consumer._verify_openid1, self.message1, None
         )
 
     def test_openid2_claimed_id_local_id(self):
@@ -1537,13 +1515,13 @@ class DiscoveryVerification(unittest.TestCase):
                 ProtocolError,
                 'openid.identity and openid.claimed_id should be either both '
                 'present or both absent',
-                self.consumer._verifyDiscoveryResults, Message.fromPostArgs(_nsdict(q))
+                self.consumer._verify_openid2, Message.fromPostArgs(_nsdict(q)), self.endpoint,
             )
 
     def test_openid2_no_claimed_id(self):
         self.message2.delArg(OPENID2_NS, 'claimed_id')
         self.message2.delArg(OPENID2_NS, 'identity')
-        endpoint = self.consumer._verifyDiscoveryResults(self.message2, None)
+        endpoint = self.consumer._verify_openid2(self.message2, None)
         self.assertTrue(endpoint.is_op_identifier())
         self.assertEqual(self.server_url, endpoint.server_url)
         self.assertEqual(None, endpoint.claimed_id)
@@ -1556,17 +1534,17 @@ class DiscoveryVerification(unittest.TestCase):
         for endpoint in endpoints:
             self.assertRaises(
                 ProtocolError,
-                self.consumer._verifyDiscoveryResults, self.message2, endpoint
+                self.consumer._verify_openid2, self.message2, endpoint
             )
 
     def test_rediscover(self):
         with mock.patch('openid.consumer.consumer.discover') as discover:
             discover.return_value = [self.endpoint]
-            self.consumer._verifyDiscoveryResults(self.message2, None)
+            self.consumer._verify_openid2(self.message2, None)
             discover.assert_called_once_with(self.identifier)
 
             discover.reset_mock()
-            self.consumer._verifyDiscoveryResults(self.message2, self.endpoint)
+            self.consumer._verify_openid2(self.message2, self.endpoint)
             self.assertFalse(discover.call_count)
 
 

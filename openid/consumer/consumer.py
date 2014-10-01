@@ -431,7 +431,10 @@ class Consumer(object):
             return FailureResponse(endpoint, errors)
         try:
             # Verify discovery information:
-            endpoint = self.consumer._verifyDiscoveryResults(message, endpoint)
+            if message.getOpenIDNamespace() == OPENID2_NS:
+                endpoint = self.consumer._verify_openid2(message, endpoint)
+            else:
+                endpoint = self.consumer._verify_openid1(message, endpoint)
             logging.info("Received id_res response from %s using association %s" %
                         (endpoint.server_url,
                          message.getArg(OPENID_NS, 'assoc_handle')))
@@ -545,16 +548,12 @@ class TypeURIMismatch(ProtocolError):
     """A protocol error arising from type URIs mismatching
     """
 
-    def __init__(self, expected, endpoint):
-        ProtocolError.__init__(self, expected, endpoint)
-        self.expected = expected
+    def __init__(self, endpoint):
+        ProtocolError.__init__(self, endpoint)
         self.endpoint = endpoint
 
     def __str__(self):
-        s = '<%s.%s: Required type %s not found in %s for endpoint %s>' % (
-            self.__class__.__module__, self.__class__.__name__,
-            self.expected, self.endpoint.types, self.endpoint)
-        return s
+        return 'Wrong service type: %s' % self.endpoint
 
 
 class ServerError(Exception):
@@ -654,7 +653,19 @@ class GenericConsumer(object):
             if not self._checkAuth(message, server_url):
                 raise ProtocolError('Server denied check_authentication')
 
-    def _verifyDiscoveryResults(self, resp_msg, endpoint=None):
+    def _verify_openid1(self, resp_msg, endpoint):
+        if endpoint is None:
+            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
+
+        if not any(t in endpoint.types for t in [OPENID_1_0_TYPE, OPENID_1_1_TYPE]):
+            raise TypeURIMismatch(endpoint)
+
+        if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
+            raise ProtocolError('Got bad identity: %s' % endpoint.identity())
+
+        return endpoint
+
+    def _verify_openid2(self, resp_msg, endpoint):
         """
         Extract the information from an OpenID assertion message and
         verify it against the original
@@ -664,58 +675,25 @@ class GenericConsumer(object):
 
         @returns: the verified endpoint
         """
-        if resp_msg.getOpenIDNamespace() == OPENID2_NS:
-            to_match = Service(
-                [OPENID_2_0_TYPE],
-                resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
-                resp_msg.getArg(OPENID2_NS, 'claimed_id'),
-                resp_msg.getArg(OPENID2_NS, 'identity'),
-            )
-            if (to_match.claimed_id is None) != (to_match.local_id is None):
-                raise ProtocolError(
-                    'openid.identity and openid.claimed_id should be either both '
-                    'present or both absent')
-            if to_match.claimed_id is None:
-                return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
+        to_match = Service(
+            [OPENID_2_0_TYPE],
+            resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
+            resp_msg.getArg(OPENID2_NS, 'claimed_id'),
+            resp_msg.getArg(OPENID2_NS, 'identity'),
+        )
+        if (to_match.claimed_id is None) != (to_match.local_id is None):
+            raise ProtocolError(
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent')
+        if to_match.claimed_id is None:
+            return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
 
-            if (endpoint is None or
-                endpoint.claimed_id == IDENTIFIER_SELECT or
-                endpoint.claimed_id != to_match.claimed_id):
-                endpoint = discover(to_match.claimed_id)[0]
-        else:
-            if endpoint is None:
-                raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
-            to_match = Service(
-                [OPENID_1_0_TYPE, OPENID_1_1_TYPE],
-                None,
-                endpoint.claimed_id,
-                resp_msg.getArg(OPENID1_NS, 'identity')
-            )
+        if (endpoint is None or
+            endpoint.claimed_id == IDENTIFIER_SELECT or
+            endpoint.claimed_id != to_match.claimed_id):
+            endpoint = discover(to_match.claimed_id)[0]
 
-        self._verify_discovery_info(endpoint, to_match)
-
-        # The endpoint we return should have the claimed ID from the
-        # message we just verified, fragment and all.
-        if endpoint.claimed_id != to_match.claimed_id:
-            endpoint = copy.copy(endpoint)
-            endpoint.claimed_id = to_match.claimed_id
-
-        return endpoint
-
-    def _verify_discovery_info(self, endpoint, to_match):
-        """Verify that the given endpoint matches the information
-        extracted from the OpenID assertion, and raise an exception if
-        there is a mismatch.
-
-        @type endpoint: openid.consumer.discover.Service
-        @type to_match: openid.consumer.discover.Service
-
-        @rtype: NoneType
-
-        @raises ProtocolError: when the endpoint does not match the
-            discovered information.
-        """
-        if not any(t in endpoint.types for t in to_match.types):
+        if OPENID_2_0_TYPE not in endpoint.types:
             raise TypeURIMismatch(to_match, endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
@@ -731,21 +709,17 @@ class GenericConsumer(object):
             raise ProtocolError('local_id mismatch. Expected %s, got %s' %
                                 (to_match.identity(), endpoint.identity()))
 
-        # If the server URL is None, this must be an OpenID 1
-        # response, because op_endpoint is a required parameter in
-        # OpenID 2. In that case, we don't actually care what the
-        # discovered server_url is, because signature checking or
-        # check_auth should take care of that check for us.
-        if to_match.server_url is None:
-            assert to_match.ns() == OPENID1_NS, (
-                """The code calling this must ensure that OpenID 2
-                responses have a non-none `openid.op_endpoint' and
-                that it is set as the `server_url' attribute of the
-                `to_match' endpoint.""")
-
-        elif to_match.server_url != endpoint.server_url:
+        if to_match.server_url != endpoint.server_url:
             raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
                                 (to_match.server_url, endpoint.server_url))
+
+        # The endpoint we return should have the claimed ID from the
+        # message we just verified, fragment and all.
+        if endpoint.claimed_id != to_match.claimed_id:
+            endpoint = copy.copy(endpoint)
+            endpoint.claimed_id = to_match.claimed_id
+
+        return endpoint
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.
