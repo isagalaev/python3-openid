@@ -190,10 +190,6 @@ from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
 
 
-__all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
-           'SetupNeededResponse', 'CancelResponse', 'FailureResponse',
-           ]
-
 # The name of the query parameter that gets added to the return_to
 # URL when using OpenID1. Don't make it start with 'openid',
 # because it's not a standard protocol thing for OpenID1.
@@ -353,41 +349,25 @@ class Consumer(object):
 
         @returns: a subclass of Response. The type of response is
             indicated by the status attribute, which will be one of
-            'success', 'cancel', 'failure', or 'setup_needed'.
-
-        @see: L{SuccessResponse<openid.consumer.consumer.SuccessResponse>}
-        @see: L{CancelResponse<openid.consumer.consumer.CancelResponse>}
-        @see: L{SetupNeededResponse<openid.consumer.consumer.SetupNeededResponse>}
-        @see: L{FailureResponse<openid.consumer.consumer.FailureResponse>}
+            'success', 'cancel', or 'setup_needed'.
         """
         message = Message.fromPostArgs(query)
-        endpoint = self.session.get(self._token_key)
-        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
-        modeMethod = getattr(self, '_complete_' + mode,
-                             self._completeInvalid)
-        response = modeMethod(message, endpoint, current_url)
-
-        try:
-            del self.session[self._token_key]
-        except KeyError:
-            pass
-
-        return response
+        endpoint = self.session.pop(self._token_key, None)
+        mode = message.getArg(OPENID_NS, 'mode', '')
+        method = getattr(self, '_complete_' + mode, None)
+        if method is None:
+            raise VerificationError('Mode missing or invalid', message)
+        return method(message, endpoint, current_url)
 
     def _complete_cancel(self, message, endpoint, _):
         return CancelResponse(endpoint)
 
     def _complete_error(self, message, endpoint, _):
-        error = message.getArg(OPENID_NS, 'error')
-        contact = message.getArg(OPENID_NS, 'contact')
-        reference = message.getArg(OPENID_NS, 'reference')
-
-        return FailureResponse(endpoint, error, contact=contact,
-                               reference=reference)
+        raise VerificationError(message.getArg(OPENID_NS, 'error'), message)
 
     def _complete_setup_needed(self, message, endpoint, _):
         if not message.isOpenID2():
-            return self._completeInvalid(message, endpoint, _)
+            raise VerificationError('Invalid mode: setup_needed', message)
 
         user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
         return SetupNeededResponse(endpoint, user_setup_url)
@@ -400,26 +380,16 @@ class Consumer(object):
         errors.extend(message.validate_return_to(return_to))
         func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
         errors.extend(getattr(self, func)(message, endpoint))
-        # more to come
         if errors:
-            return FailureResponse(endpoint, errors)
-        try:
-            self._idResCheckSignature(message, endpoint.server_url)
+            raise VerificationError('Verification failed:\n%s' % '\n'.join(errors), message)
+        # These would raise VerificationError themselves
+        self._idResCheckSignature(message, endpoint.server_url)
+        self._idResCheckNonce(message, endpoint)
 
-            # Will raise a ProtocolError if the nonce is bad
-            self._idResCheckNonce(message, endpoint)
-
-            signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
-            signed_list = signed_list_str.split(',')
-            signed_fields = ["openid." + s for s in signed_list]
-            return SuccessResponse(endpoint, message, signed_fields)
-        except (ProtocolError, discover.DiscoveryFailure) as why:
-            return FailureResponse(endpoint, str(why))
-
-    def _completeInvalid(self, message, endpoint, _):
-        mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
-        return FailureResponse(endpoint,
-                               'Invalid openid.mode: %r' % (mode,))
+        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
+        signed_list = signed_list_str.split(',')
+        signed_fields = ["openid." + s for s in signed_list]
+        return SuccessResponse(endpoint, message, signed_fields)
 
     def _idResCheckNonce(self, message, endpoint):
         if message.isOpenID1():
@@ -430,16 +400,16 @@ class Consumer(object):
             server_url = endpoint.server_url
 
         if nonce is None:
-            raise ProtocolError('Nonce missing from response')
+            raise VerificationError('Nonce missing from response', message)
 
         try:
             timestamp, salt = splitNonce(nonce)
         except ValueError as why:
-            raise ProtocolError('Malformed nonce: %s' % (why,))
+            raise VerificationError('Malformed nonce: %s' % why, message)
 
         if (self.consumer.store is not None and
             not self.consumer.store.useNonce(server_url, timestamp, salt)):
-            raise ProtocolError('Nonce already used or out of range')
+            raise VerificationError('Nonce already used or out of range', message)
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -455,11 +425,11 @@ class Consumer(object):
                 # automatically opens the possibility for
                 # denial-of-service by a server that just returns expired
                 # associations (or really short-lived associations)
-                raise ProtocolError(
-                    'Association with %s expired' % (server_url,))
+                raise VerificationError(
+                    'Association with %s expired' % server_url, message)
 
             if not assoc.checkMessageSignature(message):
-                raise ProtocolError('Bad signature')
+                raise VerificationError('Bad signature', message)
 
         else:
             # It's not an association we know about.  Stateless mode is our
@@ -467,13 +437,13 @@ class Consumer(object):
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
             if not self.consumer._checkAuth(message, server_url):
-                raise ProtocolError('Server denied check_authentication')
+                raise VerificationError('Server denied check_authentication', message)
 
     def _verify_openid1(self, resp_msg, endpoint):
         if endpoint is None:
-            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
+            raise VerificationError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
         if not endpoint.compat_mode():
-            raise ProtocolError('Expected an OpenID 2 response', resp_msg)
+            raise VerificationError('Expected an OpenID 2 response', resp_msg)
 
         errors = []
 
@@ -486,14 +456,14 @@ class Consumer(object):
         claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
 
         if endpoint is None and not claimed_id:
-            raise ProtocolError(
+            raise VerificationError(
                 'Can\'t verify discovered info without a stored endpoint or '
                 'claimed_id', resp_msg
             )
         if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
             endpoint = discover.discover(claimed_id)
         if endpoint.compat_mode():
-            raise ProtocolError('Expected an OpenID 1 response', resp_msg)
+            raise VerificationError('Expected an OpenID 1 response', resp_msg)
 
         errors = []
 
@@ -601,16 +571,14 @@ class ProtocolError(ValueError):
     protocol. It is raised and caught internally to this file."""
 
 
-class TypeURIMismatch(ProtocolError):
-    """A protocol error arising from type URIs mismatching
-    """
-
-    def __init__(self, endpoint):
-        ProtocolError.__init__(self, endpoint)
-        self.endpoint = endpoint
-
-    def __str__(self):
-        return 'Wrong service type: %s' % self.endpoint
+class VerificationError(ValueError):
+    '''
+    Exception that indicates that a message processed by Consumer.complete
+    violated the protocol.
+    '''
+    def __init__(self, message, response):
+        super().__init__(message)
+        self.response = response
 
 
 class ServerError(Exception):
@@ -1367,29 +1335,6 @@ class SuccessResponse(Response):
             self.__class__.__module__,
             self.__class__.__name__,
             self.identity(), self.signed_fields)
-
-
-class FailureResponse(Response):
-    """Indicates that the OpenID
-    protocol has failed. This could be locally or remotely triggered.
-
-    @ivar message: A message indicating why the request failed, if one
-        is supplied. otherwise, None.
-    """
-
-    status = 'failure'
-
-    def __init__(self, endpoint, message=None, contact=None,
-                 reference=None):
-        super().__init__(endpoint)
-        self.message = message
-        self.contact = contact
-        self.reference = reference
-
-    def __repr__(self):
-        return "<%s.%s id=%r message=%r>" % (
-            self.__class__.__module__, self.__class__.__name__,
-            self.identity(), self.message)
 
 
 class CancelResponse(Response):

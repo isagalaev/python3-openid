@@ -14,10 +14,10 @@ from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
-     SuccessResponse, FailureResponse, SetupNeededResponse, CancelResponse, \
+     SuccessResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost, NONCE_ARG
+     ProtocolError, makeKVPost, NONCE_ARG, VerificationError
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -318,7 +318,7 @@ class TestIdResCheckSignature(TestIdRes):
     def test_signFailsWithBadSig(self):
         self.message.setArg(OPENID_NS, 'sig', 'BAD SIGNATURE')
         self.assertRaises(
-            ProtocolError, self.new_consumer._idResCheckSignature,
+            VerificationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -335,7 +335,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.assertRaises(
-            ProtocolError, self.new_consumer._idResCheckSignature,
+            VerificationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -354,7 +354,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.consumer.store = None
         self.assertRaises(
-            ProtocolError, self.new_consumer._idResCheckSignature,
+            VerificationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
 
@@ -404,28 +404,22 @@ class Complete(unittest.TestCase):
             'openid.mode': 'error',
             'openid.error': 'failed',
             'openid.contact': 'contact',
-            'openid.reference': 'reference',
         })
-        response = self.consumer.complete(query, self.return_to)
-        self.assertEqual(response.status, 'failure')
-        self.assertEqual(response.message, 'failed')
-        self.assertEqual(response.contact, 'contact')
-        self.assertEqual(response.reference, 'reference')
-
-    def test_default_attributes(self):
-        query = _nsdict({'openid.mode': 'error'})
-        response = self.consumer.complete(query, self.return_to)
-        self.assertIsNone(response.message)
+        with self.assertRaises(VerificationError) as cm:
+            self.consumer.complete(query, self.return_to)
+        self.assertEqual(cm.exception.args[0], 'failed')
+        self.assertEqual(cm.exception.response.getArg(OPENID2_NS, 'contact'), 'contact')
 
     def test_missing_field(self):
         query = _nsdict({'openid.mode': 'id_res'})
-        response = self.consumer.complete(query, self.return_to)
-        self.assertEqual(response.status, 'failure')
-        self.assertTrue('return_to' in response.message[0])
+        self.assertRaises(VerificationError,
+            self.consumer.complete, query, self.return_to
+        )
 
     def test_no_mode(self):
-        response = self.consumer.complete({}, self.return_to)
-        self.assertEqual(response.status, 'failure')
+        self.assertRaises(VerificationError,
+            self.consumer.complete, {}, self.return_to
+        )
 
 
 class TestCompleteMissingSig(unittest.TestCase):
@@ -466,23 +460,27 @@ class TestCompleteMissingSig(unittest.TestCase):
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
-        r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'failure')
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.query, self.return_to
+        )
 
     def test_idResMissingReturnToSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,assoc_handle,claimed_id'
-        r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'failure')
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.query, self.return_to
+        )
 
     def test_idResMissingAssocHandleSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,claimed_id'
-        r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'failure')
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.query, self.return_to
+        )
 
     def test_idResMissingClaimedIDSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
-        r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'failure')
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.query, self.return_to
+        )
 
 
 class TestCheckAuthResponse(TestIdRes, CatchLogs):
@@ -627,9 +625,10 @@ class TestSetupNeeded(TestIdRes):
     def test_setupNeededDoesntWorkForOpenID1(self):
         query = {'openid.mode': 'setup_needed'}
         self.assertIsNone(Message.fromPostArgs(query).setup_url())
-        response = self.new_consumer.complete(query, None)
-        self.assertEqual('failure', response.status)
-        self.assertTrue(response.message.startswith('Invalid openid.mode'))
+        self.assertRaisesRegex(
+            VerificationError, '^Invalid mode',
+            self.new_consumer.complete, query, None,
+        )
 
     def test_noSetupNeededOpenID2(self):
         message = Message.fromOpenIDArgs({
@@ -756,8 +755,9 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns': OPENID2_NS})
-        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(VerificationError,
+            self.new_consumer._idResCheckNonce, self.response, self.endpoint
+        )
         self.failUnlessLogEmpty()
 
     def test_serverNonce(self):
@@ -773,8 +773,9 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
             {'ns': OPENID1_NS,
              'return_to': 'http://return.to/',
              'response_nonce': mkNonce()})
-        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(VerificationError,
+            self.new_consumer._idResCheckNonce, self.response, self.endpoint
+        )
         self.failUnlessLogEmpty()
 
     def test_badNonce(self):
@@ -795,8 +796,9 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                   {'response_nonce': nonce,
                                    'ns': OPENID2_NS,
                                    })
-        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(VerificationError,
+            self.new_consumer._idResCheckNonce, self.response, self.endpoint
+        )
 
     def test_successWithNoStore(self):
         """When there is no store, checking the nonce succeeds"""
@@ -813,15 +815,17 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.response = Message.fromOpenIDArgs(
                                   {'ns': OPENID2_NS,
                                    'response_nonce': 'malformed'})
-        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(VerificationError,
+            self.new_consumer._idResCheckNonce, self.response, self.endpoint
+        )
 
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
         self.response = Message.fromOpenIDArgs(
                                   {'return_to': self.return_to})
-        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
-                              self.response, self.endpoint)
+        self.assertRaises(VerificationError,
+            self.new_consumer._idResCheckNonce, self.response, self.endpoint
+        )
 
 
 @mock.patch.object(Consumer, '_idResCheckNonce', mock.Mock(return_value=True))
@@ -892,7 +896,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
         })
         self.assertRaises(
-            ProtocolError,
+            VerificationError,
             self.new_consumer._idResCheckSignature, message, self.endpoint.server_url,
         )
 
@@ -1223,48 +1227,6 @@ class ConsumerTest(unittest.TestCase):
         # The endpoint that we passed in is the endpoint on the auth_request
         self.assertTrue(result.endpoint is self.endpoint)
 
-    @mock.patch.object(Consumer, 'complete')
-    def _doResp(self, auth_req, exp_resp, mock_response):
-        """complete a transaction, using the expected response from
-        the generic consumer."""
-        mock_response.return_value = exp_resp
-
-        # endpoint is stored in the session
-        self.assertTrue(self.session)
-        resp = self.consumer.complete({}, None)
-
-        # All responses should have the same identity URL, and the
-        # session should be cleaned out
-        if self.endpoint.claimed_id != IDENTIFIER_SELECT:
-            self.assertTrue(resp.identity() is self.identity)
-
-        # Expected status response
-        self.assertEqual(resp.status, exp_resp.status)
-
-        return resp
-
-    def _doRespNoDisco(self, exp_resp):
-        """Set up a transaction without discovery"""
-        auth_req = self.consumer.beginWithoutDiscovery(self.endpoint)
-        return self._doResp(auth_req, exp_resp)
-
-    def test_noDiscoCompleteSuccessWithToken(self):
-        self._doRespNoDisco(mkSuccess(self.endpoint, {}))
-
-    def test_noDiscoCompleteCancelWithToken(self):
-        self._doRespNoDisco(CancelResponse(self.endpoint))
-
-    def test_noDiscoCompleteFailure(self):
-        msg = 'failed!'
-        resp = self._doRespNoDisco(FailureResponse(self.endpoint, msg))
-        self.assertTrue(resp.message is msg)
-
-    def test_noDiscoCompleteSetupNeeded(self):
-        setup_url = 'http://setup.url/'
-        resp = self._doRespNoDisco(
-            SetupNeededResponse(self.endpoint, setup_url))
-        self.assertTrue(resp.setup_url is setup_url)
-
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
@@ -1293,7 +1255,9 @@ class Cleanup(unittest.TestCase):
         self.assertFalse(self.consumer._token_key in self.session)
 
     def test_failure_session(self):
-        self.consumer.complete(self.failure_query, self.return_to)
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.failure_query, self.return_to
+        )
         self.assertFalse(self.consumer._token_key in self.session)
 
 
@@ -1327,8 +1291,9 @@ class IDPDrivenTest(unittest.TestCase):
 
     def test_idpDrivenCompleteFraud(self):
         self.query['openid.claimed_id'] = 'http://unittest/openid2_xrds_no_local_id.xrds'
-        response = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(response.status, 'failure', str(response))
+        self.assertRaises(VerificationError,
+            self.consumer.complete, self.query, self.return_to
+        )
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
@@ -1369,13 +1334,13 @@ class DiscoveryVerification(unittest.TestCase):
 
     def test_prediscovered_wrong_type(self):
         self.assertRaises(
-            ProtocolError,
+            VerificationError,
             self.consumer._verify_openid1, self.message1, self.endpoint
         )
 
     def test_openid1_no_endpoint(self):
         self.assertRaises(
-            ProtocolError,
+            VerificationError,
             self.consumer._verify_openid1, self.message1, None
         )
 
