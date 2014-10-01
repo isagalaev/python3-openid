@@ -173,17 +173,13 @@ USING THIS LIBRARY
     method. These indicate whether or not the login was successful,
     and include any additional information appropriate for their type.
 """
-
 import copy
 import logging
 from urllib.parse import urldefrag
 import urllib.error
 
 from openid import fetchers
-
-from openid.consumer.discover import discover, Service, \
-     DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, \
-     OPENID_IDP_2_0_TYPE
+from openid.consumer import discover
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
@@ -299,7 +295,7 @@ class Consumer(object):
 
         @returntype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
         """
-        service = discover(user_url)
+        service = discover.discover(user_url)
         return self.beginWithoutDiscovery(service, anonymous)
 
     def beginWithoutDiscovery(self, service, anonymous=False):
@@ -424,7 +420,7 @@ class Consumer(object):
             signed_list = signed_list_str.split(',')
             signed_fields = ["openid." + s for s in signed_list]
             return SuccessResponse(endpoint, message, signed_fields)
-        except (ProtocolError, DiscoveryFailure) as why:
+        except (ProtocolError, discover.DiscoveryFailure) as why:
             return FailureResponse(endpoint, str(why))
 
     def _completeInvalid(self, message, endpoint, _):
@@ -633,7 +629,7 @@ class GenericConsumer(object):
         if endpoint is None:
             raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
 
-        if not any(t in endpoint.types for t in [OPENID_1_0_TYPE, OPENID_1_1_TYPE]):
+        if not any(t in endpoint.types for t in [discover.OPENID_1_0_TYPE, discover.OPENID_1_1_TYPE]):
             raise TypeURIMismatch(endpoint)
 
         if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
@@ -660,14 +656,17 @@ class GenericConsumer(object):
                 'openid.identity and openid.claimed_id should be either both '
                 'present or both absent')
         if claimed_id is None:
-            return Service([OPENID_IDP_2_0_TYPE], resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
+            return discover.Service(
+                [discover.OPENID_IDP_2_0_TYPE],
+                resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
+            )
 
         if (endpoint is None or
             endpoint.claimed_id == IDENTIFIER_SELECT or
             endpoint.claimed_id != claimed_id):
-            endpoint = discover(claimed_id)
+            endpoint = discover.discover(claimed_id)
 
-        if OPENID_2_0_TYPE not in endpoint.types:
+        if discover.OPENID_2_0_TYPE not in endpoint.types:
             raise TypeURIMismatch(endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
