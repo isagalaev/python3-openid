@@ -14,7 +14,7 @@ from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
-     SuccessResponse, \
+     Response, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
      ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded
@@ -36,11 +36,11 @@ assocs = [
     ]
 
 
-def mkSuccess(endpoint, q):
-    """Convenience function to create a SuccessResponse with the given
+def mkSuccess(q):
+    """Convenience function to create a Response with the given
     arguments, all signed."""
     signed_list = ['openid.' + k for k in list(q.keys())]
-    return SuccessResponse(endpoint, Message.fromOpenIDArgs(q), signed_list)
+    return Response(Message.fromOpenIDArgs(q), signed_list)
 
 def parseQuery(qs):
     q = {}
@@ -201,9 +201,8 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         message = Message.fromPostArgs(query)
         message = assoc.signMessage(message)
-        info = consumer._complete_id_res(message, request.endpoint, new_return_to)
-        assert info.status == 'success', info.message
-        assert info.identity() == user_url
+        response = consumer._complete_id_res(message, request.endpoint, new_return_to)
+        assert response.claimed_id == user_url
 
     with mock.patch('openid.fetchers.fetch', fetcher.fetch):
         assert fetcher.num_assocs == 0
@@ -452,15 +451,15 @@ class TestCompleteMissingSig(unittest.TestCase):
 
     def test_idResMissingNoSigs(self):
         r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'success')
+        self.assertTrue(r)
 
     def test_idResNoIdentity(self):
         del self.query['openid.identity']
         del self.query['openid.claimed_id']
         self.endpoint.claimed_id = None
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
-        r = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(r.status, 'success')
+        response = self.consumer.complete(self.query, self.return_to)
+        self.assertTrue(response)
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
@@ -925,9 +924,8 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'assoc_handle': good_handle,
         })
         message = good_assoc.signMessage(message)
-        info = self.new_consumer.complete(message.toPostArgs(), self.return_to)
-        self.assertEqual(info.status, 'success', info.message)
-        self.assertEqual(self.consumer_id, info.identity())
+        response = self.new_consumer.complete(message.toPostArgs(), self.return_to)
+        self.assertEqual(response.claimed_id, self.consumer_id)
 
 
 class ReturnTo(unittest.TestCase):
@@ -1121,13 +1119,13 @@ class TestFetchAssoc(unittest.TestCase, CatchLogs):
                                   'some://url')
 
 
-class TestSuccessResponse(unittest.TestCase):
+class TestResponse(unittest.TestCase):
     def setUp(self):
         self.endpoint = Service()
         self.endpoint.claimed_id = 'identity_url'
 
     def test_extensionResponse(self):
-        resp = mkSuccess(self.endpoint, {
+        resp = mkSuccess({
             'ns.sreg': 'urn:sreg',
             'ns.unittest': 'urn:unittest',
             'unittest.one': '1',
@@ -1159,7 +1157,7 @@ class TestSuccessResponse(unittest.TestCase):
         # Don't use mkSuccess because it creates an all-inclusive
         # signed list.
         msg = Message.fromOpenIDArgs(args)
-        resp = SuccessResponse(self.endpoint, msg, signed_list)
+        resp = Response(msg, signed_list)
 
         # All args in this NS are signed, so expect all.
         sregargs = resp.extensionResponse('urn:sreg', True)
@@ -1174,11 +1172,11 @@ class TestSuccessResponse(unittest.TestCase):
         self.assertEqual(utargs, None)
 
     def test_noReturnTo(self):
-        resp = mkSuccess(self.endpoint, {})
+        resp = mkSuccess({})
         self.assertTrue(resp.getReturnTo() is None)
 
     def test_returnTo(self):
-        resp = mkSuccess(self.endpoint, {'return_to': 'return_to'})
+        resp = mkSuccess({'return_to': 'return_to'})
         self.assertEqual(resp.getReturnTo(), 'return_to')
 
 
@@ -1286,7 +1284,7 @@ class IDPDrivenTest(unittest.TestCase):
 
     def test_idpDrivenComplete(self):
         response = self.consumer.complete(self.query, self.return_to)
-        self.assertEqual(response.status, 'success', str(response))
+        self.assertTrue(response)
 
     def test_idpDrivenCompleteFraud(self):
         self.query['openid.claimed_id'] = 'http://unittest/openid2_xrds_no_local_id.xrds'

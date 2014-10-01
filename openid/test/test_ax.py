@@ -4,7 +4,7 @@
 import unittest
 from openid.extensions import ax
 from openid.message import NamespaceMap, Message, OPENID2_NS
-from openid.consumer.consumer import SuccessResponse
+from openid.consumer.consumer import Response
 
 
 class BogusAXMessage(ax.AXMessage):
@@ -523,10 +523,7 @@ class FetchResponseTest(unittest.TestCase):
         sf = ['openid.' + i for i in list(args.keys())]
         msg = Message.fromOpenIDArgs(args)
 
-        class Endpoint:
-            claimed_id = 'http://invalid.'
-
-        oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        oreq = Response(msg, signed_fields=sf)
         r = ax.FetchResponse.fromSuccessResponse(oreq)
         self.assertTrue(r is None, "%s is not None" % (r,))
 
@@ -542,10 +539,7 @@ class FetchResponseTest(unittest.TestCase):
         sf = ['openid.' + i for i in list(args.keys())]
         msg = Message.fromOpenIDArgs(args)
 
-        class Endpoint:
-            claimed_id = 'http://invalid.'
-
-        oreq = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        oreq = Response(msg, signed_fields=sf)
         r = ax.FetchResponse.fromSuccessResponse(oreq)
         self.assertTrue(r is not None)
 
@@ -566,10 +560,7 @@ class FetchResponseTest(unittest.TestCase):
         sf = ['openid.' + i for i in list(args.keys())]
         msg = Message.fromOpenIDArgs(args)
 
-        class Endpoint:
-            claimed_id = 'http://invalid.'
-
-        resp = SuccessResponse(Endpoint(), msg, signed_fields=sf)
+        resp = Response(msg, signed_fields=sf)
         ax_resp = ax.FetchResponse.fromSuccessResponse(resp)
         values = ax_resp.get(uri)
         # coming through the system they'll be bytes-ified...

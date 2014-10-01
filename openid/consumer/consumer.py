@@ -353,6 +353,7 @@ class Consumer(object):
         """
         message = Message.fromPostArgs(query)
         endpoint = self.session.pop(self._token_key, None)
+
         mode = message.getArg(OPENID_NS, 'mode')
         if mode in ['cancel', 'error']:
             if mode == 'cancel':
@@ -363,6 +364,7 @@ class Consumer(object):
             raise SetupNeeded(message)
         if mode != 'id_res':
             raise AuthenticationError('Mode missing or invalid: %s' % mode, message)
+
         return self._complete_id_res(message, endpoint, current_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
@@ -380,7 +382,7 @@ class Consumer(object):
         signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
         signed_list = signed_list_str.split(',')
         signed_fields = ["openid." + s for s in signed_list]
-        return SuccessResponse(endpoint, message, signed_fields)
+        return Response(message, signed_fields, endpoint.claimed_id if message.isOpenID1() else None)
 
     def _idResCheckNonce(self, message, endpoint):
         if message.isOpenID1():
@@ -1218,37 +1220,16 @@ class AuthRequest(object):
         return self.endpoint.compat_mode()
 
 
-class Response(object):
-    status = None
-
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-
-    def identity(self):
-        return self.endpoint and self.endpoint.claimed_id
-
-
-class SuccessResponse(Response):
-    """Indicates that this request is a
+class Response:
+    '''
+    Indicates that this request is a
     successful acknowledgement from the OpenID server that the
     supplied URL is, indeed controlled by the requesting agent.
-
-    @ivar endpoint: The endpoint that authenticated the identifier.  You
-        may access other discovered information related to this endpoint,
-        such as the CanonicalID of an XRI, through this object.
-    @type endpoint:
-       L{Service<openid.consumer.discover.Service>}
-
-    @ivar signed_fields: The arguments in the server's response that
-        were signed and verified.
-    """
-
-    status = 'success'
-
-    def __init__(self, endpoint, message, signed_fields=None):
-        super().__init__(endpoint)
+    '''
+    def __init__(self, message, signed_fields=None, claimed_id=None):
         self.message = message
         self.signed_fields = signed_fields or []
+        self.claimed_id = claimed_id or self.getSigned(OPENID2_NS, 'claimed_id')
 
     def isOpenID1(self):
         """Was this authentication response an OpenID 1 authentication
@@ -1280,9 +1261,6 @@ class SuccessResponse(Response):
 
         for key in msg_args.keys():
             if not self.isSigned(ns_uri, key):
-                logging.info(
-                    "SuccessResponse.getSignedNS: (%s, %s) not signed."
-                    % (ns_uri, key))
                 return None
 
         return msg_args
