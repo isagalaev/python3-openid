@@ -181,7 +181,7 @@ import urllib.error
 
 from openid import fetchers
 
-from openid.consumer.discover import discover, Service, \
+from openid.consumer.discover import discover, discoverall, Service, \
      DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, \
      OPENID_IDP_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
@@ -307,7 +307,7 @@ class Consumer(object):
         """
         disco = Discovery(self.session, user_url, self.session_key_prefix)
         try:
-            service = disco.getNextService(discover)
+            service = disco.getNextService(discoverall)
         except urllib.error.URLError as why:
             raise DiscoveryFailure('Error fetching XRDS document: %s' % why)
 
@@ -689,7 +689,7 @@ class GenericConsumer(object):
         if (endpoint is None or
             endpoint.claimed_id == IDENTIFIER_SELECT or
             endpoint.claimed_id != claimed_id):
-            endpoint = discover(claimed_id)[0]
+            endpoint = discover(claimed_id)
 
         if OPENID_2_0_TYPE not in endpoint.types:
             raise TypeURIMismatch(endpoint)

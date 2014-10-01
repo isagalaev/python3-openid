@@ -110,16 +110,10 @@ def parse_xrds(user_id, data):
             raise xrds.XRDSError('No canonicalID found for XRI %r' % user_id)
     else:
         canonicalID = None
-    services = [
+    return [
         parse_service(element, user_id, canonicalID)
         for element in xrds.get_elements(data, SERVICE_TYPES)
     ]
-    # Return only OP Identifier services if present or all of them otherwise.
-    # Services are ordered by their type according to SERVICE_TYPES list.
-    services.sort(key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types))
-    op_idp_services = [s for s in services if s.is_op_identifier()]
-    return op_idp_services or services
-
 
 def discoverXRI(iname):
     iname = xri.unprefix(iname)
@@ -159,8 +153,14 @@ def discoverURI(url):
     return services
 
 
+def discoverall(identifier):
+    func = discoverXRI if xri.is_iname(identifier) else discoverURI
+    return sorted(func(identifier), key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types))
+
+
 def discover(identifier):
-    if xri.is_iname(identifier):
-        return discoverXRI(identifier)
-    else:
-        return discoverURI(identifier)
+    services = discoverall(identifier)
+    if not services:
+        raise DiscoveryFailure('No services found for %s' % identifier)
+    return services[0]
+

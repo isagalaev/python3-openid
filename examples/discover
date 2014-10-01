@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import urllib.error
 
-from openid.consumer.discover import discover, DiscoveryFailure
+from openid.consumer import discover
 
 names = [["server_url",  "Server URL  "],
          ["local_id",    "Local ID    "],
@@ -35,13 +35,5 @@ if __name__ == "__main__":
     for user_input in sys.argv[1:]:
         print "=" * 50
         print "Running discovery on", user_input
-        try:
-            normalized, services = discover(user_input)
-        except DiscoveryFailure, why:
-            print "Discovery failed:", why
-            print
-        except urllib.error.URLError, why:
-            print "HTTP request failed:", why
-            print
-        else:
-            show_services(user_input, normalized, services)
+        normalized, services = discover.discoverall(user_input)
+        show_services(user_input, normalized, services)

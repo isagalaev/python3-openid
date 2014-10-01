@@ -84,7 +84,7 @@ class Discovery(object):
 
         self.session_key_suffix = session_key_suffix
 
-    def getNextService(self, discover):
+    def getNextService(self, discoverall):
         """Return the next authentication service for the pair of
         user_input and session.  This function handles fallback.
 
@@ -102,7 +102,7 @@ class Discovery(object):
             self.destroyManager()
 
         if not manager:
-            yadis_url, services = discover(self.url)
+            yadis_url, services = discoverall(self.url)
             manager = self.createManager(services, yadis_url)
 
         if manager:

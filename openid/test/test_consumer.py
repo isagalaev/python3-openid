@@ -1535,7 +1535,7 @@ class DiscoveryVerification(unittest.TestCase):
 
     def test_rediscover(self):
         with mock.patch('openid.consumer.consumer.discover') as discover:
-            discover.return_value = [self.endpoint]
+            discover.return_value = self.endpoint
             self.consumer._verify_openid2(self.message2, None)
             discover.assert_called_once_with(self.identifier)
 
