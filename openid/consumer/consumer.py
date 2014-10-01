@@ -661,9 +661,7 @@ class GenericConsumer(object):
                 resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
             )
 
-        if (endpoint is None or
-            endpoint.claimed_id == IDENTIFIER_SELECT or
-            endpoint.claimed_id != claimed_id):
+        if endpoint is None or endpoint.claimed_id != claimed_id:
             endpoint = discover.discover(claimed_id)
 
         if discover.OPENID_2_0_TYPE not in endpoint.types:
