@@ -90,17 +90,12 @@ class Discovery(unittest.TestCase):
             self.assertEqual(s.local_id, 'http://smoker.myopenid.com/')
             self.assertEqual(s.claimed_id, url)
 
-    def test_type_order(self):
-        services = discover.discoverall('http://unittest/yadis_two_services.xrds')
-        self.assertEqual(len(services), 2)
-        self.assertTrue(discover.OPENID_2_0_TYPE in services[0].types)
-        self.assertTrue(discover.OPENID_1_0_TYPE in services[1].types)
-
-    def test_idp_type_order(self):
-        services = discover.discoverall('http://unittest/yadis_idp.xrds')
+    def test_service_sort(self):
+        services = discover.discoverall('http://unittest/multiple_services.xrds')
         self.assertEqual(len(services), 3)
-        service = discover.discover('http://unittest/yadis_idp.xrds')
-        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in service.types)
+        self.assertTrue(discover.OPENID_IDP_2_0_TYPE in services[0].types)
+        self.assertTrue(discover.OPENID_2_0_TYPE in services[1].types)
+        self.assertTrue(discover.OPENID_1_0_TYPE in services[2].types)
 
     def test_redirected_claimed_id(self):
         claimed_id = 'http://unittest/openid2_xrds.xrds'

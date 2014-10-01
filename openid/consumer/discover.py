@@ -155,7 +155,7 @@ def discoverURI(url):
 
 def discoverall(identifier):
     func = discoverXRI if xri.is_iname(identifier) else discoverURI
-    return sorted(func(identifier), key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types))
+    return sorted(func(identifier), key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types if t in SERVICE_TYPES))
 
 
 def discover(identifier):
