@@ -43,18 +43,6 @@ def mkSuccess(endpoint, q):
     signed_list = ['openid.' + k for k in list(q.keys())]
     return SuccessResponse(endpoint, Message.fromOpenIDArgs(q), signed_list)
 
-def _success_query(claimed_id, return_to):
-    nonce = mkNonce()
-    return {
-        'openid.mode': 'id_res',
-        'openid.return_to': return_to + '?' + urllib.parse.urlencode({NONCE_ARG: nonce}),
-        'openid.identity': claimed_id,
-        NONCE_ARG: nonce,
-        'openid.assoc_handle': 'z',
-        'openid.signed': 'identity,return_to',
-        'openid.sig': GOODSIG,
-    }
-
 def parseQuery(qs):
     q = {}
     for (k, v) in urllib.parse.parse_qsl(qs):
@@ -1392,7 +1380,15 @@ class Cleanup(unittest.TestCase):
 
         self.return_to = 'http://unittest/complete'
         nonce = mkNonce()
-        self.success_query = _success_query(claimed_id, self.return_to)
+        self.success_query = {
+            'openid.mode': 'id_res',
+            'openid.return_to': self.return_to + '?' + urllib.parse.urlencode({NONCE_ARG: nonce}),
+            'openid.identity': claimed_id,
+            NONCE_ARG: nonce,
+            'openid.assoc_handle': 'z',
+            'openid.signed': 'identity,return_to',
+            'openid.sig': GOODSIG,
+        }
         self.failure_query = {}
 
     def test_success_session(self):
