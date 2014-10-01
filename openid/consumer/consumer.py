@@ -358,21 +358,16 @@ class Consumer(object):
             if mode == 'cancel':
                 error = 'Authentication cancelled by OpenID provider'
             raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
+        if mode == 'setup_needed' and message.isOpenID2():
+            raise SetupNeeded(message)
         method = getattr(self, '_complete_' + mode, None)
         if method is None:
             raise AuthenticationError('Mode missing or invalid', message)
         return method(message, endpoint, current_url)
 
-    def _complete_setup_needed(self, message, endpoint, _):
-        if not message.isOpenID2():
-            raise AuthenticationError('Invalid mode: setup_needed', message)
-
-        user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
-        return SetupNeededResponse(endpoint, user_setup_url)
-
     def _complete_id_res(self, message, endpoint, return_to):
         if message.setup_url():
-            return SetupNeededResponse(endpoint, message.setup_url())
+            raise SetupNeeded(message)
         errors = []
         errors.extend(message.validate_fields())
         errors.extend(message.validate_return_to(return_to))
@@ -571,12 +566,19 @@ class ProtocolError(ValueError):
 
 class AuthenticationError(ValueError):
     '''
-    Exception that indicates that a message processed by Consumer.complete
-    violated the protocol.
+    Base class for all non-normal conditions during handling authintication
+    requests from a provider.
     '''
     def __init__(self, message, response):
         super().__init__(message)
         self.response = response
+
+class SetupNeeded(AuthenticationError):
+    '''
+    Provider requires additional setup in response to an immediate request.
+    '''
+    def __init__(self, response):
+        super().__init__('Setup needed', response)
 
 
 class ServerError(Exception):
@@ -1333,20 +1335,3 @@ class SuccessResponse(Response):
             self.__class__.__module__,
             self.__class__.__name__,
             self.identity(), self.signed_fields)
-
-
-class SetupNeededResponse(Response):
-    """Indicates that the
-    request was in immediate mode, and the server is unable to
-    authenticate the user without further interaction.
-    @ivar setup_url: A URL that can be used to send the user to the
-        server to set up for authentication. The user should be
-        redirected in to the setup_url, either in the current window
-        or in a new browser window.  C{None} in OpenID 2.0.
-    """
-
-    status = 'setup_needed'
-
-    def __init__(self, endpoint, setup_url=None):
-        super().__init__(endpoint)
-        self.setup_url = setup_url

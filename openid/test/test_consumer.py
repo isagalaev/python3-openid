@@ -14,10 +14,10 @@ from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
      OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
 from openid.consumer.consumer import \
      AuthRequest, GenericConsumer, \
-     SuccessResponse, SetupNeededResponse, \
+     SuccessResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError
+     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -385,13 +385,11 @@ class Complete(unittest.TestCase):
         self.return_to = 'http://unittest/complete'
 
     def test_id_res_setup_needed(self):
-        query = _nsdict({'openid.mode': 'id_res'})
         setup_url = 'http://unittest/setup'
-        with mock.patch.object(Message, 'setup_url') as m:
-            m.return_value = setup_url
-            response = self.consumer.complete(query, self.return_to)
-        self.assertEqual('setup_needed', response.status)
-        self.assertEqual(response.setup_url, setup_url)
+        query = {'openid.mode': 'id_res', 'openid.user_setup_url': setup_url}
+        with self.assertRaises(SetupNeeded) as cm:
+            self.consumer.complete(query, self.return_to)
+            self.assertEqual(cm.exception.response.setup_url(), setup_url)
 
     def test_cancel(self):
         query = _nsdict({'openid.mode': 'cancel'})
@@ -624,15 +622,14 @@ class TestSetupNeeded(TestIdRes):
 
     def test_setupNeededOpenID2(self):
         query = _nsdict({'openid.mode': 'setup_needed'})
-        response = self.new_consumer.complete(query, None)
-        self.assertEqual('setup_needed', response.status)
-        self.assertEqual(None, response.setup_url)
+        self.assertRaises(SetupNeeded,
+            self.new_consumer.complete, query, None
+        )
 
     def test_setupNeededDoesntWorkForOpenID1(self):
         query = {'openid.mode': 'setup_needed'}
         self.assertIsNone(Message.fromPostArgs(query).setup_url())
-        self.assertRaisesRegex(
-            AuthenticationError, '^Invalid mode',
+        self.assertRaisesRegex(AuthenticationError, 'Mode missing or invalid',
             self.new_consumer.complete, query, None,
         )
 
