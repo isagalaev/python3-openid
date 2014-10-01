@@ -17,7 +17,7 @@ from openid.consumer.consumer import \
      SuccessResponse, SetupNeededResponse, CancelResponse, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost, NONCE_ARG, VerificationError
+     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -318,7 +318,7 @@ class TestIdResCheckSignature(TestIdRes):
     def test_signFailsWithBadSig(self):
         self.message.setArg(OPENID_NS, 'sig', 'BAD SIGNATURE')
         self.assertRaises(
-            VerificationError, self.new_consumer._idResCheckSignature,
+            AuthenticationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -335,7 +335,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.assertRaises(
-            VerificationError, self.new_consumer._idResCheckSignature,
+            AuthenticationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -354,7 +354,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.consumer.store = None
         self.assertRaises(
-            VerificationError, self.new_consumer._idResCheckSignature,
+            AuthenticationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
 
@@ -405,19 +405,19 @@ class Complete(unittest.TestCase):
             'openid.error': 'failed',
             'openid.contact': 'contact',
         })
-        with self.assertRaises(VerificationError) as cm:
+        with self.assertRaises(AuthenticationError) as cm:
             self.consumer.complete(query, self.return_to)
         self.assertEqual(cm.exception.args[0], 'failed')
         self.assertEqual(cm.exception.response.getArg(OPENID2_NS, 'contact'), 'contact')
 
     def test_missing_field(self):
         query = _nsdict({'openid.mode': 'id_res'})
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, query, self.return_to
         )
 
     def test_no_mode(self):
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, {}, self.return_to
         )
 
@@ -460,25 +460,25 @@ class TestCompleteMissingSig(unittest.TestCase):
 
     def test_idResMissingIdentitySig(self):
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,claimed_id'
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, self.query, self.return_to
         )
 
     def test_idResMissingReturnToSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,assoc_handle,claimed_id'
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, self.query, self.return_to
         )
 
     def test_idResMissingAssocHandleSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,claimed_id'
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, self.query, self.return_to
         )
 
     def test_idResMissingClaimedIDSig(self):
         self.query['openid.signed'] = 'identity,response_nonce,return_to,assoc_handle'
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, self.query, self.return_to
         )
 
@@ -626,7 +626,7 @@ class TestSetupNeeded(TestIdRes):
         query = {'openid.mode': 'setup_needed'}
         self.assertIsNone(Message.fromPostArgs(query).setup_url())
         self.assertRaisesRegex(
-            VerificationError, '^Invalid mode',
+            AuthenticationError, '^Invalid mode',
             self.new_consumer.complete, query, None,
         )
 
@@ -755,7 +755,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns': OPENID2_NS})
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.new_consumer._idResCheckNonce, self.response, self.endpoint
         )
         self.failUnlessLogEmpty()
@@ -773,7 +773,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
             {'ns': OPENID1_NS,
              'return_to': 'http://return.to/',
              'response_nonce': mkNonce()})
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.new_consumer._idResCheckNonce, self.response, self.endpoint
         )
         self.failUnlessLogEmpty()
@@ -796,7 +796,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                   {'response_nonce': nonce,
                                    'ns': OPENID2_NS,
                                    })
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.new_consumer._idResCheckNonce, self.response, self.endpoint
         )
 
@@ -815,7 +815,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.response = Message.fromOpenIDArgs(
                                   {'ns': OPENID2_NS,
                                    'response_nonce': 'malformed'})
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.new_consumer._idResCheckNonce, self.response, self.endpoint
         )
 
@@ -823,7 +823,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """no nonce parameter on the return_to"""
         self.response = Message.fromOpenIDArgs(
                                   {'return_to': self.return_to})
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.new_consumer._idResCheckNonce, self.response, self.endpoint
         )
 
@@ -896,7 +896,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
             'openid.signed': 'identity,return_to',
         })
         self.assertRaises(
-            VerificationError,
+            AuthenticationError,
             self.new_consumer._idResCheckSignature, message, self.endpoint.server_url,
         )
 
@@ -1252,7 +1252,7 @@ class Cleanup(unittest.TestCase):
         self.assertFalse(self.consumer._token_key in self.session)
 
     def test_failure_session(self):
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, {}, self.return_to
         )
         self.assertFalse(self.consumer._token_key in self.session)
@@ -1288,7 +1288,7 @@ class IDPDrivenTest(unittest.TestCase):
 
     def test_idpDrivenCompleteFraud(self):
         self.query['openid.claimed_id'] = 'http://unittest/openid2_xrds_no_local_id.xrds'
-        self.assertRaises(VerificationError,
+        self.assertRaises(AuthenticationError,
             self.consumer.complete, self.query, self.return_to
         )
 
@@ -1331,13 +1331,13 @@ class DiscoveryVerification(unittest.TestCase):
 
     def test_prediscovered_wrong_type(self):
         self.assertRaises(
-            VerificationError,
+            AuthenticationError,
             self.consumer._verify_openid1, self.message1, self.endpoint
         )
 
     def test_openid1_no_endpoint(self):
         self.assertRaises(
-            VerificationError,
+            AuthenticationError,
             self.consumer._verify_openid1, self.message1, None
         )
 

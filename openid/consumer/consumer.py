@@ -356,18 +356,18 @@ class Consumer(object):
         mode = message.getArg(OPENID_NS, 'mode', '')
         method = getattr(self, '_complete_' + mode, None)
         if method is None:
-            raise VerificationError('Mode missing or invalid', message)
+            raise AuthenticationError('Mode missing or invalid', message)
         return method(message, endpoint, current_url)
 
     def _complete_cancel(self, message, endpoint, _):
         return CancelResponse(endpoint)
 
     def _complete_error(self, message, endpoint, _):
-        raise VerificationError(message.getArg(OPENID_NS, 'error'), message)
+        raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
 
     def _complete_setup_needed(self, message, endpoint, _):
         if not message.isOpenID2():
-            raise VerificationError('Invalid mode: setup_needed', message)
+            raise AuthenticationError('Invalid mode: setup_needed', message)
 
         user_setup_url = message.getArg(OPENID2_NS, 'user_setup_url')
         return SetupNeededResponse(endpoint, user_setup_url)
@@ -381,8 +381,8 @@ class Consumer(object):
         func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
         errors.extend(getattr(self, func)(message, endpoint))
         if errors:
-            raise VerificationError('Verification failed:\n%s' % '\n'.join(errors), message)
-        # These would raise VerificationError themselves
+            raise AuthenticationError('Verification failed:\n%s' % '\n'.join(errors), message)
+        # These would raise AuthenticationError themselves
         self._idResCheckSignature(message, endpoint.server_url)
         self._idResCheckNonce(message, endpoint)
 
@@ -400,16 +400,16 @@ class Consumer(object):
             server_url = endpoint.server_url
 
         if nonce is None:
-            raise VerificationError('Nonce missing from response', message)
+            raise AuthenticationError('Nonce missing from response', message)
 
         try:
             timestamp, salt = splitNonce(nonce)
         except ValueError as why:
-            raise VerificationError('Malformed nonce: %s' % why, message)
+            raise AuthenticationError('Malformed nonce: %s' % why, message)
 
         if (self.consumer.store is not None and
             not self.consumer.store.useNonce(server_url, timestamp, salt)):
-            raise VerificationError('Nonce already used or out of range', message)
+            raise AuthenticationError('Nonce already used or out of range', message)
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
@@ -425,11 +425,11 @@ class Consumer(object):
                 # automatically opens the possibility for
                 # denial-of-service by a server that just returns expired
                 # associations (or really short-lived associations)
-                raise VerificationError(
+                raise AuthenticationError(
                     'Association with %s expired' % server_url, message)
 
             if not assoc.checkMessageSignature(message):
-                raise VerificationError('Bad signature', message)
+                raise AuthenticationError('Bad signature', message)
 
         else:
             # It's not an association we know about.  Stateless mode is our
@@ -437,13 +437,13 @@ class Consumer(object):
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
             if not self.consumer._checkAuth(message, server_url):
-                raise VerificationError('Server denied check_authentication', message)
+                raise AuthenticationError('Server denied check_authentication', message)
 
     def _verify_openid1(self, resp_msg, endpoint):
         if endpoint is None:
-            raise VerificationError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
+            raise AuthenticationError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
         if not endpoint.compat_mode():
-            raise VerificationError('Expected an OpenID 2 response', resp_msg)
+            raise AuthenticationError('Expected an OpenID 2 response', resp_msg)
 
         errors = []
 
@@ -456,14 +456,14 @@ class Consumer(object):
         claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
 
         if endpoint is None and not claimed_id:
-            raise VerificationError(
+            raise AuthenticationError(
                 'Can\'t verify discovered info without a stored endpoint or '
                 'claimed_id', resp_msg
             )
         if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
             endpoint = discover.discover(claimed_id)
         if endpoint.compat_mode():
-            raise VerificationError('Expected an OpenID 1 response', resp_msg)
+            raise AuthenticationError('Expected an OpenID 1 response', resp_msg)
 
         errors = []
 
@@ -571,7 +571,7 @@ class ProtocolError(ValueError):
     protocol. It is raised and caught internally to this file."""
 
 
-class VerificationError(ValueError):
+class AuthenticationError(ValueError):
     '''
     Exception that indicates that a message processed by Consumer.complete
     violated the protocol.
