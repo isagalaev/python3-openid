@@ -395,9 +395,9 @@ class Consumer(object):
     def _complete_id_res(self, message, endpoint, return_to):
         if message.setup_url():
             return SetupNeededResponse(endpoint, message.setup_url())
-        errors = {}
-        errors.update(message.validate_fields())
-        errors.update(message.validate_return_to(return_to))
+        errors = []
+        errors.extend(message.validate_fields())
+        errors.extend(message.validate_return_to(return_to))
         # more to come
         if errors:
             return FailureResponse(endpoint, errors)

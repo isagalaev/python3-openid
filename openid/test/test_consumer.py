@@ -382,19 +382,20 @@ class Complete(unittest.TestCase):
             claimed_id=self.claimed_id,
         )
         self.consumer.session[self.consumer._token_key] = service
+        self.return_to = 'http://unittest/complete'
 
     def test_id_res_setup_needed(self):
         query = _nsdict({'openid.mode': 'id_res'})
         setup_url = 'http://unittest/setup'
         with mock.patch.object(Message, 'setup_url') as m:
             m.return_value = setup_url
-            response = self.consumer.complete(query, None)
+            response = self.consumer.complete(query, self.return_to)
         self.assertEqual('setup_needed', response.status)
         self.assertEqual(response.setup_url, setup_url)
 
     def test_cancel(self):
         query = _nsdict({'openid.mode': 'cancel'})
-        response = self.consumer.complete(query, 'http://unittest/complete')
+        response = self.consumer.complete(query, self.return_to)
         self.assertEqual(response.status, 'cancel')
         self.assertEqual(response.identity(), self.claimed_id)
 
@@ -405,7 +406,7 @@ class Complete(unittest.TestCase):
             'openid.contact': 'contact',
             'openid.reference': 'reference',
         })
-        response = self.consumer.complete(query, None)
+        response = self.consumer.complete(query, self.return_to)
         self.assertEqual(response.status, 'failure')
         self.assertEqual(response.message, 'failed')
         self.assertEqual(response.contact, 'contact')
@@ -413,17 +414,17 @@ class Complete(unittest.TestCase):
 
     def test_default_attributes(self):
         query = _nsdict({'openid.mode': 'error'})
-        response = self.consumer.complete(query, None)
+        response = self.consumer.complete(query, self.return_to)
         self.assertIsNone(response.message)
 
     def test_missing_field(self):
         query = _nsdict({'openid.mode': 'id_res'})
-        response = self.consumer.complete(query, None)
+        response = self.consumer.complete(query, self.return_to)
         self.assertEqual(response.status, 'failure')
-        self.assertTrue('return_to' in response.message.get('missing', []))
+        self.assertTrue('return_to' in response.message[0])
 
     def test_no_mode(self):
-        response = self.consumer.complete({}, None)
+        response = self.consumer.complete({}, self.return_to)
         self.assertEqual(response.status, 'failure')
 
 
@@ -680,21 +681,13 @@ class FieldValidation(unittest.TestCase):
         ['return_to', 'response_nonce', 'identity',
          'claimed_id', 'assoc_handle', 'op_endpoint'])
 
-    def mkMissingFieldTest(openid_args):
+    def mkValidationTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
-            errors = message.validate_fields()
-            self.assertTrue('missing' in errors)
+            self.assertTrue(message.validate_fields())
         return test
 
-    def mkMissingSignedTest(openid_args):
-        def test(self):
-            message = Message.fromOpenIDArgs(openid_args)
-            errors = message.validate_fields()
-            self.assertTrue('unsigned' in errors)
-        return test
-
-    test_openid1Missing_returnToSig = mkMissingSignedTest(
+    test_openid1Missing_returnToSig = mkValidationTest(
         {'return_to': 'return',
          'assoc_handle': 'assoc handle',
          'sig': 'a signature',
@@ -702,7 +695,7 @@ class FieldValidation(unittest.TestCase):
          'signed': 'identity',
          })
 
-    test_openid1Missing_identitySig = mkMissingSignedTest(
+    test_openid1Missing_identitySig = mkValidationTest(
         {'return_to': 'return',
          'assoc_handle': 'assoc handle',
          'sig': 'a signature',
@@ -710,7 +703,7 @@ class FieldValidation(unittest.TestCase):
          'signed': 'return_to'
          })
 
-    test_openid2Missing_opEndpointSig = mkMissingSignedTest(
+    test_openid2Missing_opEndpointSig = mkValidationTest(
         {'ns': OPENID2_NS,
          'return_to': 'return',
          'assoc_handle': 'assoc handle',
@@ -720,13 +713,13 @@ class FieldValidation(unittest.TestCase):
          'signed': 'return_to,identity,assoc_handle'
          })
 
-    test_openid1MissingReturnTo = mkMissingFieldTest(
+    test_openid1MissingReturnTo = mkValidationTest(
         {'assoc_handle': 'assoc handle',
          'sig': 'a signature',
          'identity': 'someone',
          })
 
-    test_openid1MissingAssocHandle = mkMissingFieldTest(
+    test_openid1MissingAssocHandle = mkValidationTest(
         {'return_to': 'return',
          'sig': 'a signature',
          'identity': 'someone',
@@ -954,13 +947,13 @@ class ReturnTo(unittest.TestCase):
     '''
     def test_missing(self):
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        self.assertTrue('return_to' in message.validate_return_to('http://example.com/'))
+        self.assertTrue(message.validate_return_to('http://example.com/'))
 
     def test_bad_url(self):
         message = Message.fromPostArgs({'openid.return_to': 'http://unittest/complete'})
-        self.assertTrue('return_to' in message.validate_return_to('http://fraud/complete'))
-        self.assertTrue('return_to' in message.validate_return_to('http://unittest/complete/'))
-        self.assertTrue('return_to' in message.validate_return_to('https://unittest/complete'))
+        self.assertTrue(message.validate_return_to('http://fraud/complete'))
+        self.assertTrue(message.validate_return_to('http://unittest/complete/'))
+        self.assertTrue(message.validate_return_to('https://unittest/complete'))
 
     def test_good_args(self):
         message = Message.fromPostArgs({
@@ -976,10 +969,8 @@ class ReturnTo(unittest.TestCase):
             'openid.return_to': 'http://example.com/?foo=bar&xxx=yyy',
             'xxx': 'not yyy',
         })
-        self.assertEqual(
-                message.validate_return_to('http://example.com/').get('return_to_args'),
-                [('foo', None), ('xxx', 'not yyy')],
-            )
+        errors = message.validate_return_to('http://example.com/')
+        self.assertTrue('foo, xxx' in errors[0])
 
 
 class MockFetcher(object):

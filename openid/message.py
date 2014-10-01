@@ -9,7 +9,6 @@ import warnings
 import urllib.request
 import urllib.error
 import urllib.parse
-from collections import defaultdict
 
 from openid import oidutil
 from openid import kvform
@@ -288,19 +287,21 @@ class Message(object):
             OPENID1_NS: basic_sig_fields,
             }
 
-        errors = defaultdict(list)
+        missing = [
+            f for f in require_fields[self.getOpenIDNamespace()]
+            if not self.hasKey(OPENID_NS, f)
+        ]
 
-        for field in require_fields[self.getOpenIDNamespace()]:
-            if not self.hasKey(OPENID_NS, field):
-                errors['missing'].append(field)
-
-        signed_list_str = self.getArg(OPENID_NS, 'signed', '')
-        signed_list = signed_list_str.split(',')
-
-        for field in require_sigs[self.getOpenIDNamespace()]:
-            if self.hasKey(OPENID_NS, field) and field not in signed_list:
-                errors['unsigned'].append(field)
-
+        signed_list = self.getArg(OPENID_NS, 'signed', '').split(',')
+        unsigned = [
+            f for f in require_sigs[self.getOpenIDNamespace()]
+            if self.hasKey(OPENID_NS, f) and f not in signed_list
+        ]
+        errors = []
+        if missing:
+            errors.append('Missing fields: %s' % ', '.join(missing))
+        if unsigned:
+            errors.append('Unsigned fields: %s' % ', '.join(unsigned))
         return errors
 
     def validate_return_to(self, return_to):
@@ -309,35 +310,24 @@ class Message(object):
         against a return_to URL from an application.
         Returns an error dict.
         '''
-        errors = defaultdict(list)
+        errors = []
 
         msg_return_to = self.getArg(OPENID_NS, 'return_to')
         parsed_url = urllib.parse.urlparse(msg_return_to)
         rt_query = parsed_url[4]
         parsed_args = urllib.parse.parse_qsl(rt_query)
 
-        # NOTE -- parsed_args will be a dict of {bytes: bytes}, however it
-        # will be checked against return values from Message methods which are
-        # {str: str}. We need to compare apples to apples.
-        for rt_key, rt_value in parsed_args:
-            value = self.getArg(BARE_NS, rt_key, None)
-            if rt_value != value:
-                errors['return_to_args'].append((rt_key, value))
+        args = [
+            key for key, value in parsed_args
+            if value != self.getArg(BARE_NS, key, None)
+        ]
+        if args:
+            errors.append('Mismatched return_to args: %s' % ', '.join(args))
 
-        if not msg_return_to:
-            errors['return_to'] = msg_return_to
-        else:
-            # The URL scheme, authority, and path MUST be the same between
-            # the two URLs.
-            app_parts = urllib.parse.urlparse(urinorm.urinorm(return_to))
-            msg_parts = urllib.parse.urlparse(urinorm.urinorm(msg_return_to))
-
-            # (addressing scheme, network location, path) must be equal in
-            # both URLs.
-            for part in range(0, 3):
-                if app_parts[part] != msg_parts[part]:
-                    errors['return_to'] = msg_return_to
-                    break
+        app_parts = urllib.parse.urlparse(urinorm.urinorm(return_to))
+        msg_parts = urllib.parse.urlparse(urinorm.urinorm(msg_return_to) if msg_return_to else '')
+        if app_parts[:3] != msg_parts[:3]:
+            errors.append('Wrong return_to: %s' % msg_return_to)
 
         return errors
 
