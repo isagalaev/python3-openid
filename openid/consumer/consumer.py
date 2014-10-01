@@ -353,17 +353,16 @@ class Consumer(object):
         """
         message = Message.fromPostArgs(query)
         endpoint = self.session.pop(self._token_key, None)
-        mode = message.getArg(OPENID_NS, 'mode', '')
+        mode = message.getArg(OPENID_NS, 'mode')
         if mode in ['cancel', 'error']:
             if mode == 'cancel':
                 error = 'Authentication cancelled by OpenID provider'
             raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
         if mode == 'setup_needed' and message.isOpenID2():
             raise SetupNeeded(message)
-        method = getattr(self, '_complete_' + mode, None)
-        if method is None:
-            raise AuthenticationError('Mode missing or invalid', message)
-        return method(message, endpoint, current_url)
+        if mode != 'id_res':
+            raise AuthenticationError('Mode missing or invalid: %s' % mode, message)
+        return self._complete_id_res(message, endpoint, current_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
         if message.setup_url():
