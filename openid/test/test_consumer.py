@@ -17,7 +17,8 @@ from openid.consumer.consumer import \
      Response, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded
+     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded, \
+     validate_fields, validate_return_to
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
@@ -648,7 +649,7 @@ class FieldValidation(unittest.TestCase):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
             message.setArg(OPENID_NS, 'signed', ','.join(signed_list))
-            self.assertFalse(message.validate_fields())
+            self.assertFalse(validate_fields(message))
         return test
 
     test_openid1Success = mkSuccessTest(
@@ -685,7 +686,7 @@ class FieldValidation(unittest.TestCase):
     def mkValidationTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
-            self.assertTrue(message.validate_fields())
+            self.assertTrue(validate_fields(message))
         return test
 
     test_openid1Missing_returnToSig = mkValidationTest(
@@ -945,13 +946,13 @@ class ReturnTo(unittest.TestCase):
     '''
     def test_missing(self):
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        self.assertTrue(message.validate_return_to('http://example.com/'))
+        self.assertTrue(validate_return_to(message, 'http://example.com/'))
 
     def test_bad_url(self):
         message = Message.fromPostArgs({'openid.return_to': 'http://unittest/complete'})
-        self.assertTrue(message.validate_return_to('http://fraud/complete'))
-        self.assertTrue(message.validate_return_to('http://unittest/complete/'))
-        self.assertTrue(message.validate_return_to('https://unittest/complete'))
+        self.assertTrue(validate_return_to(message, 'http://fraud/complete'))
+        self.assertTrue(validate_return_to(message, 'http://unittest/complete/'))
+        self.assertTrue(validate_return_to(message, 'https://unittest/complete'))
 
     def test_good_args(self):
         message = Message.fromPostArgs({
@@ -959,7 +960,7 @@ class ReturnTo(unittest.TestCase):
             'foo': 'bar',
             'stray': 'value', # unknown values are okay
         })
-        self.assertFalse(message.validate_return_to('http://example.com/'))
+        self.assertFalse(validate_return_to(message, 'http://example.com/'))
 
     def test_bad_args(self):
         message = Message.fromPostArgs({
@@ -967,7 +968,7 @@ class ReturnTo(unittest.TestCase):
             'openid.return_to': 'http://example.com/?foo=bar&xxx=yyy',
             'xxx': 'not yyy',
         })
-        errors = message.validate_return_to('http://example.com/')
+        errors = validate_return_to(message, 'http://example.com/')
         self.assertTrue('foo, xxx' in errors[0])
 
 

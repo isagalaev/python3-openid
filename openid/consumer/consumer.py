@@ -184,6 +184,7 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
 from openid import oidutil
+from openid import urinorm
 from openid.association import Association, default_negotiator, \
      SessionNegotiator
 from openid.dh import DiffieHellman
@@ -213,6 +214,73 @@ def makeKVPost(request_message, server_url):
         if e.code == 400:
             raise ServerError.fromMessage(Message.fromKVForm(e.read()))
         raise
+
+def validate_fields(message):
+    '''
+    Looks for missing required fields and unsigned fields.
+    Returns an error dict in the form {'missing': [..], 'unsigned': [..]}.
+    Keys are omitted if everything fine so the result can be simply
+    checked for truth-ness.
+    '''
+    basic_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
+    basic_sig_fields = ['return_to', 'identity']
+
+    require_fields = {
+        OPENID2_NS: basic_fields + ['op_endpoint'],
+        OPENID1_NS: basic_fields + ['identity'],
+        }
+
+    require_sigs = {
+        OPENID2_NS: basic_sig_fields + ['response_nonce',
+                                        'claimed_id',
+                                        'assoc_handle',
+                                        'op_endpoint'],
+        OPENID1_NS: basic_sig_fields,
+        }
+
+    missing = [
+        f for f in require_fields[message.getOpenIDNamespace()]
+        if not message.hasKey(OPENID_NS, f)
+    ]
+
+    signed_list = message.getArg(OPENID_NS, 'signed', '').split(',')
+    unsigned = [
+        f for f in require_sigs[message.getOpenIDNamespace()]
+        if message.hasKey(OPENID_NS, f) and f not in signed_list
+    ]
+    errors = []
+    if missing:
+        errors.append('Missing fields: %s' % ', '.join(missing))
+    if unsigned:
+        errors.append('Unsigned fields: %s' % ', '.join(unsigned))
+    return errors
+
+def validate_return_to(message, return_to):
+    '''
+    Check an OpenID message and its openid.return_to value
+    against a return_to URL from an application.
+    Returns an error dict.
+    '''
+    errors = []
+
+    msg_return_to = message.getArg(OPENID_NS, 'return_to')
+    parsed_url = urllib.parse.urlparse(msg_return_to)
+    rt_query = parsed_url[4]
+    parsed_args = urllib.parse.parse_qsl(rt_query)
+
+    args = [
+        key for key, value in parsed_args
+        if value != message.getArg(BARE_NS, key, None)
+    ]
+    if args:
+        errors.append('Mismatched return_to args: %s' % ', '.join(args))
+
+    app_parts = urllib.parse.urlparse(urinorm.urinorm(return_to))
+    msg_parts = urllib.parse.urlparse(urinorm.urinorm(msg_return_to) if msg_return_to else '')
+    if app_parts[:3] != msg_parts[:3]:
+        errors.append('Wrong return_to: %s' % msg_return_to)
+
+    return errors
 
 
 class Consumer(object):
@@ -374,8 +442,8 @@ class Consumer(object):
 
     def verify_response(self, message, endpoint, return_to):
         errors = []
-        errors.extend(message.validate_fields())
-        errors.extend(message.validate_return_to(return_to))
+        errors.extend(validate_fields(message))
+        errors.extend(validate_return_to(message, return_to))
         func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
         errors.extend(getattr(self, func)(message, endpoint))
         if errors:
