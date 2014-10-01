@@ -181,7 +181,7 @@ import urllib.error
 
 from openid import fetchers
 
-from openid.consumer.discover import discover, discoverall, Service, \
+from openid.consumer.discover import discover, Service, \
      DiscoveryFailure, OPENID_1_0_TYPE, OPENID_1_1_TYPE, OPENID_2_0_TYPE, \
      OPENID_IDP_2_0_TYPE
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
@@ -192,7 +192,6 @@ from openid.association import Association, default_negotiator, \
      SessionNegotiator
 from openid.dh import DiffieHellman
 from openid.store.nonce import mkNonce, split as splitNonce
-from openid.yadis.manager import Discovery
 
 
 __all__ = ['AuthRequest', 'Consumer', 'SuccessResponse',
@@ -299,22 +298,9 @@ class Consumer(object):
             method.
 
         @returntype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
-
-        @raises openid.consumer.discover.DiscoveryFailure: when I fail to
-            find an OpenID server for this URL.  If the C{yadis} package
-            is available, L{openid.consumer.discover.DiscoveryFailure} is
-            an alias for C{yadis.discover.DiscoveryFailure}.
         """
-        disco = Discovery(self.session, user_url, self.session_key_prefix)
-        try:
-            service = disco.getNextService(discoverall)
-        except urllib.error.URLError as why:
-            raise DiscoveryFailure('Error fetching XRDS document: %s' % why)
-
-        if service is None:
-            raise DiscoveryFailure('No usable OpenID services found for %s' % user_url)
-        else:
-            return self.beginWithoutDiscovery(service, anonymous)
+        service = discover(user_url)
+        return self.beginWithoutDiscovery(service, anonymous)
 
     def beginWithoutDiscovery(self, service, anonymous=False):
         """Start OpenID verification without doing OpenID server
@@ -389,16 +375,6 @@ class Consumer(object):
             del self.session[self._token_key]
         except KeyError:
             pass
-
-        if (response.status in ['success', 'cancel'] and
-            response.identity() is not None):
-
-            disco = Discovery(self.session,
-                              response.identity(),
-                              self.session_key_prefix)
-            # This is OK to do even if we did not do discovery in
-            # the first place.
-            disco.cleanup(force=True)
 
         return response
 

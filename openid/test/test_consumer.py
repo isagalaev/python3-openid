@@ -21,7 +21,6 @@ from openid.consumer.consumer import \
 from openid import association
 from openid.server.server import \
      PlainTextServerSession, DiffieHellmanSHA1ServerSession
-from openid.yadis.manager import Discovery
 from openid.dh import DiffieHellman
 from openid import fetchers
 from openid.store import memstore
@@ -1214,9 +1213,6 @@ class ConsumerTest(unittest.TestCase):
         self.store = None
         self.session = {}
         self.consumer = Consumer(self.session, self.store)
-        self.discovery = Discovery(self.session,
-                                   self.identity,
-                                   self.consumer.session_key_prefix)
 
     def test_setAssociationPreference(self):
         self.consumer.setAssociationPreference([])
@@ -1227,55 +1223,6 @@ class ConsumerTest(unittest.TestCase):
         self.consumer.setAssociationPreference([('HMAC-SHA1', 'DH-SHA1')])
         self.assertEqual([('HMAC-SHA1', 'DH-SHA1')],
                              self.consumer.consumer.negotiator.allowed_types)
-
-    def withDummyDiscovery(self, callable, dummy_getNextService):
-        class DummyDisco(object):
-            def __init__(self, *ignored):
-                pass
-
-            getNextService = dummy_getNextService
-
-        import openid.consumer.consumer
-        old_discovery = openid.consumer.consumer.Discovery
-        try:
-            openid.consumer.consumer.Discovery = DummyDisco
-            callable()
-        finally:
-            openid.consumer.consumer.Discovery = old_discovery
-
-    def test_beginHTTPError(self):
-        """Make sure that the discovery HTTP failure case behaves properly
-        """
-        def getNextService(self, ignored):
-            raise urllib.error.URLError("Unit test")
-
-        def test():
-            try:
-                self.consumer.begin('unused in this test')
-            except DiscoveryFailure as why:
-                self.assertTrue(str(why).startswith('Error fetching'))
-                self.assertFalse(str(why).find('Unit test') == -1)
-            else:
-                self.fail('Expected DiscoveryFailure')
-
-        self.withDummyDiscovery(test, getNextService)
-
-    def test_beginNoServices(self):
-        def getNextService(self, ignored):
-            return None
-
-        url = 'http://a.user.url/'
-
-        def test():
-            try:
-                self.consumer.begin(url)
-            except DiscoveryFailure as why:
-                self.assertTrue(str(why).startswith('No usable OpenID'))
-                self.assertFalse(str(why).find(url) == -1)
-            else:
-                self.fail('Expected DiscoveryFailure')
-
-        self.withDummyDiscovery(test, getNextService)
 
     def test_beginWithoutDiscovery(self):
         # Does this really test anything non-trivial?
@@ -1334,34 +1281,6 @@ class ConsumerTest(unittest.TestCase):
             SetupNeededResponse(self.endpoint, setup_url))
         self.assertTrue(resp.setup_url is setup_url)
 
-    # To test that discovery is cleaned up, we need to initialize a
-    # Yadis manager, and have it put its values in the session.
-    def _doRespDisco(self, is_clean, exp_resp):
-        """Set up and execute a transaction, with discovery"""
-        self.discovery.createManager([self.endpoint], self.identity)
-        auth_req = self.consumer.begin(self.identity)
-        return self._doResp(auth_req, exp_resp)
-
-    # Cancel and success DO clean up the discovery process
-    def test_completeSuccess(self):
-        self._doRespDisco(True, mkSuccess(self.endpoint, {}))
-
-    def test_completeCancel(self):
-        self._doRespDisco(True, CancelResponse(self.endpoint))
-
-    # Failure and setup_needed don't clean up the discovery process
-    def test_completeFailure(self):
-        msg = 'failed!'
-        resp = self._doRespDisco(False, FailureResponse(self.endpoint, msg))
-        self.assertTrue(resp.message is msg)
-
-    def test_completeSetupNeeded(self):
-        setup_url = 'http://setup.url/'
-        resp = self._doRespDisco(
-            False,
-            SetupNeededResponse(self.endpoint, setup_url))
-        self.assertTrue(resp.setup_url is setup_url)
-
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
@@ -1371,12 +1290,6 @@ class Cleanup(unittest.TestCase):
         self.session = {}
         self.consumer = Consumer(self.session, GoodAssocStore())
         self.consumer.session[self.consumer._token_key] = endpoint
-        self.discovery = Discovery(
-            self.session,
-            claimed_id,
-            self.consumer.session_key_prefix,
-        )
-        self.discovery.createManager([endpoint], claimed_id)
 
         self.return_to = 'http://unittest/complete'
         nonce = mkNonce()
@@ -1398,16 +1311,6 @@ class Cleanup(unittest.TestCase):
     def test_failure_session(self):
         self.consumer.complete(self.failure_query, self.return_to)
         self.assertFalse(self.consumer._token_key in self.session)
-
-    def test_success_manager(self):
-        self.consumer.complete(self.success_query, self.return_to)
-        manager = self.discovery.getManager()
-        self.assertTrue(self.discovery.getManager() is None, manager)
-
-    def test_failure_manager(self):
-        self.consumer.complete(self.failure_query, self.return_to)
-        manager = self.discovery.getManager()
-        self.assertFalse(self.discovery.getManager() is None, manager)
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
