@@ -1231,32 +1231,29 @@ class ConsumerTest(unittest.TestCase):
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
     def setUp(self):
-        claimed_id = 'http://unittest/identity'
-        endpoint = Service([OPENID_1_1_TYPE], '', claimed_id=claimed_id)
+        self.claimed_id = 'http://unittest/identity'
         self.session = {}
         self.consumer = Consumer(self.session, GoodAssocStore())
-        self.consumer.session[self.consumer._token_key] = endpoint
-
+        self.consumer.session[self.consumer._token_key] = Service([OPENID_1_1_TYPE], '', self.claimed_id)
         self.return_to = 'http://unittest/complete'
+
+    def test_success_session(self):
         nonce = mkNonce()
-        self.success_query = {
+        query = {
             'openid.mode': 'id_res',
             'openid.return_to': self.return_to + '?' + urllib.parse.urlencode({NONCE_ARG: nonce}),
-            'openid.identity': claimed_id,
+            'openid.identity': self.claimed_id,
             NONCE_ARG: nonce,
             'openid.assoc_handle': 'z',
             'openid.signed': 'identity,return_to',
             'openid.sig': GOODSIG,
         }
-        self.failure_query = {}
-
-    def test_success_session(self):
-        self.consumer.complete(self.success_query, self.return_to)
+        self.consumer.complete(query, self.return_to)
         self.assertFalse(self.consumer._token_key in self.session)
 
     def test_failure_session(self):
         self.assertRaises(VerificationError,
-            self.consumer.complete, self.failure_query, self.return_to
+            self.consumer.complete, {}, self.return_to
         )
         self.assertFalse(self.consumer._token_key in self.session)
 
