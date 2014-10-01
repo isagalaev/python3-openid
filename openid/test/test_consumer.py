@@ -378,8 +378,8 @@ class Complete(unittest.TestCase):
         self.consumer = Consumer({}, memstore.MemoryStore())
         self.claimed_id = 'claimed_id'
         service = Service(
-            [OPENID_1_1_TYPE], 'http://unittest/server',
-            claimed_id=self.claimed_id,
+            [OPENID_2_0_TYPE], 'http://unittest/server',
+            self.claimed_id, self.claimed_id
         )
         self.consumer.session[self.consumer._token_key] = service
         self.return_to = 'http://unittest/complete'
@@ -1363,19 +1363,16 @@ class DiscoveryVerification(unittest.TestCase):
         )
 
     def test_prediscovered_match(self):
-        result = self.consumer._verify_openid2(self.message2, self.endpoint)
-        self.assertEqual(result, self.endpoint)
+        self.assertFalse(self.consumer._verify_openid2(self.message2, self.endpoint))
 
     def test_openid1_prediscovered_match(self):
         self.endpoint.types = [OPENID_1_1_TYPE]
-        result = self.consumer._verify_openid1(self.message1, self.endpoint)
-        self.assertEqual(result, self.endpoint)
+        self.assertFalse(self.consumer._verify_openid1(self.message1, self.endpoint))
 
     def test_fragment(self):
         claimed_id = self.identifier + '#fragment'
         self.message2.setArg(OPENID2_NS, 'claimed_id', claimed_id)
-        result = self.consumer._verify_openid2(self.message2, self.endpoint)
-        self.assertEqual(result.claimed_id, claimed_id)
+        self.assertFalse(self.consumer._verify_openid2(self.message2, self.endpoint))
 
     def test_prediscovered_wrong_type(self):
         self.assertRaises(
@@ -1392,29 +1389,25 @@ class DiscoveryVerification(unittest.TestCase):
     def test_openid2_claimed_id_local_id(self):
         variants = [
             {
-                'openid.op_endpoint': 'Phone Home',
-                'openid.identity': 'Jose Lius Borges',
+                'openid.op_endpoint': self.server_url,
+                'openid.identity': self.identifier,
             },
             {
-                'openid.op_endpoint': 'Phone Home',
-                'openid.claimed_id': 'Manuel Noriega',
+                'openid.op_endpoint': self.server_url,
+                'openid.claimed_id': self.identifier,
             },
         ]
         for q in variants:
-            self.assertRaisesRegex(
-                ProtocolError,
-                'openid.identity and openid.claimed_id should be either both '
-                'present or both absent',
-                self.consumer._verify_openid2, Message.fromPostArgs(_nsdict(q)), self.endpoint,
-            )
+            self.assertTrue(self.consumer._verify_openid2(
+                Message.fromPostArgs(_nsdict(q)),
+                self.endpoint,
+            ))
 
     def test_openid2_no_claimed_id(self):
+        endpoint = Service([OPENID_IDP_2_0_TYPE], self.server_url)
         self.message2.delArg(OPENID2_NS, 'claimed_id')
         self.message2.delArg(OPENID2_NS, 'identity')
-        endpoint = self.consumer._verify_openid2(self.message2, None)
-        self.assertTrue(endpoint.is_op_identifier())
-        self.assertEqual(self.server_url, endpoint.server_url)
-        self.assertEqual(None, endpoint.claimed_id)
+        self.assertFalse(self.consumer._verify_openid2(self.message2, endpoint))
 
     def test_wrong_info(self):
         endpoints = [
@@ -1422,10 +1415,7 @@ class DiscoveryVerification(unittest.TestCase):
             Service([OPENID_2_0_TYPE], self.server_url, self.identifier, 'wrong'),
         ]
         for endpoint in endpoints:
-            self.assertRaises(
-                ProtocolError,
-                self.consumer._verify_openid2, self.message2, endpoint
-            )
+            self.assertTrue(self.consumer._verify_openid2(self.message2, endpoint))
 
     def test_rediscover(self):
         with mock.patch('openid.consumer.discover.discover') as discover:

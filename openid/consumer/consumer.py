@@ -398,19 +398,12 @@ class Consumer(object):
         errors = []
         errors.extend(message.validate_fields())
         errors.extend(message.validate_return_to(return_to))
+        func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
+        errors.extend(getattr(self.consumer, func)(message, endpoint))
         # more to come
         if errors:
             return FailureResponse(endpoint, errors)
         try:
-            # Verify discovery information:
-            if message.getOpenIDNamespace() == OPENID2_NS:
-                endpoint = self.consumer._verify_openid2(message, endpoint)
-            else:
-                endpoint = self.consumer._verify_openid1(message, endpoint)
-            logging.info("Received id_res response from %s using association %s" %
-                        (endpoint.server_url,
-                         message.getArg(OPENID_NS, 'assoc_handle')))
-
             self.consumer._idResCheckSignature(message, endpoint.server_url)
 
             # Will raise a ProtocolError if the nonce is bad
@@ -627,70 +620,47 @@ class GenericConsumer(object):
 
     def _verify_openid1(self, resp_msg, endpoint):
         if endpoint is None:
-            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1')
+            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
+        if not endpoint.compat_mode():
+            raise ProtocolError('Expected an OpenID 2 response', resp_msg)
 
-        if not any(t in endpoint.types for t in [discover.OPENID_1_0_TYPE, discover.OPENID_1_1_TYPE]):
-            raise TypeURIMismatch(endpoint)
+        errors = []
 
         if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
-            raise ProtocolError('Got bad identity: %s' % endpoint.identity())
+            errors.append('Bad identity: %s' % resp_msg.getArg(OPENID1_NS, 'identity'))
 
-        return endpoint
+        return errors
 
     def _verify_openid2(self, resp_msg, endpoint):
-        """
-        Extract the information from an OpenID assertion message and
-        verify it against the original
-
-        @param endpoint: The endpoint that resulted from doing discovery
-        @param resp_msg: The id_res message object
-
-        @returns: the verified endpoint
-        """
-        server_url = resp_msg.getArg(OPENID2_NS, 'op_endpoint')
         claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
-        local_id = resp_msg.getArg(OPENID2_NS, 'identity')
 
-        if (claimed_id is None) != (local_id is None):
+        if endpoint is None and not claimed_id:
             raise ProtocolError(
-                'openid.identity and openid.claimed_id should be either both '
-                'present or both absent')
-        if claimed_id is None:
-            return discover.Service(
-                [discover.OPENID_IDP_2_0_TYPE],
-                resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
+                'Can\'t verify discovered info without a stored endpoint or '
+                'claimed_id', resp_msg
             )
-
-        if endpoint is None or endpoint.claimed_id != claimed_id:
+        if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
             endpoint = discover.discover(claimed_id)
+        if endpoint.compat_mode():
+            raise ProtocolError('Expected an OpenID 1 response', resp_msg)
 
-        if discover.OPENID_2_0_TYPE not in endpoint.types:
-            raise TypeURIMismatch(endpoint)
+        errors = []
 
-        # Fragments do not influence discovery, so we can't compare a
-        # claimed identifier with a fragment to discovered information.
-        defragged_claimed_id, _ = urldefrag(claimed_id)
-        if defragged_claimed_id != endpoint.claimed_id:
-            raise ProtocolError(
-                'Claimed ID does not match (different subjects!), '
-                'Expected %s, got %s' %
-                (defragged_claimed_id, endpoint.claimed_id))
+        if resp_msg.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
+            errors.append('Bad OP Endpoint: %s' % resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
 
-        if local_id != endpoint.identity():
-            raise ProtocolError('Identity mismatch. Expected %s, got %s' %
-                                (local_id, endpoint.identity()))
+        identity = resp_msg.getArg(OPENID2_NS, 'identity')
+        if (claimed_id is None) != (identity is None):
+            errors.append(
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent'
+            )
+        if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
+            errors.append('Bas Claimed ID: %s' % claimed_id)
+        if identity and (identity != endpoint.identity()):
+            errors.append('Bad Identity: %s' % identity)
 
-        if server_url != endpoint.server_url:
-            raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
-                                (server_url, endpoint.server_url))
-
-        # The endpoint we return should have the claimed ID from the
-        # message we just verified, fragment and all.
-        if endpoint.claimed_id != claimed_id:
-            endpoint = copy.copy(endpoint)
-            endpoint.claimed_id = claimed_id
-
-        return endpoint
+        return errors
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.
