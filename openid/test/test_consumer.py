@@ -1228,7 +1228,6 @@ class ConsumerTest(unittest.TestCase):
         self.assertTrue(result.endpoint is self.endpoint)
 
 
-@mock.patch('urllib.request.urlopen', support.urlopen)
 class Cleanup(unittest.TestCase):
     def setUp(self):
         self.claimed_id = 'http://unittest/identity'
