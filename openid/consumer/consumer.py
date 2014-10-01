@@ -399,15 +399,15 @@ class Consumer(object):
         errors.extend(message.validate_fields())
         errors.extend(message.validate_return_to(return_to))
         func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
-        errors.extend(getattr(self.consumer, func)(message, endpoint))
+        errors.extend(getattr(self, func)(message, endpoint))
         # more to come
         if errors:
             return FailureResponse(endpoint, errors)
         try:
-            self.consumer._idResCheckSignature(message, endpoint.server_url)
+            self._idResCheckSignature(message, endpoint.server_url)
 
             # Will raise a ProtocolError if the nonce is bad
-            self.consumer._idResCheckNonce(message, endpoint)
+            self._idResCheckNonce(message, endpoint)
 
             signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
             signed_list = signed_list_str.split(',')
@@ -420,6 +420,98 @@ class Consumer(object):
         mode = message.getArg(OPENID_NS, 'mode', '<No mode set>')
         return FailureResponse(endpoint,
                                'Invalid openid.mode: %r' % (mode,))
+
+    def _idResCheckNonce(self, message, endpoint):
+        if message.isOpenID1():
+            nonce = message.getArg(BARE_NS, NONCE_ARG)
+            server_url = ''
+        else:
+            nonce = message.getArg(OPENID2_NS, 'response_nonce')
+            server_url = endpoint.server_url
+
+        if nonce is None:
+            raise ProtocolError('Nonce missing from response')
+
+        try:
+            timestamp, salt = splitNonce(nonce)
+        except ValueError as why:
+            raise ProtocolError('Malformed nonce: %s' % (why,))
+
+        if (self.consumer.store is not None and
+            not self.consumer.store.useNonce(server_url, timestamp, salt)):
+            raise ProtocolError('Nonce already used or out of range')
+
+    def _idResCheckSignature(self, message, server_url):
+        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
+        if self.consumer.store is None:
+            assoc = None
+        else:
+            assoc = self.consumer.store.getAssociation(server_url, assoc_handle)
+
+        if assoc:
+            if assoc.expiresIn <= 0:
+                # XXX: It might be a good idea sometimes to re-start the
+                # authentication with a new association. Doing it
+                # automatically opens the possibility for
+                # denial-of-service by a server that just returns expired
+                # associations (or really short-lived associations)
+                raise ProtocolError(
+                    'Association with %s expired' % (server_url,))
+
+            if not assoc.checkMessageSignature(message):
+                raise ProtocolError('Bad signature')
+
+        else:
+            # It's not an association we know about.  Stateless mode is our
+            # only possible path for recovery.
+            # XXX - async framework will not want to block on this call to
+            # _checkAuth.
+            if not self.consumer._checkAuth(message, server_url):
+                raise ProtocolError('Server denied check_authentication')
+
+    def _verify_openid1(self, resp_msg, endpoint):
+        if endpoint is None:
+            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
+        if not endpoint.compat_mode():
+            raise ProtocolError('Expected an OpenID 2 response', resp_msg)
+
+        errors = []
+
+        if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
+            errors.append('Bad identity: %s' % resp_msg.getArg(OPENID1_NS, 'identity'))
+
+        return errors
+
+    def _verify_openid2(self, resp_msg, endpoint):
+        claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
+
+        if endpoint is None and not claimed_id:
+            raise ProtocolError(
+                'Can\'t verify discovered info without a stored endpoint or '
+                'claimed_id', resp_msg
+            )
+        if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
+            endpoint = discover.discover(claimed_id)
+        if endpoint.compat_mode():
+            raise ProtocolError('Expected an OpenID 1 response', resp_msg)
+
+        errors = []
+
+        if resp_msg.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
+            errors.append('Bad OP Endpoint: %s' % resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
+
+        identity = resp_msg.getArg(OPENID2_NS, 'identity')
+        if (claimed_id is None) != (identity is None):
+            errors.append(
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent'
+            )
+        if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
+            errors.append('Bas Claimed ID: %s' % claimed_id)
+        if identity and (identity != endpoint.identity()):
+            errors.append('Bad Identity: %s' % identity)
+
+        return errors
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
@@ -558,98 +650,6 @@ class GenericConsumer(object):
     def __init__(self, store):
         self.store = store
         self.negotiator = default_negotiator.copy()
-
-    def _idResCheckNonce(self, message, endpoint):
-        if message.isOpenID1():
-            nonce = message.getArg(BARE_NS, NONCE_ARG)
-            server_url = ''
-        else:
-            nonce = message.getArg(OPENID2_NS, 'response_nonce')
-            server_url = endpoint.server_url
-
-        if nonce is None:
-            raise ProtocolError('Nonce missing from response')
-
-        try:
-            timestamp, salt = splitNonce(nonce)
-        except ValueError as why:
-            raise ProtocolError('Malformed nonce: %s' % (why,))
-
-        if (self.store is not None and
-            not self.store.useNonce(server_url, timestamp, salt)):
-            raise ProtocolError('Nonce already used or out of range')
-
-    def _idResCheckSignature(self, message, server_url):
-        assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
-        if self.store is None:
-            assoc = None
-        else:
-            assoc = self.store.getAssociation(server_url, assoc_handle)
-
-        if assoc:
-            if assoc.expiresIn <= 0:
-                # XXX: It might be a good idea sometimes to re-start the
-                # authentication with a new association. Doing it
-                # automatically opens the possibility for
-                # denial-of-service by a server that just returns expired
-                # associations (or really short-lived associations)
-                raise ProtocolError(
-                    'Association with %s expired' % (server_url,))
-
-            if not assoc.checkMessageSignature(message):
-                raise ProtocolError('Bad signature')
-
-        else:
-            # It's not an association we know about.  Stateless mode is our
-            # only possible path for recovery.
-            # XXX - async framework will not want to block on this call to
-            # _checkAuth.
-            if not self._checkAuth(message, server_url):
-                raise ProtocolError('Server denied check_authentication')
-
-    def _verify_openid1(self, resp_msg, endpoint):
-        if endpoint is None:
-            raise ProtocolError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
-        if not endpoint.compat_mode():
-            raise ProtocolError('Expected an OpenID 2 response', resp_msg)
-
-        errors = []
-
-        if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
-            errors.append('Bad identity: %s' % resp_msg.getArg(OPENID1_NS, 'identity'))
-
-        return errors
-
-    def _verify_openid2(self, resp_msg, endpoint):
-        claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
-
-        if endpoint is None and not claimed_id:
-            raise ProtocolError(
-                'Can\'t verify discovered info without a stored endpoint or '
-                'claimed_id', resp_msg
-            )
-        if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
-            endpoint = discover.discover(claimed_id)
-        if endpoint.compat_mode():
-            raise ProtocolError('Expected an OpenID 1 response', resp_msg)
-
-        errors = []
-
-        if resp_msg.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
-            errors.append('Bad OP Endpoint: %s' % resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
-
-        identity = resp_msg.getArg(OPENID2_NS, 'identity')
-        if (claimed_id is None) != (identity is None):
-            errors.append(
-                'openid.identity and openid.claimed_id should be either both '
-                'present or both absent'
-            )
-        if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
-            errors.append('Bas Claimed ID: %s' % claimed_id)
-        if identity and (identity != endpoint.identity()):
-            errors.append('Bad Identity: %s' % identity)
-
-        return errors
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.

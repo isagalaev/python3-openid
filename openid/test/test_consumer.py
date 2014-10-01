@@ -312,13 +312,13 @@ class TestIdResCheckSignature(TestIdRes):
 
     def test_sign(self):
         # assoc_handle to assoc with good sig
-        self.consumer._idResCheckSignature(self.message,
+        self.new_consumer._idResCheckSignature(self.message,
                                            self.endpoint.server_url)
 
     def test_signFailsWithBadSig(self):
         self.message.setArg(OPENID_NS, 'sig', 'BAD SIGNATURE')
         self.assertRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
+            ProtocolError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -327,7 +327,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._processCheckAuthResponse = (
             lambda response, server_url: True)
-        self.consumer._idResCheckSignature(self.message,
+        self.new_consumer._idResCheckSignature(self.message,
                                            self.endpoint.server_url)
 
     def test_statelessRaisesError(self):
@@ -335,7 +335,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.assertRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
+            ProtocolError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
     @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
@@ -345,7 +345,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.consumer.store = None
         self.consumer._processCheckAuthResponse = (
             lambda response, server_url: True)
-        self.consumer._idResCheckSignature(self.message,
+        self.new_consumer._idResCheckSignature(self.message,
                                            self.endpoint.server_url)
 
     def test_statelessRaisesError_noStore(self):
@@ -354,7 +354,7 @@ class TestIdResCheckSignature(TestIdRes):
         self.consumer._checkAuth = lambda unused1, unused2: False
         self.consumer.store = None
         self.assertRaises(
-            ProtocolError, self.consumer._idResCheckSignature,
+            ProtocolError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
 
@@ -748,7 +748,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?' + query
         self.response = Message.fromOpenIDArgs({'return_to': self.return_to})
         self.response.setArg(BARE_NS, NONCE_ARG, nonce_value)
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.new_consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_consumerNonceOpenID2(self):
@@ -756,7 +756,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.return_to = 'http://rt.unittest/?nonce=%s' % (mkNonce(),)
         self.response = Message.fromOpenIDArgs(
             {'return_to': self.return_to, 'ns': OPENID2_NS})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce,
+        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
                               self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
@@ -764,7 +764,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         """use server-generated nonce"""
         self.response = Message.fromOpenIDArgs(
             {'ns': OPENID2_NS, 'response_nonce': mkNonce()})
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.new_consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_serverNonceOpenID1(self):
@@ -773,7 +773,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
             {'ns': OPENID1_NS,
              'return_to': 'http://return.to/',
              'response_nonce': mkNonce()})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce,
+        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
                               self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
@@ -795,7 +795,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                   {'response_nonce': nonce,
                                    'ns': OPENID2_NS,
                                    })
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce,
+        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
                               self.response, self.endpoint)
 
     def test_successWithNoStore(self):
@@ -805,7 +805,7 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
                                   {'response_nonce': mkNonce(),
                                    'ns': OPENID2_NS,
                                    })
-        self.consumer._idResCheckNonce(self.response, self.endpoint)
+        self.new_consumer._idResCheckNonce(self.response, self.endpoint)
         self.failUnlessLogEmpty()
 
     def test_tamperedNonce(self):
@@ -813,18 +813,18 @@ class CheckNonceVerifyTest(TestIdRes, CatchLogs):
         self.response = Message.fromOpenIDArgs(
                                   {'ns': OPENID2_NS,
                                    'response_nonce': 'malformed'})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce,
+        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
                               self.response, self.endpoint)
 
     def test_missingNonce(self):
         """no nonce parameter on the return_to"""
         self.response = Message.fromOpenIDArgs(
                                   {'return_to': self.return_to})
-        self.assertRaises(ProtocolError, self.consumer._idResCheckNonce,
+        self.assertRaises(ProtocolError, self.new_consumer._idResCheckNonce,
                               self.response, self.endpoint)
 
 
-@mock.patch.object(GenericConsumer, '_idResCheckNonce', mock.Mock(return_value=True))
+@mock.patch.object(Consumer, '_idResCheckNonce', mock.Mock(return_value=True))
 @mock.patch.object(GenericConsumer, '_checkAuth', mock.Mock(side_effect=CheckAuthHappened))
 class TestCheckAuthTriggered(TestIdRes, CatchLogs):
 
@@ -893,7 +893,7 @@ class TestCheckAuthTriggered(TestIdRes, CatchLogs):
         })
         self.assertRaises(
             ProtocolError,
-            self.consumer._idResCheckSignature, message, self.endpoint.server_url,
+            self.new_consumer._idResCheckSignature, message, self.endpoint.server_url,
         )
 
     def test_newerAssoc(self):
@@ -1334,7 +1334,7 @@ class IDPDrivenTest(unittest.TestCase):
 @mock.patch('urllib.request.urlopen', support.urlopen)
 class DiscoveryVerification(unittest.TestCase):
     def setUp(self):
-        self.consumer = GenericConsumer(None)
+        self.consumer = Consumer({}, None)
         self.identifier = 'http://unittest/openid2_xrds.xrds'
         self.local_id = 'http://smoker.myopenid.com/'
         self.server_url = 'http://www.myopenid.com/server'
