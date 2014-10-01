@@ -365,9 +365,14 @@ class Consumer(object):
         if mode != 'id_res':
             raise AuthenticationError('Mode missing or invalid: %s' % mode, message)
 
-        return self._complete_id_res(message, endpoint, current_url)
+        self.verify_response(message, endpoint, current_url)
 
-    def _complete_id_res(self, message, endpoint, return_to):
+        signed_list = message.getArg(OPENID_NS, 'signed').split(',')
+        signed_fields = ['openid.' + s for s in signed_list]
+        claimed_id = endpoint.claimed_id if message.isOpenID1() else None
+        return Response(message, signed_fields, claimed_id)
+
+    def verify_response(self, message, endpoint, return_to):
         errors = []
         errors.extend(message.validate_fields())
         errors.extend(message.validate_return_to(return_to))
@@ -378,11 +383,6 @@ class Consumer(object):
         # These would raise AuthenticationError themselves
         self._idResCheckSignature(message, endpoint.server_url)
         self._idResCheckNonce(message, endpoint)
-
-        signed_list_str = message.getArg(OPENID_NS, 'signed', no_default)
-        signed_list = signed_list_str.split(',')
-        signed_fields = ["openid." + s for s in signed_list]
-        return Response(message, signed_fields, endpoint.claimed_id if message.isOpenID1() else None)
 
     def _idResCheckNonce(self, message, endpoint):
         if message.isOpenID1():

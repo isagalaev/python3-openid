@@ -201,7 +201,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
 
         message = Message.fromPostArgs(query)
         message = assoc.signMessage(message)
-        response = consumer._complete_id_res(message, request.endpoint, new_return_to)
+        response = consumer.complete(message.toPostArgs(), new_return_to)
         assert response.claimed_id == user_url
 
     with mock.patch('openid.fetchers.fetch', fetcher.fetch):
