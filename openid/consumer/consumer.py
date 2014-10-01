@@ -675,49 +675,47 @@ class GenericConsumer(object):
 
         @returns: the verified endpoint
         """
-        to_match = Service(
-            [OPENID_2_0_TYPE],
-            resp_msg.getArg(OPENID2_NS, 'op_endpoint'),
-            resp_msg.getArg(OPENID2_NS, 'claimed_id'),
-            resp_msg.getArg(OPENID2_NS, 'identity'),
-        )
-        if (to_match.claimed_id is None) != (to_match.local_id is None):
+        server_url = resp_msg.getArg(OPENID2_NS, 'op_endpoint')
+        claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
+        local_id = resp_msg.getArg(OPENID2_NS, 'identity')
+
+        if (claimed_id is None) != (local_id is None):
             raise ProtocolError(
                 'openid.identity and openid.claimed_id should be either both '
                 'present or both absent')
-        if to_match.claimed_id is None:
-            return Service([OPENID_IDP_2_0_TYPE], to_match.server_url)
+        if claimed_id is None:
+            return Service([OPENID_IDP_2_0_TYPE], resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
 
         if (endpoint is None or
             endpoint.claimed_id == IDENTIFIER_SELECT or
-            endpoint.claimed_id != to_match.claimed_id):
-            endpoint = discover(to_match.claimed_id)[0]
+            endpoint.claimed_id != claimed_id):
+            endpoint = discover(claimed_id)[0]
 
         if OPENID_2_0_TYPE not in endpoint.types:
-            raise TypeURIMismatch(to_match, endpoint)
+            raise TypeURIMismatch(endpoint)
 
         # Fragments do not influence discovery, so we can't compare a
         # claimed identifier with a fragment to discovered information.
-        defragged_claimed_id, _ = urldefrag(to_match.claimed_id)
+        defragged_claimed_id, _ = urldefrag(claimed_id)
         if defragged_claimed_id != endpoint.claimed_id:
             raise ProtocolError(
                 'Claimed ID does not match (different subjects!), '
                 'Expected %s, got %s' %
                 (defragged_claimed_id, endpoint.claimed_id))
 
-        if to_match.identity() != endpoint.identity():
-            raise ProtocolError('local_id mismatch. Expected %s, got %s' %
-                                (to_match.identity(), endpoint.identity()))
+        if local_id != endpoint.identity():
+            raise ProtocolError('Identity mismatch. Expected %s, got %s' %
+                                (local_id, endpoint.identity()))
 
-        if to_match.server_url != endpoint.server_url:
+        if server_url != endpoint.server_url:
             raise ProtocolError('OP Endpoint mismatch. Expected %s, got %s' %
-                                (to_match.server_url, endpoint.server_url))
+                                (server_url, endpoint.server_url))
 
         # The endpoint we return should have the claimed ID from the
         # message we just verified, fragment and all.
-        if endpoint.claimed_id != to_match.claimed_id:
+        if endpoint.claimed_id != claimed_id:
             endpoint = copy.copy(endpoint)
-            endpoint.claimed_id = to_match.claimed_id
+            endpoint.claimed_id = claimed_id
 
         return endpoint
 
