@@ -358,15 +358,14 @@ class Consumer(object):
             if mode == 'cancel':
                 error = 'Authentication cancelled by OpenID provider'
             raise AuthenticationError(message.getArg(OPENID_NS, 'error'), message)
-        if mode == 'setup_needed' and message.isOpenID2():
+        if (mode == 'setup_needed' and message.isOpenID2() or
+            mode == 'id_res' and message.setup_url()):
             raise SetupNeeded(message)
         if mode != 'id_res':
             raise AuthenticationError('Mode missing or invalid: %s' % mode, message)
         return self._complete_id_res(message, endpoint, current_url)
 
     def _complete_id_res(self, message, endpoint, return_to):
-        if message.setup_url():
-            raise SetupNeeded(message)
         errors = []
         errors.extend(message.validate_fields())
         errors.extend(message.validate_return_to(return_to))
