@@ -79,7 +79,7 @@ class Discovery(unittest.TestCase):
 
     def test_wrong_protocol(self):
         url = 'ssh://unittest/'
-        self.assertRaises(discover.DiscoveryFailure, discover.discoverall, url)
+        self.assertRaises(ValueError, discover.discoverall, url)
 
     def test_html1And2(self):
         url = 'http://unittest/openid_1_and_2.html'
