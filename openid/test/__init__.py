@@ -76,7 +76,6 @@ def pyUnitTests():
     # return an appropriate test suite
     custom_module_names = [
         'kvform',
-        'linkparse',
         'oidutil',
         'storetest',
         'test_association',

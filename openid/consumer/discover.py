@@ -4,8 +4,9 @@ Functions to discover OpenID endpoints from identifiers.
 import urllib.parse
 import logging
 
+import html5lib
+
 from openid import urinorm, yadis, xri, xrds
-from openid.consumer import html_parse
 from openid.message import OPENID1_NS, OPENID2_NS
 
 OPENID_IDP_2_0_TYPE = 'http://specs.openid.net/auth/2.0/server'
@@ -68,28 +69,20 @@ class Service(object):
 
 
 def parse_html(url, html):
-    discovery_types = [
+    root = html5lib.parse(html)
+    links = root.findall('{http://www.w3.org/1999/xhtml}head/{http://www.w3.org/1999/xhtml}link')
+    hrefs = {rel: l.get('href') for l in links for rel in l.get('rel', '').split()}
+
+    link_types = [
         (OPENID_2_0_TYPE, 'openid2.provider', 'openid2.local_id'),
         (OPENID_1_1_TYPE, 'openid.server', 'openid.delegate'),
-        ]
+    ]
 
-    link_attrs = html_parse.parseLinkAttrs(html)
-
-    services = []
-    for type_uri, op_endpoint_rel, local_id_rel in discovery_types:
-        op_endpoint_url = html_parse.findFirstHref(
-            link_attrs, op_endpoint_rel)
-        if op_endpoint_url is None:
-            continue
-        service = Service(
-            [type_uri],
-            op_endpoint_url,
-            url,
-            html_parse.findFirstHref(link_attrs, local_id_rel),
-        )
-        services.append(service)
-
-    return services
+    return [
+        Service([type_uri], hrefs[op_endpoint_rel], url, hrefs.get(local_id_rel))
+        for type_uri, op_endpoint_rel, local_id_rel in link_types
+        if op_endpoint_rel in hrefs
+    ]
 
 
 def parse_service(service_element, user_id, canonicalID=None):
