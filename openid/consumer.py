@@ -179,7 +179,7 @@ import urllib.parse
 import urllib.error
 
 from openid import fetchers
-from openid.consumer import discover
+from openid import discover
 from openid.message import Message, OPENID_NS, OPENID2_NS, OPENID1_NS, \
      IDENTIFIER_SELECT, no_default, BARE_NS
 from openid import cryptutil
@@ -303,7 +303,7 @@ class Consumer(object):
         You should create a new instance of the Consumer object with
         every HTTP request that handles OpenID transactions.
 
-        @param session: See L{the session instance variable<openid.consumer.consumer.Consumer.session>}
+        @param session: See L{the session instance variable<openid.consumer.Consumer.session>}
 
         @param store: an object that implements the interface in
             C{L{openid.store.interface.OpenIDStore}}.  Several
@@ -347,10 +347,10 @@ class Consumer(object):
             the server, as described in step 3 of the overview. This
             object may also be used to add extension arguments to the
             request, using its
-            L{addExtensionArg<openid.consumer.consumer.AuthRequest.addExtensionArg>}
+            L{addExtensionArg<openid.consumer.AuthRequest.addExtensionArg>}
             method.
 
-        @returntype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
+        @returntype: L{AuthRequest<openid.consumer.AuthRequest>}
         """
         service = discover.discover(user_url)
         return self.beginWithoutDiscovery(service, anonymous)
@@ -364,17 +364,17 @@ class Consumer(object):
 
         @param service: an OpenID service endpoint descriptor.  This
             object and factories for it are found in the
-            L{openid.consumer.discover} module.
+            L{openid.discover} module.
 
         @type service:
-            L{Service<openid.consumer.discover.Service>}
+            L{Service<openid.discover.Service>}
 
         @returns: an OpenID authentication request object.
 
-        @rtype: L{AuthRequest<openid.consumer.consumer.AuthRequest>}
+        @rtype: L{AuthRequest<openid.consumer.AuthRequest>}
 
-        @See: Openid.consumer.consumer.Consumer.begin
-        @see: openid.consumer.discover
+        @See: Openid.consumer.Consumer.begin
+        @see: openid.discover
         """
         if self.consumer.store is None:
             assoc = None

@@ -11,8 +11,8 @@ import twill.commands
 import twill.parse
 import twill.unit
 
-from openid.consumer.discover import Service, OPENID_1_1_TYPE
-from openid.consumer.consumer import AuthRequest
+from openid.discover import Service, OPENID_1_1_TYPE
+from openid.consumer import AuthRequest
 
 
 class TwillTest(twill.unit.TestInfo):

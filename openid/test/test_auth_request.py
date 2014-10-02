@@ -1,6 +1,6 @@
 import unittest
 
-from openid.consumer import consumer
+from openid import consumer
 from openid import message
 from openid.test import support
 

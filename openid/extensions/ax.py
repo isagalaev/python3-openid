@@ -700,7 +700,7 @@ class FetchResponse(AXKeyValueMessage):
         SuccessResponse object.
 
         @param success_response: A successful id_res response object
-        @type success_response: openid.consumer.consumer.SuccessResponse
+        @type success_response: openid.consumer.SuccessResponse
 
         @param signed: Whether non-signed args should be
             processsed. If True (the default), only signed arguments

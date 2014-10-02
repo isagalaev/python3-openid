@@ -4,7 +4,7 @@
 import unittest
 from openid.extensions import ax
 from openid.message import NamespaceMap, Message, OPENID2_NS
-from openid.consumer.consumer import Response
+from openid.consumer import Response
 
 
 class BogusAXMessage(ax.AXMessage):

@@ -7,7 +7,7 @@ used to sign C{openid.mode=id_res} messages.
 
 Users of the library should not usually need to interact directly with
 associations. The L{store<openid.store>}, L{server<openid.server.server>}
-and L{consumer<openid.consumer.consumer>} objects will create and manage
+and L{consumer<openid.consumer>} objects will create and manage
 the associations. The consumer and server code will make use of a
 C{L{SessionNegotiator}} when managing associations, which enables
 users to express a preference for what kind of associations should be
@@ -92,7 +92,7 @@ def checkSessionType(assoc_type, session_type):
 class SessionNegotiator(object):
     """A session negotiator controls the allowed and preferred
     association types and association session types. Both the
-    C{L{Consumer<openid.consumer.consumer.Consumer>}} and
+    C{L{Consumer<openid.consumer.Consumer>}} and
     C{L{Server<openid.server.server.Server>}} use negotiators when
     creating associations.
 

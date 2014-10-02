@@ -29,7 +29,7 @@ from openid.server.server import \
      DiffieHellmanSHA256ServerSession, \
      PlainTextServerSession
 
-from openid.consumer.consumer import \
+from openid.consumer import \
      DiffieHellmanSHA1ConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, \
      PlainTextConsumerSession

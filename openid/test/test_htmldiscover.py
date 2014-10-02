@@ -1,4 +1,4 @@
-from openid.consumer.discover import Service
+from openid.discover import Service
 from openid.test import datadriven
 
 

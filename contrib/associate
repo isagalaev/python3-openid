@@ -6,7 +6,7 @@ import sys
 
 from openid.store.memstore import MemoryStore
 from openid.consumer import consumer
-from openid.consumer.discover import Service
+from openid.discover import Service
 
 from datetime import datetime
 

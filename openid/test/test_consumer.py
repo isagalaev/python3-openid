@@ -10,14 +10,12 @@ from openid.message import Message, OPENID_NS, OPENID2_NS, IDENTIFIER_SELECT, \
      OPENID1_NS, BARE_NS
 from openid import cryptutil, oidutil, kvform
 from openid.store.nonce import mkNonce, split as splitNonce
-from openid.consumer.discover import Service, OPENID_2_0_TYPE, \
+from openid.discover import Service, OPENID_2_0_TYPE, \
      OPENID_1_1_TYPE, OPENID_1_0_TYPE, OPENID_IDP_2_0_TYPE, DiscoveryFailure
-from openid.consumer.consumer import \
-     AuthRequest, GenericConsumer, \
-     Response, \
+from openid.consumer import AuthRequest, GenericConsumer, Response, \
      DiffieHellmanSHA1ConsumerSession, Consumer, PlainTextConsumerSession, \
-     DiffieHellmanSHA256ConsumerSession, ServerError, \
-     ProtocolError, makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded, \
+     DiffieHellmanSHA256ConsumerSession, ServerError, ProtocolError, \
+     makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded, \
      validate_fields, validate_return_to
 from openid import association
 from openid.server.server import \
@@ -155,7 +153,7 @@ def _test_success(server_url, user_url, delegate_url, links, immediate=False):
     endpoint = Service([OPENID_1_1_TYPE], server_url, user_url, delegate_url)
     fetcher = TestFetcher(None, None, assocs[0])
 
-    @mock.patch('openid.consumer.consumer.create_session', create_session)
+    @mock.patch('openid.consumer.create_session', create_session)
     def run():
         trust_root = str(consumer_url, encoding="utf-8")
 
@@ -321,7 +319,7 @@ class TestIdResCheckSignature(TestIdRes):
             AuthenticationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
-    @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
+    @mock.patch('openid.consumer.makeKVPost', lambda *args: {})
     def test_stateless(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
@@ -338,7 +336,7 @@ class TestIdResCheckSignature(TestIdRes):
             AuthenticationError, self.new_consumer._idResCheckSignature,
             self.message, self.endpoint.server_url)
 
-    @mock.patch('openid.consumer.consumer.makeKVPost', lambda *args: {})
+    @mock.patch('openid.consumer.makeKVPost', lambda *args: {})
     def test_stateless_noStore(self):
         # assoc_handle missing assoc, consumer._checkAuth returns goodthings
         self.message.setArg(OPENID_NS, "assoc_handle", "dumbHandle")
@@ -1379,7 +1377,7 @@ class DiscoveryVerification(unittest.TestCase):
             )
 
     def test_rediscover(self):
-        with mock.patch('openid.consumer.discover.discover') as discover:
+        with mock.patch('openid.discover.discover') as discover:
             discover.return_value = self.endpoint
             self.consumer._verify_openid2(self.message2, None)
             discover.assert_called_once_with(self.identifier)
@@ -1428,7 +1426,7 @@ class TestCreateAssociationRequest(unittest.TestCase):
                     'assoc_type': self.assoc_type,
                     }), args)
 
-    @mock.patch('openid.consumer.consumer.create_session', create_session)
+    @mock.patch('openid.consumer.create_session', create_session)
     def test_dhSHA1Compatibility(self):
         self.endpoint.use_compatibility = True
         session_type = 'DH-SHA1'

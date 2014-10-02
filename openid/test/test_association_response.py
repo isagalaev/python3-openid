@@ -6,8 +6,8 @@ this works for now.
 from openid.test.test_consumer import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID_NS
 from openid.server.server import DiffieHellmanSHA1ServerSession
-from openid.consumer.consumer import GenericConsumer, ProtocolError
-from openid.consumer.discover import Service, OPENID_1_1_TYPE,\
+from openid.consumer import GenericConsumer, ProtocolError
+from openid.discover import Service, OPENID_1_1_TYPE,\
     OPENID_2_0_TYPE
 from openid.store import memstore
 import unittest

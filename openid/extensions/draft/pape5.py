@@ -355,11 +355,11 @@ class Response(PAPEExtension):
     def fromSuccessResponse(cls, success_response):
         """Create a C{L{Response}} object from a successful OpenID
         library response
-        (C{L{openid.consumer.consumer.SuccessResponse}}) response
+        (C{L{openid.consumer.SuccessResponse}}) response
         message
 
         @param success_response: A SuccessResponse from consumer.complete()
-        @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
+        @type success_response: C{L{openid.consumer.SuccessResponse}}
 
         @rtype: Response or None
         @returns: A provider authentication policy response from the

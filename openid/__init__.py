@@ -3,7 +3,7 @@
 This package is an implementation of the OpenID specification in
 Python.  It contains code for both server and consumer
 implementations.  For information on implementing an OpenID consumer,
-see the C{L{openid.consumer.consumer}} module.  For information on
+see the C{L{openid.consumer}} module.  For information on
 implementing an OpenID server, see the C{L{openid.server.server}}
 module.
 
@@ -26,21 +26,3 @@ module.
 version_info = (3, 0, 4)
 
 __version__ = ".".join(str(x) for x in version_info)
-
-__all__ = [
-    'association',
-    'consumer',
-    'cryptutil',
-    'dh',
-    'extension',
-    'extensions',
-    'fetchers',
-    'kvform',
-    'message',
-    'oidutil',
-    'server',
-    'sreg',
-    'store',
-    'urinorm',
-    'yadis',
-]

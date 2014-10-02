@@ -5,7 +5,7 @@ and responses that can be used with both OpenID relying parties and
 OpenID providers.
 
   1. The relying party creates a request object and adds it to the
-     C{L{AuthRequest<openid.consumer.consumer.AuthRequest>}} object
+     C{L{AuthRequest<openid.consumer.AuthRequest>}} object
      before making the C{checkid_} request to the OpenID provider::
 
       auth_request.addExtension(SRegRequest(required=['email']))
@@ -103,7 +103,7 @@ def supportsSReg(endpoint):
     registration?
 
     @param endpoint: The endpoint object as returned by OpenID discovery
-    @type endpoint: openid.consumer.discover.OpenIDEndpoint
+    @type endpoint: openid.discover.OpenIDEndpoint
 
     @returns: Whether an sreg type was advertised by the endpoint
     @rtype: bool
@@ -439,11 +439,11 @@ class SRegResponse(Extension):
     def fromSuccessResponse(cls, success_response, signed_only=True):
         """Create a C{L{SRegResponse}} object from a successful OpenID
         library response
-        (C{L{openid.consumer.consumer.SuccessResponse}}) response
+        (C{L{openid.consumer.SuccessResponse}}) response
         message
 
         @param success_response: A SuccessResponse from consumer.complete()
-        @type success_response: C{L{openid.consumer.consumer.SuccessResponse}}
+        @type success_response: C{L{openid.consumer.SuccessResponse}}
 
         @param signed_only: Whether to process only data that was
             signed in the id_res message from the server.

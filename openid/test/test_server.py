@@ -1455,7 +1455,7 @@ class TestAssociate(unittest.TestCase):
             self.assertEqual(secret, self.assoc.secret)
 
         def test_protoError256(self):
-            from openid.consumer.consumer import \
+            from openid.consumer import \
                  DiffieHellmanSHA256ConsumerSession
 
             s256_session = DiffieHellmanSHA256ConsumerSession()
@@ -1480,7 +1480,7 @@ class TestAssociate(unittest.TestCase):
                                       message)
 
     def test_protoError(self):
-        from openid.consumer.consumer import DiffieHellmanSHA1ConsumerSession
+        from openid.consumer import DiffieHellmanSHA1ConsumerSession
 
         s1_session = DiffieHellmanSHA1ConsumerSession()
 
