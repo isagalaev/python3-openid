@@ -79,7 +79,6 @@ def pyUnitTests():
         'oidutil',
         'storetest',
         'test_association',
-        'test_htmldiscover',
         'test_nonce',
         'trustroot',
         ]
