@@ -129,6 +129,8 @@ TYPES = {
 def urlopen(request, data=None):
     if isinstance(request, str):
         request = urllib.request.Request(request)
+    if data is not None and type(data) != bytes:
+        raise TypeError('POST data must be bytes')
     # track the last call arguments
     urlopen.request = request
     urlopen.data = data

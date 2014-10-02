@@ -111,6 +111,9 @@ class TestFetcher(object):
             if url in self.get_responses:
                 return HTTPResponse(url, 200, body=self.get_responses[url])
         else:
+            if type(body) != bytes:
+                raise TypeError('POST data must by bytes')
+            body = body.decode('utf-8')
             try:
                 body.index('openid.mode=associate')
             except ValueError:

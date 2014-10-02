@@ -41,7 +41,7 @@ class EmptyMessageTest(unittest.TestCase):
         self.assertEqual(self.msg.toKVForm(), b'')
 
     def test_toURLEncoded(self):
-        self.assertEqual(self.msg.toURLEncoded(), '')
+        self.assertEqual(self.msg.toURLEncoded(), b'')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
@@ -248,7 +248,7 @@ class OpenID1MessageTest(unittest.TestCase):
 
     def test_toURLEncoded(self):
         self.assertEqual(self.msg.toURLEncoded(),
-                         'openid.error=unit+test&openid.mode=error')
+                         b'openid.error=unit+test&openid.mode=error')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
@@ -446,7 +446,7 @@ class OpenID1ExplicitMessageTest(unittest.TestCase):
     def test_toURLEncoded(self):
         self.assertEqual(
             self.msg.toURLEncoded(),
-            'openid.error=unit+test&openid.mode=error&openid.ns=http%3A%2F%2Fopenid.net%2Fsignon%2F1.0')
+            b'openid.error=unit+test&openid.mode=error&openid.ns=http%3A%2F%2Fopenid.net%2Fsignon%2F1.0')
 
     def test_toURL(self):
         base_url = 'http://base.url/'
@@ -515,13 +515,14 @@ class OpenID2MessageTest(unittest.TestCase):
                   message.OPENID2_NS, encoding="utf-8"))
 
     def _test_urlencoded(self, s):
-        expected = ('openid.error=unit+test&openid.mode=error&'
-                    'openid.ns=%s&xey=value' % (
-            urllib.parse.quote(message.OPENID2_NS, ''),))
+        expected = (
+            'openid.error=unit+test&openid.mode=error&openid.ns=%s&xey=value' %
+            urllib.parse.quote(message.OPENID2_NS, '')
+        )
         self.assertEqual(s, expected)
 
     def test_toURLEncoded(self):
-        self._test_urlencoded(self.msg.toURLEncoded())
+        self._test_urlencoded(self.msg.toURLEncoded().decode('utf-8'))
 
     def test_toURL(self):
         base_url = 'http://base.url/'
