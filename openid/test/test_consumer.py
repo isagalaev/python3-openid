@@ -293,7 +293,7 @@ class TestIdRes(unittest.TestCase, CatchLogs):
         self.server_url = "serlie"
         self.server_id = "sirod"
         self.endpoint = Service([OPENID_1_1_TYPE], self.server_url, self.consumer_id, self.server_id)
-        self.new_consumer.session[self.new_consumer._token_key] = self.endpoint
+        self.new_consumer.session[self.new_consumer._token_key] = self.endpoint.__dict__
 
 class TestIdResCheckSignature(TestIdRes):
     def setUp(self):
@@ -382,7 +382,7 @@ class Complete(unittest.TestCase):
             [OPENID_2_0_TYPE], 'http://unittest/server',
             self.claimed_id, self.claimed_id
         )
-        self.consumer.session[self.consumer._token_key] = service
+        self.consumer.session[self.consumer._token_key] = service.__dict__
         self.return_to = 'http://unittest/complete'
 
     def test_id_res_setup_needed(self):
@@ -449,7 +449,7 @@ class TestCompleteMissingSig(unittest.TestCase):
         })
 
         self.endpoint = Service([OPENID_2_0_TYPE], self.server_url, claimed_id, claimed_id)
-        self.consumer.session[self.consumer._token_key] = self.endpoint
+        self.consumer.session[self.consumer._token_key] = self.endpoint.__dict__
 
     def test_idResMissingNoSigs(self):
         r = self.consumer.complete(self.query, self.return_to)
@@ -1187,7 +1187,7 @@ class TestResponse(unittest.TestCase):
 def _beginWithoutDiscovery(self, service, anonymous=False):
     request = AuthRequest(service, None)
     self.consumer.endpoint = service
-    self.session[self._token_key] = request.endpoint
+    self.session[self._token_key] = request.endpoint.__dict__
     try:
         request.setAnonymous(anonymous)
     except ValueError as why:
@@ -1227,7 +1227,7 @@ class ConsumerTest(unittest.TestCase):
         # Side-effect of calling beginWithoutDiscovery is setting the
         # session value to the endpoint attribute of the result
         self.assertTrue(
-            self.session[self.consumer._token_key] is result.endpoint)
+            self.session[self.consumer._token_key] is result.endpoint.__dict__)
 
         # The endpoint that we passed in is the endpoint on the auth_request
         self.assertTrue(result.endpoint is self.endpoint)
@@ -1238,7 +1238,7 @@ class Cleanup(unittest.TestCase):
         self.claimed_id = 'http://unittest/identity'
         self.session = {}
         self.consumer = Consumer(self.session, GoodAssocStore())
-        self.consumer.session[self.consumer._token_key] = Service([OPENID_1_1_TYPE], '', self.claimed_id)
+        self.consumer.session[self.consumer._token_key] = Service([OPENID_1_1_TYPE], '', self.claimed_id).__dict__
         self.return_to = 'http://unittest/complete'
 
     def test_success_session(self):
@@ -1268,7 +1268,7 @@ class IDPDrivenTest(unittest.TestCase):
         self.store = GoodAssocStore()
         self.consumer = Consumer({}, self.store)
         self.endpoint = Service([OPENID_IDP_2_0_TYPE], 'http://unittest/')
-        self.consumer.session[self.consumer._token_key] = self.endpoint
+        self.consumer.session[self.consumer._token_key] = self.endpoint.__dict__
         self.return_to = 'http://unittest/complete'
         self.query = _nsdict({
             'openid.mode': 'id_res',
