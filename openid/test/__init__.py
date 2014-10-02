@@ -82,7 +82,6 @@ def pyUnitTests():
         'test_association',
         'test_htmldiscover',
         'test_nonce',
-        'test_parsehtml',
         'trustroot',
         ]
 

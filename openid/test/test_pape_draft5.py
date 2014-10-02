@@ -297,6 +297,7 @@ class PapeResponseTestCase(unittest.TestCase):
         self.resp.parseExtensionArgs(args, is_openid1=False)
         self.assertEqual([], self.resp.auth_policies)
 
+    @unittest.skip('assertWarns complains about sys.modules changing *if* html5lib is imported in yadis')
     def test_parseExtensionArgs_old_none(self):
         args = {'auth_policies': 'none'}
         with self.assertWarns(UserWarning):

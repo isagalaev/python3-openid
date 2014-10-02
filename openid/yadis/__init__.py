@@ -1,8 +1,18 @@
 import cgi
-import io
+
+import html5lib
 
 from openid import fetchers
-from openid.yadis.parsehtml import MetaNotFound, findHTMLMeta
+
+
+HEADER = 'x-xrds-location'
+
+
+def http_equiv(content):
+    root = html5lib.parse(content)
+    for meta in root.findall('{http://www.w3.org/1999/xhtml}head/{http://www.w3.org/1999/xhtml}meta'):
+        if meta.get('http-equiv', '').lower() == HEADER:
+            return meta.get('content')
 
 
 def _yadis_location(response, body):
@@ -12,16 +22,13 @@ def _yadis_location(response, body):
 
     Returns the location found or None.
     '''
-    location = response.getheader('X-XRDS-Location')
+    location = response.getheader(HEADER)
     if location:
         return location
     content_type = response.getheader('content-type') or ''
     encoding = cgi.parse_header(content_type)[1].get('charset', 'utf-8')
     content = body.decode(encoding, 'replace')
-    try:
-        return findHTMLMeta(io.StringIO(content))
-    except MetaNotFound:
-        pass
+    return http_equiv(content)
 
 
 def fetch_data(uri):
