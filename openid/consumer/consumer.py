@@ -512,12 +512,12 @@ class Consumer(object):
                 message
             )
 
-        if endpoint is None and not claimed_id:
-            raise AuthenticationError(
-                'Can\'t verify discovered info without a stored endpoint or '
-                'claimed_id', message
-            )
-        if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
+        if endpoint is None or claimed_id != endpoint.claimed_id:
+            if claimed_id is None:
+                raise AuthenticationError(
+                    'Can\'t verify discovered info without a stored endpoint or '
+                    'claimed_id', message
+                )
             endpoint = discover.discover(claimed_id)
 
         if endpoint.compat_mode():
