@@ -384,7 +384,7 @@ class Consumer(object):
         request = AuthRequest(service, assoc)
         request.return_to_args[NONCE_ARG] = mkNonce()
 
-        self.session[self._token_key] = request.endpoint
+        self.session[self._token_key] = request.endpoint.__dict__
 
         try:
             request.setAnonymous(anonymous)
@@ -413,7 +413,8 @@ class Consumer(object):
             'success', 'cancel', or 'setup_needed'.
         """
         message = Message.fromPostArgs(query)
-        endpoint = self.session.pop(self._token_key, None)
+        data = self.session.pop(self._token_key, None)
+        endpoint = discover.Service(**data) if data else None
 
         mode = message.getArg(OPENID_NS, 'mode')
         if mode in ['cancel', 'error']:
