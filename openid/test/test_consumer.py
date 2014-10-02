@@ -686,7 +686,7 @@ class FieldValidation(unittest.TestCase):
     def mkValidationTest(openid_args):
         def test(self):
             message = Message.fromOpenIDArgs(openid_args)
-            self.assertTrue(validate_fields(message))
+            self.assertRaises(AuthenticationError, validate_fields, message)
         return test
 
     test_openid1Missing_returnToSig = mkValidationTest(
@@ -946,13 +946,13 @@ class ReturnTo(unittest.TestCase):
     '''
     def test_missing(self):
         message = Message.fromPostArgs({'openid.mode': 'id_res'})
-        self.assertTrue(validate_return_to(message, 'http://example.com/'))
+        self.assertRaises(AuthenticationError,validate_return_to, message, 'http://example.com/')
 
     def test_bad_url(self):
         message = Message.fromPostArgs({'openid.return_to': 'http://unittest/complete'})
-        self.assertTrue(validate_return_to(message, 'http://fraud/complete'))
-        self.assertTrue(validate_return_to(message, 'http://unittest/complete/'))
-        self.assertTrue(validate_return_to(message, 'https://unittest/complete'))
+        self.assertRaises(AuthenticationError,validate_return_to, message, 'http://fraud/complete')
+        self.assertRaises(AuthenticationError,validate_return_to, message, 'http://unittest/complete/')
+        self.assertRaises(AuthenticationError,validate_return_to, message, 'https://unittest/complete')
 
     def test_good_args(self):
         message = Message.fromPostArgs({
@@ -960,7 +960,7 @@ class ReturnTo(unittest.TestCase):
             'foo': 'bar',
             'stray': 'value', # unknown values are okay
         })
-        self.assertFalse(validate_return_to(message, 'http://example.com/'))
+        self.assertIsNone(validate_return_to(message, 'http://example.com/'))
 
     def test_bad_args(self):
         message = Message.fromPostArgs({
@@ -968,8 +968,9 @@ class ReturnTo(unittest.TestCase):
             'openid.return_to': 'http://example.com/?foo=bar&xxx=yyy',
             'xxx': 'not yyy',
         })
-        errors = validate_return_to(message, 'http://example.com/')
-        self.assertTrue('foo, xxx' in errors[0])
+        with self.assertRaises(AuthenticationError) as cm:
+            validate_return_to(message, 'http://example.com/')
+            self.assertTrue('foo, xxx' in str(cm.exception))
 
 
 class MockFetcher(object):
@@ -1354,10 +1355,11 @@ class DiscoveryVerification(unittest.TestCase):
             },
         ]
         for q in variants:
-            self.assertTrue(self.consumer._verify_openid2(
+            self.assertRaises(AuthenticationError,
+                self.consumer._verify_openid2,
                 Message.fromPostArgs(_nsdict(q)),
                 self.endpoint,
-            ))
+            )
 
     def test_openid2_no_claimed_id(self):
         endpoint = Service([OPENID_IDP_2_0_TYPE], self.server_url)
@@ -1371,7 +1373,9 @@ class DiscoveryVerification(unittest.TestCase):
             Service([OPENID_2_0_TYPE], self.server_url, self.identifier, 'wrong'),
         ]
         for endpoint in endpoints:
-            self.assertTrue(self.consumer._verify_openid2(self.message2, endpoint))
+            self.assertRaises(AuthenticationError,
+                self.consumer._verify_openid2, self.message2, endpoint
+            )
 
     def test_rediscover(self):
         with mock.patch('openid.consumer.discover.discover') as discover:

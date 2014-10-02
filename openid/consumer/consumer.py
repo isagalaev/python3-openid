@@ -217,10 +217,8 @@ def makeKVPost(request_message, server_url):
 
 def validate_fields(message):
     '''
-    Looks for missing required fields and unsigned fields.
-    Returns an error dict in the form {'missing': [..], 'unsigned': [..]}.
-    Keys are omitted if everything fine so the result can be simply
-    checked for truth-ness.
+    Checks for required fields and unsigned fields.
+    Raises AuthenticationError if something's amiss.
     '''
     basic_fields = ['return_to', 'assoc_handle', 'sig', 'signed']
     basic_sig_fields = ['return_to', 'identity']
@@ -242,18 +240,17 @@ def validate_fields(message):
         f for f in require_fields[message.getOpenIDNamespace()]
         if not message.hasKey(OPENID_NS, f)
     ]
+    if missing:
+        raise AuthenticationError('Missing fields: %s' % ', '.join(missing), message)
 
     signed_list = message.getArg(OPENID_NS, 'signed', '').split(',')
     unsigned = [
         f for f in require_sigs[message.getOpenIDNamespace()]
         if message.hasKey(OPENID_NS, f) and f not in signed_list
     ]
-    errors = []
-    if missing:
-        errors.append('Missing fields: %s' % ', '.join(missing))
     if unsigned:
-        errors.append('Unsigned fields: %s' % ', '.join(unsigned))
-    return errors
+        raise AuthenticationError('Unsigned fields: %s' % ', '.join(unsigned), message)
+
 
 def validate_return_to(message, return_to):
     '''
@@ -261,8 +258,6 @@ def validate_return_to(message, return_to):
     against a return_to URL from an application.
     Returns an error dict.
     '''
-    errors = []
-
     msg_return_to = message.getArg(OPENID_NS, 'return_to')
     parsed_url = urllib.parse.urlparse(msg_return_to)
     rt_query = parsed_url[4]
@@ -273,14 +268,12 @@ def validate_return_to(message, return_to):
         if value != message.getArg(BARE_NS, key, None)
     ]
     if args:
-        errors.append('Mismatched return_to args: %s' % ', '.join(args))
+        raise AuthenticationError('Mismatched return_to args: %s' % ', '.join(args), message)
 
     app_parts = urllib.parse.urlparse(urinorm.urinorm(return_to))
     msg_parts = urllib.parse.urlparse(urinorm.urinorm(msg_return_to) if msg_return_to else '')
     if app_parts[:3] != msg_parts[:3]:
-        errors.append('Wrong return_to: %s' % msg_return_to)
-
-    return errors
+        raise AuthenticationError('Wrong return_to: %s' % msg_return_to, message)
 
 
 class Consumer(object):
@@ -441,14 +434,13 @@ class Consumer(object):
         return Response(message, signed_fields, claimed_id)
 
     def verify_response(self, message, endpoint, return_to):
-        errors = []
-        errors.extend(validate_fields(message))
-        errors.extend(validate_return_to(message, return_to))
+        '''
+        Verifies authentication response against the discovered information
+        '''
+        validate_fields(message)
+        validate_return_to(message, return_to)
         func = '_verify_openid2' if message.getOpenIDNamespace() == OPENID2_NS else '_verify_openid1'
-        errors.extend(getattr(self, func)(message, endpoint))
-        if errors:
-            raise AuthenticationError('Verification failed:\n%s' % '\n'.join(errors), message)
-        # These would raise AuthenticationError themselves
+        getattr(self, func)(message, endpoint)
         self._idResCheckSignature(message, endpoint.server_url)
         self._idResCheckNonce(message, endpoint)
 
@@ -500,49 +492,39 @@ class Consumer(object):
             if not self.consumer._checkAuth(message, server_url):
                 raise AuthenticationError('Server denied check_authentication', message)
 
-    def _verify_openid1(self, resp_msg, endpoint):
+    def _verify_openid1(self, message, endpoint):
         if endpoint is None:
-            raise AuthenticationError('Can\'t verify discovered info without a stored endpoint under OpenID 1', resp_msg)
+            raise AuthenticationError('Can\'t verify discovered info without a stored endpoint under OpenID 1', message)
         if not endpoint.compat_mode():
-            raise AuthenticationError('Expected an OpenID 2 response', resp_msg)
+            raise AuthenticationError('Expected an OpenID 2 response', message)
+        if message.getArg(OPENID1_NS, 'identity') != endpoint.identity():
+            raise AuthenticationError('Bad identity: %s' % message.getArg(OPENID1_NS, 'identity'), message)
 
-        errors = []
-
-        if resp_msg.getArg(OPENID1_NS, 'identity') != endpoint.identity():
-            errors.append('Bad identity: %s' % resp_msg.getArg(OPENID1_NS, 'identity'))
-
-        return errors
-
-    def _verify_openid2(self, resp_msg, endpoint):
-        claimed_id = resp_msg.getArg(OPENID2_NS, 'claimed_id')
-
+    def _verify_openid2(self, message, endpoint):
+        claimed_id = message.getArg(OPENID2_NS, 'claimed_id')
+        identity = message.getArg(OPENID2_NS, 'identity')
+        if (claimed_id is None) != (identity is None):
+            raise AuthenticationError(
+                'openid.identity and openid.claimed_id should be either both '
+                'present or both absent',
+                message
+            )
         if endpoint is None and not claimed_id:
             raise AuthenticationError(
                 'Can\'t verify discovered info without a stored endpoint or '
-                'claimed_id', resp_msg
+                'claimed_id', message
             )
         if endpoint is None or (claimed_id is not None and endpoint.claimed_id != claimed_id):
             endpoint = discover.discover(claimed_id)
+
         if endpoint.compat_mode():
-            raise AuthenticationError('Expected an OpenID 1 response', resp_msg)
-
-        errors = []
-
-        if resp_msg.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
-            errors.append('Bad OP Endpoint: %s' % resp_msg.getArg(OPENID2_NS, 'op_endpoint'))
-
-        identity = resp_msg.getArg(OPENID2_NS, 'identity')
-        if (claimed_id is None) != (identity is None):
-            errors.append(
-                'openid.identity and openid.claimed_id should be either both '
-                'present or both absent'
-            )
+            raise AuthenticationError('Expected an OpenID 1 response', message)
+        if message.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
+            raise AuthenticationError('Bad OP Endpoint: %s' % message.getArg(OPENID2_NS, 'op_endpoint'), message)
         if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
-            errors.append('Bas Claimed ID: %s' % claimed_id)
+            raise AuthenticationError('Bas Claimed ID: %s' % claimed_id, message)
         if identity and (identity != endpoint.identity()):
-            errors.append('Bad Identity: %s' % identity)
-
-        return errors
+            raise AuthenticationError('Bad Identity: %s' % identity, message)
 
     def setAssociationPreference(self, association_preferences):
         """Set the order in which association types/sessions should be
