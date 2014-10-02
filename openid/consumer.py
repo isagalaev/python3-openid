@@ -173,7 +173,6 @@ USING THIS LIBRARY
     method. These indicate whether or not the login was successful,
     and include any additional information appropriate for their type.
 """
-import copy
 import logging
 import urllib.parse
 import urllib.error
