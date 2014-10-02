@@ -458,6 +458,7 @@ class TestCompleteMissingSig(unittest.TestCase):
         del self.query['openid.identity']
         del self.query['openid.claimed_id']
         self.endpoint.claimed_id = None
+        self.endpoint.local_id = None
         self.query['openid.signed'] = 'return_to,response_nonce,assoc_handle,op_endpoint'
         response = self.consumer.complete(self.query, self.return_to)
         self.assertTrue(response)

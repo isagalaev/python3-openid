@@ -175,7 +175,7 @@ USING THIS LIBRARY
 """
 import copy
 import logging
-from urllib.parse import urldefrag
+import urllib.parse
 import urllib.error
 
 from openid import fetchers
@@ -502,6 +502,8 @@ class Consumer(object):
 
     def _verify_openid2(self, message, endpoint):
         claimed_id = message.getArg(OPENID2_NS, 'claimed_id')
+        if claimed_id:
+            claimed_id = urllib.parse.urldefrag(claimed_id)[0]
         identity = message.getArg(OPENID2_NS, 'identity')
         if (claimed_id is None) != (identity is None):
             raise AuthenticationError(
@@ -509,6 +511,7 @@ class Consumer(object):
                 'present or both absent',
                 message
             )
+
         if endpoint is None and not claimed_id:
             raise AuthenticationError(
                 'Can\'t verify discovered info without a stored endpoint or '
@@ -521,9 +524,9 @@ class Consumer(object):
             raise AuthenticationError('Expected an OpenID 1 response', message)
         if message.getArg(OPENID2_NS, 'op_endpoint') != endpoint.server_url:
             raise AuthenticationError('Bad OP Endpoint: %s' % message.getArg(OPENID2_NS, 'op_endpoint'), message)
-        if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
+        if claimed_id != endpoint.claimed_id:
             raise AuthenticationError('Bas Claimed ID: %s' % claimed_id, message)
-        if identity and (identity != endpoint.local_id):
+        if identity != endpoint.local_id:
             raise AuthenticationError('Bad Identity: %s' % identity, message)
 
     def setAssociationPreference(self, association_preferences):
