@@ -523,7 +523,7 @@ class Consumer(object):
             raise AuthenticationError('Bad OP Endpoint: %s' % message.getArg(OPENID2_NS, 'op_endpoint'), message)
         if claimed_id and (urldefrag(claimed_id)[0] != endpoint.claimed_id):
             raise AuthenticationError('Bas Claimed ID: %s' % claimed_id, message)
-        if identity and (identity != endpoint.identity()):
+        if identity and (identity != endpoint.local_id):
             raise AuthenticationError('Bad Identity: %s' % identity, message)
 
     def setAssociationPreference(self, association_preferences):

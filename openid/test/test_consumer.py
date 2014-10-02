@@ -447,7 +447,7 @@ class TestCompleteMissingSig(unittest.TestCase):
             'openid.op_endpoint': self.server_url,
         })
 
-        self.endpoint = Service([OPENID_2_0_TYPE], self.server_url, claimed_id)
+        self.endpoint = Service([OPENID_2_0_TYPE], self.server_url, claimed_id, claimed_id)
         self.consumer.session[self.consumer._token_key] = self.endpoint
 
     def test_idResMissingNoSigs(self):
