@@ -129,10 +129,6 @@ def discoverXRI(iname):
 
 
 def discoverURI(url):
-    parsed = urllib.parse.urlparse(url)
-    if not parsed.scheme or not parsed.netloc:
-        # checking both scheme and netloc as things like 'server:80/' put 'server' in scheme
-        url = 'http://' + url
     url = urinorm.urinorm(url)
     url = urllib.parse.urldefrag(url)[0]
     url, data = yadis.fetch_data(url)

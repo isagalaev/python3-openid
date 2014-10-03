@@ -3,6 +3,7 @@ import urllib.parse
 
 
 ILLEGAL_CHAR_RE = re.compile("[^-A-Za-z0-9:/?#[\]@!$&'()*+,;=._~%]", re.UNICODE)
+HOST_PORT_RE = re.compile(r'^[A-Za-z0-9\.]+:\d+(/|$)')
 AUTHORITY_RE = re.compile(r'^([^@]*@)?([^:]*)(:.*)?')
 PCT_ENCODED_RE = re.compile(r'%([0-9A-Fa-f]{2})')
 UNRESERVED = '-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -62,12 +63,18 @@ def urinorm(uri):
     '''
     Normalize a URI
     '''
+    # prepend URL in the form 'server_name:port' with the scheme,
+    # otherwise urlparse will put 'server_name' into it.
+    if HOST_PORT_RE.match(uri):
+        uri = 'http://' + uri
     scheme, authority, path, params, query, fragment = urllib.parse.urlparse(uri)
     scheme = scheme.lower()
     authority = authority.lower()
     path, params, query, fragment = map(quote, (path, params, query, fragment))
 
-    if not scheme or not authority or scheme not in ('http', 'https'):
+    if not scheme:
+        scheme = 'http'
+    if not authority or scheme not in ('http', 'https'):
         raise ValueError('Not an absolute HTTP or HTTPS URI: %s' % uri)
 
     if not AUTHORITY_RE.match(authority):

@@ -25,6 +25,7 @@ class UrinormTest(unittest.TestCase):
         ('trailing_dot_slash', ('http://example.com/a/./', 'http://example.com/a/')),
         ('trailing_dot_dot_slash', ('http://example.com/a/../', 'http://example.com/')),
         ('syntax', ('hTTPS://a/./b/../b/%63/%7bfoo%7d', 'https://a/b/c/%7Bfoo%7D')),
+        ('server_port', ('server:80/', 'http://server/')),
         ('bad_scheme', ('ftp://example.com/', 'fail')),
         ('non_absolute', ('http:/foo', 'fail')),
         ('illegal_chars', ('http://<illegal>.com/', 'fail')),
