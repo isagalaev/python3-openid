@@ -1,55 +1,26 @@
-import sys
-import os
-
-from distutils.core import setup
-
-import openid
-
-version = openid.__version__
-
-if 'sdist' in sys.argv:
-    # When building a source distribution, generate documentation
-    os.system('./admin/makedoc')
+from setuptools import setup, find_packages
+from codecs import open
 
 setup(
-    name='python3-openid',
-    version=version,
-    description='OpenID support for modern servers and consumers.',
-    long_description='''This is a set of Python packages to support use of
-the OpenID decentralized identity system in your application, update to Python
-3.  Want to enable single sign-on for your web site?  Use the openid.consumer
-package.  Want to run your own OpenID server? Check out openid.server.
-Includes example code and support for a variety of storage back-ends.''',
-    url='http://github.com/necaris/python3-openid',
-    packages=[
-        'openid',
-        'openid.consumer',
-        'openid.server',
-        'openid.store',
-        'openid.yadis',
-        'openid.extensions',
-        'openid.extensions.draft',
-    ],
-    # license specified by classifier
-    author='Rami Chowdhury',
-    author_email='rami.chowdhury@gmail.com',
-    maintainer='Rami Chowdhury',
-    maintainer_email='rami.chowdhury@gmail.com',
-    download_url=('http://github.com/necaris/python3-openid/tarball'
-                  '/v{}'.format(version)),
+    name='sm-openid',
+    version='0.1.dev1',
+    description='OpenID consumer. Support versions 1 and 2 of the OpenID protocol.',
+    long_description=open('README.md', encoding='utf-8').read(),
+    url='https://github.com/isagalaev/sm-openid',
+    author='Ivan Sagalaev',
+    author_email='maniac@softwaremaniacs.org',
+    license='Apache',
+    keywords='openid consumer',
+
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Web Environment",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: POSIX",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Topic :: Internet :: WWW/HTTP",
-        ("Topic :: Internet :: WWW/HTTP :: Dynamic Content :: "
-         "CGI Tools/Libraries"),
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        ("Topic :: System :: Systems Administration :: "
-         "Authentication/Directory"),
-    ]
+        'Development Status :: 2 - Pre-Alpha',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+    ],
+
+    install_requires=['html5lib'],
+    packages=find_packages(exclude=['examples', 'openid.test']),
 )
