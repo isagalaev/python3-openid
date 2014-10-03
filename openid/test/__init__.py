@@ -1,6 +1,5 @@
 import sys
 import os.path
-import warnings
 import unittest
 
 
