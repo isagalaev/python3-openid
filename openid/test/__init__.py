@@ -56,17 +56,7 @@ def pyUnitTests():
     test_modules = [
         __import__('openid.test.test_{}'.format(name), {}, {}, ['unused'])
         for name in test_module_names
-        ]
-
-    try:
-        from openid.test import test_examples
-    except ImportError:
-        # This is very likely due to twill being unimportable, since it's
-        # ancient and unmaintained. Until the examples are reimplemented using
-        # something else, we just need to skip it
-        warnings.warn("Could not import twill; skipping test_examples.")
-    else:
-        test_modules.append(test_examples)
+    ]
 
     # Some modules have data-driven tests, and they use custom methods
     # to build the test suite -- the module-level pyUnitTests function should
