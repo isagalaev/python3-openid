@@ -1344,4 +1344,4 @@ class Response:
         return '<%s.%s id=%r signed=%r>' % (
             self.__class__.__module__,
             self.__class__.__name__,
-            self.identity(), self.signed_fields)
+            self.claimed_id, self.signed_fields)
