@@ -203,17 +203,17 @@ class Endpoint(unittest.TestCase):
 @support.gentests
 class TestDiscoverFunction(unittest.TestCase):
     data = [
-        ('uri', ('http://unittest', 'uri')),
-        ('bogus', ('not a URL or XRI', 'uri')),
+        ('uri', ('http://unittest', 'url')),
+        ('bogus', ('not a URL or XRI', 'url')),
         ('xri', ('xri://=something', 'xri')),
         ('xri_char', ('=something', 'xri')),
     ]
 
-    @mock.patch('openid.consumer.discover.discoverURI')
-    @mock.patch('openid.consumer.discover.discoverXRI')
-    def _test(self, value, target, xri, uri):
+    @mock.patch('openid.consumer.discover.discover_url')
+    @mock.patch('openid.consumer.discover.discover_xri')
+    def _test(self, value, target, xri, url):
         discover.discoverall(value)
-        hit, miss = (uri, xri) if target == 'uri' else (xri, uri)
+        hit, miss = (url, xri) if target == 'url' else (xri, url)
         hit.assert_called_with(value)
         self.assertEqual(miss.call_count, 0)
 

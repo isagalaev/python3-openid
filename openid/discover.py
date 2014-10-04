@@ -84,7 +84,7 @@ def parse_html(url, html):
     ]
 
 
-def parse_service(service_element, user_id, canonicalID=None):
+def create_service(service_element, user_id, canonicalID):
     result = Service(xrds.getTypeURIs(service_element), xrds.getURI(service_element))
     if not result.is_op_identifier():
         result.claimed_id = canonicalID or user_id
@@ -103,12 +103,12 @@ def parse_xrds(user_id, data):
     else:
         canonicalID = None
     return [
-        parse_service(element, user_id, canonicalID)
+        create_service(element, user_id, canonicalID)
         for element in xrds.get_elements(data, SERVICE_TYPES)
     ]
 
 
-def discoverXRI(iname):
+def discover_xri(iname):
     iname = xri.unprefix(iname)
     query = {
         # XXX: If the proxy resolver will ensure that it doesn't return
@@ -122,7 +122,7 @@ def discoverXRI(iname):
     return parse_xrds(iname, data)
 
 
-def discoverURI(url):
+def discover_url(url):
     url = urinorm.urinorm(url)
     url = urllib.parse.urldefrag(url)[0]
     url, data = yadis.fetch_data(url)
@@ -134,7 +134,7 @@ def discoverURI(url):
 
 
 def discoverall(identifier):
-    func = discoverXRI if xri.is_iname(identifier) else discoverURI
+    func = discover_xri if xri.is_iname(identifier) else discover_url
     return sorted(func(identifier), key=lambda s: min(SERVICE_TYPES.index(t) for t in s.types if t in SERVICE_TYPES))
 
 
