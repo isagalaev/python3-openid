@@ -99,7 +99,7 @@ def parse_xrds(user_id, data):
     if xri.is_iname(user_id):
         canonicalID = xrds.getCanonicalID(user_id, et)
         if canonicalID is None:
-            raise xrds.XRDSError('No canonicalID found for XRI %r' % user_id)
+            raise DiscoveryFailure('No canonicalID found for XRI %r' % user_id)
     else:
         canonicalID = None
     return [

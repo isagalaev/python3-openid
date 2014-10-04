@@ -113,7 +113,10 @@ class Discovery(unittest.TestCase):
         self.assertTrue(services[1].local_id, 'http://frank.livejournal.com/')
 
     def test_xriNoCanonicalID(self):
-        self.assertRaises(xrds.XRDSError, discover.discoverall, '=iname*empty')
+        self.assertRaises(
+            discover.DiscoveryFailure,
+            discover.discoverall, '=iname*empty'
+        )
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
