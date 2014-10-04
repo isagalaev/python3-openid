@@ -4,7 +4,7 @@ from codecs import open
 setup(
     name='sm-openid',
     version='0.1.dev1',
-    description='OpenID consumer. Support versions 1 and 2 of the OpenID protocol.',
+    description='OpenID consumer. Supports versions 1 and 2 of the OpenID protocol.',
     long_description=open('README.md', encoding='utf-8').read(),
     url='https://github.com/isagalaev/sm-openid',
     author='Ivan Sagalaev',
