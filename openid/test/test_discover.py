@@ -169,7 +169,7 @@ class Services(unittest.TestCase):
         self.assertEqual(types, service.types)
 
 
-class Endpoint(unittest.TestCase):
+class Service(unittest.TestCase):
     def test_openid_2(self):
         endpoint = discover.Service()
         self.assertFalse(endpoint.compat_mode())
