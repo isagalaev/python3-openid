@@ -9,3 +9,6 @@ will break your code if you decide to depend on it and update without paying
 attention!
 
 Instead, join me in this refactoring. Refactoring is fun!
+
+[python-openid]: https://github.com/openid/python-openid
+[python3-openid]: https://github.com/necaris/python3-openid
