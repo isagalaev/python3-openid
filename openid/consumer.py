@@ -975,12 +975,13 @@ class ProtocolError(ValueError):
 
 class AuthenticationError(ValueError):
     '''
-    Base class for all non-normal conditions during handling authintication
+    Base class for all non-normal conditions during handling an authentication
     requests from a provider.
     '''
     def __init__(self, message, response):
         super().__init__(message)
         self.response = response
+
 
 class SetupNeeded(AuthenticationError):
     '''
@@ -1256,9 +1257,8 @@ class AuthRequest(object):
 
 class Response:
     '''
-    Indicates that this request is a
-    successful acknowledgement from the OpenID server that the
-    supplied URL is, indeed controlled by the requesting agent.
+    Indicates that this request is a successful acknowledgement from the OpenID
+    server that the supplied URL is, indeed controlled by the requesting agent.
     '''
     def __init__(self, message, signed_fields=None, claimed_id=None):
         self.message = message
