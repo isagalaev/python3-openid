@@ -6,7 +6,7 @@ this works for now.
 from openid.test.test_consumer import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID_NS
 from openid.server.server import DiffieHellmanSHA1ServerSession
-from openid.consumer import GenericConsumer, ProtocolError
+from openid.consumer import Consumer, ProtocolError
 from openid.discover import Service, OPENID_1_1_TYPE,\
     OPENID_2_0_TYPE
 from openid.store import memstore
@@ -37,7 +37,7 @@ class BaseAssocTest(CatchLogs, unittest.TestCase):
     def setUp(self):
         CatchLogs.setUp(self)
         self.store = memstore.MemoryStore()
-        self.consumer = GenericConsumer(self.store)
+        self.consumer = Consumer({}, self.store)
         self.endpoint = Service()
 
     def failUnlessProtocolError(self, str_prefix, func, *args, **kwargs):

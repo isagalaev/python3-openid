@@ -1,32 +1,23 @@
-
 import unittest
+from unittest import mock
 from .support import CatchLogs
 
 from openid.message import Message, OPENID2_NS, OPENID1_NS, OPENID_NS
 from openid import association
-from openid.consumer import GenericConsumer, ServerError
+from openid.consumer import Consumer, ServerError
 from openid.discover import Service, OPENID_2_0_TYPE
 
-class ErrorRaisingConsumer(GenericConsumer):
-    """
-    A consumer whose _requestAssocation will return predefined results
-    instead of trying to actually perform association requests.
-    """
 
-    # The list of objects to be returned by successive calls to
-    # _requestAssocation.  Each call will pop the first element from
-    # this list and return it to _negotiateAssociation.  If the
-    # element is a Message object, it will be wrapped in a ServerError
-    # exception.  Otherwise it will be returned as-is.
-    return_messages = []
+def _requestAssociation(self, endpoint, assoc_type, session_type):
+    value = _requestAssociation.return_values.pop(0)
+    if isinstance(value, Message):
+        raise ServerError.fromMessage(value)
+    else:
+        return value
+_requestAssociation.return_values = []
 
-    def _requestAssociation(self, endpoint, assoc_type, session_type):
-        m = self.return_messages.pop(0)
-        if isinstance(m, Message):
-            raise ServerError.fromMessage(m)
-        else:
-            return m
 
+@mock.patch.object(Consumer, '_requestAssociation', _requestAssociation)
 class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     Test the session type negotiation behavior of an OpenID 2
@@ -34,7 +25,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     def setUp(self):
         CatchLogs.setUp(self)
-        self.consumer = ErrorRaisingConsumer(store=None)
+        self.consumer = Consumer({}, store=None)
         self.endpoint = Service([OPENID_2_0_TYPE], 'bogus')
 
     def testBadResponse(self):
@@ -42,7 +33,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         Test the case where the response to an associate request is a
         server error or is otherwise undecipherable.
         """
-        self.consumer.return_messages = [Message(self.endpoint.ns())]
+        _requestAssociation.return_values = [Message(self.endpoint.ns())]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
         self.failUnlessLogMatches('Server error when requesting an association')
 
@@ -57,7 +48,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         # not set: msg.delArg(OPENID_NS, 'assoc_type')
         msg.setArg(OPENID_NS, 'session_type', 'new-session-type')
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Unsupported association type',
@@ -75,7 +66,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
         # not set: msg.setArg(OPENID_NS, 'session_type', None)
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Unsupported association type',
@@ -99,7 +90,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'assoc_type', 'not-allowed')
         msg.setArg(OPENID_NS, 'session_type', 'not-allowed')
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Unsupported association type',
@@ -119,7 +110,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         assoc = association.Association(
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
-        self.consumer.return_messages = [msg, assoc]
+        _requestAssociation.return_values = [msg, assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
 
         self.failUnlessLogMatches('Unsupported association type')
@@ -135,7 +126,7 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'assoc_type', 'HMAC-SHA1')
         msg.setArg(OPENID_NS, 'session_type', 'DH-SHA1')
 
-        self.consumer.return_messages = [msg,
+        _requestAssociation.return_values = [msg,
              Message(self.endpoint.ns())]
 
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
@@ -151,10 +142,12 @@ class TestOpenID2SessionNegotiation(unittest.TestCase, CatchLogs):
         assoc = association.Association(
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
-        self.consumer.return_messages = [assoc]
+        _requestAssociation.return_values = [assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
         self.failUnlessLogEmpty()
 
+
+@mock.patch.object(Consumer, '_requestAssociation', _requestAssociation)
 class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     Tests for the OpenID 1 consumer association session behavior.  See
@@ -167,11 +160,11 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
     """
     def setUp(self):
         CatchLogs.setUp(self)
-        self.consumer = ErrorRaisingConsumer(store=None)
+        self.consumer = Consumer({}, store=None)
         self.endpoint = Service([OPENID1_NS], 'bogus')
 
     def testBadResponse(self):
-        self.consumer.return_messages = [Message(self.endpoint.ns())]
+        _requestAssociation.return_values = [Message(self.endpoint.ns())]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
         self.failUnlessLogMatches('Server error when requesting an association')
 
@@ -182,7 +175,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         # not set: msg.setArg(OPENID_NS, 'assoc_type', None)
         msg.setArg(OPENID_NS, 'session_type', 'new-session-type')
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Server error when requesting an association')
@@ -194,7 +187,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'assoc_type', 'new-assoc-type')
         # not set: msg.setArg(OPENID_NS, 'session_type', None)
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Server error when requesting an association')
@@ -211,7 +204,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         msg.setArg(OPENID_NS, 'assoc_type', 'not-allowed')
         msg.setArg(OPENID_NS, 'session_type', 'not-allowed')
 
-        self.consumer.return_messages = [msg]
+        _requestAssociation.return_values = [msg]
         self.assertEqual(self.consumer._negotiateAssociation(self.endpoint), None)
 
         self.failUnlessLogMatches('Server error when requesting an association')
@@ -226,7 +219,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         assoc = association.Association(
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
-        self.consumer.return_messages = [msg, assoc]
+        _requestAssociation.return_values = [msg, assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is None)
 
         self.failUnlessLogMatches('Server error when requesting an association')
@@ -235,7 +228,7 @@ class TestOpenID1SessionNegotiation(unittest.TestCase, CatchLogs):
         assoc = association.Association(
             'handle', 'secret', 'issued', 10000, 'HMAC-SHA1')
 
-        self.consumer.return_messages = [assoc]
+        _requestAssociation.return_values = [assoc]
         self.assertTrue(self.consumer._negotiateAssociation(self.endpoint) is assoc)
         self.failUnlessLogEmpty()
 

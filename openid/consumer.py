@@ -296,7 +296,7 @@ class Consumer(object):
 
     _token = 'last_token'
 
-    def __init__(self, session, store, consumer_class=None):
+    def __init__(self, session, store):
         """Initialize a Consumer instance.
 
         You should create a new instance of the Consumer object with
@@ -315,9 +315,8 @@ class Consumer(object):
         @see: L{openid.store}
         """
         self.session = session
-        if consumer_class is None:
-            consumer_class = GenericConsumer
-        self.consumer = consumer_class(store)
+        self.store = store
+        self.negotiator = default_negotiator.copy()
         self._token_key = self.session_key_prefix + self._token
 
     def begin(self, user_url, anonymous=False):
@@ -375,10 +374,10 @@ class Consumer(object):
         @See: Openid.consumer.Consumer.begin
         @see: openid.discover
         """
-        if self.consumer.store is None:
+        if self.store is None:
             assoc = None
         else:
-            assoc = self.consumer._getAssociation(service)
+            assoc = self._getAssociation(service)
 
         request = AuthRequest(service, assoc)
         request.return_to_args[NONCE_ARG] = mkNonce()
@@ -460,16 +459,16 @@ class Consumer(object):
         except ValueError as why:
             raise AuthenticationError('Malformed nonce: %s' % why, message)
 
-        if (self.consumer.store is not None and
-            not self.consumer.store.useNonce(server_url, timestamp, salt)):
+        if (self.store is not None and
+            not self.store.useNonce(server_url, timestamp, salt)):
             raise AuthenticationError('Nonce already used or out of range', message)
 
     def _idResCheckSignature(self, message, server_url):
         assoc_handle = message.getArg(OPENID_NS, 'assoc_handle')
-        if self.consumer.store is None:
+        if self.store is None:
             assoc = None
         else:
-            assoc = self.consumer.store.getAssociation(server_url, assoc_handle)
+            assoc = self.store.getAssociation(server_url, assoc_handle)
 
         if assoc:
             if assoc.expiresIn <= 0:
@@ -489,7 +488,7 @@ class Consumer(object):
             # only possible path for recovery.
             # XXX - async framework will not want to block on this call to
             # _checkAuth.
-            if not self.consumer._checkAuth(message, server_url):
+            if not self._checkAuth(message, server_url):
                 raise AuthenticationError('Server denied check_authentication', message)
 
     def _verify_openid1(self, message, endpoint):
@@ -549,128 +548,7 @@ class Consumer(object):
 
         @see: C{L{openid.association.SessionNegotiator}}
         """
-        self.consumer.negotiator = SessionNegotiator(association_preferences)
-
-
-class DiffieHellmanSHA1ConsumerSession(object):
-    session_type = 'DH-SHA1'
-    hash_func = staticmethod(cryptutil.sha1)
-    secret_size = 20
-    allowed_assoc_types = ['HMAC-SHA1']
-
-    def __init__(self, dh=None):
-        if dh is None:
-            dh = DiffieHellman.fromDefaults()
-
-        self.dh = dh
-
-    def getRequest(self):
-        cpub = cryptutil.longToBase64(self.dh.public)
-
-        args = {'dh_consumer_public': cpub}
-
-        if not self.dh.usingDefaultValues():
-            args.update({
-                'dh_modulus': cryptutil.longToBase64(self.dh.modulus),
-                'dh_gen': cryptutil.longToBase64(self.dh.generator),
-                })
-
-        return args
-
-    def extractSecret(self, response):
-        dh_server_public64 = response.getArg(
-            OPENID_NS, 'dh_server_public', no_default)
-        enc_mac_key64 = response.getArg(OPENID_NS, 'enc_mac_key', no_default)
-        dh_server_public = cryptutil.base64ToLong(dh_server_public64)
-        enc_mac_key = oidutil.fromBase64(enc_mac_key64)
-        return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
-
-
-class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
-    session_type = 'DH-SHA256'
-    hash_func = staticmethod(cryptutil.sha256)
-    secret_size = 32
-    allowed_assoc_types = ['HMAC-SHA256']
-
-
-class PlainTextConsumerSession(object):
-    session_type = 'no-encryption'
-    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
-
-    def getRequest(self):
-        return {}
-
-    def extractSecret(self, response):
-        mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
-        return oidutil.fromBase64(mac_key64)
-
-def create_session(type):
-    return {
-        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
-        'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
-        'no-encryption': PlainTextConsumerSession,
-    }[type]()
-
-
-class ProtocolError(ValueError):
-    """Exception that indicates that a message violated the
-    protocol. It is raised and caught internally to this file."""
-
-
-class AuthenticationError(ValueError):
-    '''
-    Base class for all non-normal conditions during handling authintication
-    requests from a provider.
-    '''
-    def __init__(self, message, response):
-        super().__init__(message)
-        self.response = response
-
-class SetupNeeded(AuthenticationError):
-    '''
-    Provider requires additional setup in response to an immediate request.
-    '''
-    def __init__(self, response):
-        super().__init__('Setup needed', response)
-
-
-class ServerError(Exception):
-    """Exception that is raised when the server returns a 400 response
-    code to a direct request."""
-
-    def __init__(self, error_text, error_code, message):
-        Exception.__init__(self, error_text)
-        self.error_text = error_text
-        self.error_code = error_code
-        self.message = message
-
-    def fromMessage(cls, message):
-        """Generate a ServerError instance, extracting the error text
-        and the error code from the message."""
-        error_text = message.getArg(
-            OPENID_NS, 'error', '<no error message supplied>')
-        error_code = message.getArg(OPENID_NS, 'error_code')
-        return cls(error_text, error_code, message)
-
-    fromMessage = classmethod(fromMessage)
-
-
-class GenericConsumer(object):
-    """This is the implementation of the common logic for OpenID
-    consumers. It is unaware of the application in which it is
-    running.
-
-    @ivar negotiator: An object that controls the kind of associations
-        that the consumer makes. It defaults to
-        C{L{openid.association.default_negotiator}}. Assign a
-        different negotiator to it if you have specific requirements
-        for how associations are made.
-    @type negotiator: C{L{openid.association.SessionNegotiator}}
-    """
-
-    def __init__(self, store):
-        self.store = store
-        self.negotiator = default_negotiator.copy()
+        self.negotiator = SessionNegotiator(association_preferences)
 
     def _checkAuth(self, message, server_url):
         """Make a check_authentication request to verify this message.
@@ -1028,6 +906,109 @@ class GenericConsumer(object):
 
         return Association.fromExpiresIn(
             expires_in, assoc_handle, secret, assoc_type)
+
+
+class DiffieHellmanSHA1ConsumerSession(object):
+    session_type = 'DH-SHA1'
+    hash_func = staticmethod(cryptutil.sha1)
+    secret_size = 20
+    allowed_assoc_types = ['HMAC-SHA1']
+
+    def __init__(self, dh=None):
+        if dh is None:
+            dh = DiffieHellman.fromDefaults()
+
+        self.dh = dh
+
+    def getRequest(self):
+        cpub = cryptutil.longToBase64(self.dh.public)
+
+        args = {'dh_consumer_public': cpub}
+
+        if not self.dh.usingDefaultValues():
+            args.update({
+                'dh_modulus': cryptutil.longToBase64(self.dh.modulus),
+                'dh_gen': cryptutil.longToBase64(self.dh.generator),
+                })
+
+        return args
+
+    def extractSecret(self, response):
+        dh_server_public64 = response.getArg(
+            OPENID_NS, 'dh_server_public', no_default)
+        enc_mac_key64 = response.getArg(OPENID_NS, 'enc_mac_key', no_default)
+        dh_server_public = cryptutil.base64ToLong(dh_server_public64)
+        enc_mac_key = oidutil.fromBase64(enc_mac_key64)
+        return self.dh.xorSecret(dh_server_public, enc_mac_key, self.hash_func)
+
+
+class DiffieHellmanSHA256ConsumerSession(DiffieHellmanSHA1ConsumerSession):
+    session_type = 'DH-SHA256'
+    hash_func = staticmethod(cryptutil.sha256)
+    secret_size = 32
+    allowed_assoc_types = ['HMAC-SHA256']
+
+
+class PlainTextConsumerSession(object):
+    session_type = 'no-encryption'
+    allowed_assoc_types = ['HMAC-SHA1', 'HMAC-SHA256']
+
+    def getRequest(self):
+        return {}
+
+    def extractSecret(self, response):
+        mac_key64 = response.getArg(OPENID_NS, 'mac_key', no_default)
+        return oidutil.fromBase64(mac_key64)
+
+def create_session(type):
+    return {
+        'DH-SHA1': DiffieHellmanSHA1ConsumerSession,
+        'DH-SHA256': DiffieHellmanSHA256ConsumerSession,
+        'no-encryption': PlainTextConsumerSession,
+    }[type]()
+
+
+class ProtocolError(ValueError):
+    """Exception that indicates that a message violated the
+    protocol. It is raised and caught internally to this file."""
+
+
+class AuthenticationError(ValueError):
+    '''
+    Base class for all non-normal conditions during handling authintication
+    requests from a provider.
+    '''
+    def __init__(self, message, response):
+        super().__init__(message)
+        self.response = response
+
+class SetupNeeded(AuthenticationError):
+    '''
+    Provider requires additional setup in response to an immediate request.
+    '''
+    def __init__(self, response):
+        super().__init__('Setup needed', response)
+
+
+class ServerError(Exception):
+    """Exception that is raised when the server returns a 400 response
+    code to a direct request."""
+
+    def __init__(self, error_text, error_code, message):
+        Exception.__init__(self, error_text)
+        self.error_text = error_text
+        self.error_code = error_code
+        self.message = message
+
+    def fromMessage(cls, message):
+        """Generate a ServerError instance, extracting the error text
+        and the error code from the message."""
+        error_text = message.getArg(
+            OPENID_NS, 'error', '<no error message supplied>')
+        error_code = message.getArg(OPENID_NS, 'error_code')
+        return cls(error_text, error_code, message)
+
+    fromMessage = classmethod(fromMessage)
 
 
 class AuthRequest(object):
