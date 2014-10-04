@@ -159,7 +159,7 @@ def urlopen(request, data=None):
     if 300 <= status < 400:
         raise ValueError('Can\'t return 3xx status', url)
     if 400 <= status:
-        raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO())
+        raise urllib.error.HTTPError(url, status, 'Requested status: %s' % status, {}, io.BytesIO(body))
 
     headers = {
         'Server': 'Urlopen-Mock',

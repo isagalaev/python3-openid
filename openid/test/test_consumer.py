@@ -1565,34 +1565,23 @@ class TestAddExtension(unittest.TestCase):
         ext_args = ar.message.getArgs(ext.ns_uri)
         self.assertEqual(ext.getExtensionArgs(), ext_args)
 
-def kvpost_fetch(url, body=None, headers=None):
-    status = int(url.rsplit('/', 1)[1])
-    if 200 <= status < 300:
-        return HTTPResponse(url, status, body=b'foo:bar\nbaz:quux\n')
-    if 400 <= status < 500:
-        raise urllib.error.HTTPError(url, status, 'Test request failed', {}, io.BytesIO(b'error:bonk\nerror_code:7\n'))
-    if 500 <= status:
-        raise urllib.error.URLError('%s: 500' % url)
 
-@mock.patch('openid.fetchers.fetch', kvpost_fetch)
+@mock.patch('urllib.request.urlopen', support.urlopen)
 class TestKVPost(unittest.TestCase):
     def test_200(self):
-        r = makeKVPost(Message(), 'http://test-kv-post/200')
+        r = makeKVPost(Message(), 'http://unittest/message-ok.txt')
         expected_msg = Message.fromOpenIDArgs({'foo': 'bar', 'baz': 'quux'})
         self.assertEqual(expected_msg, r)
 
     def test_400(self):
-        try:
-            r = makeKVPost(Message(), 'http://test-kv-post/400')
-        except ServerError as e:
-            self.assertEqual(e.error_text, 'bonk')
-            self.assertEqual(e.error_code, '7')
-        else:
-            self.fail("Expected ServerError, got return %r" % (r,))
+        with self.assertRaises(ServerError) as cm:
+            r = makeKVPost(Message(), 'http://unittest/message-error.txt?status=400')
+        self.assertEqual(cm.exception.error_text, 'bonk')
+        self.assertEqual(cm.exception.error_code, '7')
 
     def test_500(self):
         with self.assertRaises(urllib.error.URLError):
-            makeKVPost(Message(), 'http://test-kv-post/500')
+            makeKVPost(Message(), 'http://unittest/?status=500')
 
 
 if __name__ == '__main__':
