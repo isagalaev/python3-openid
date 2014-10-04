@@ -3,10 +3,9 @@ import unittest
 from unittest import mock
 import os.path
 import urllib.error
-from urllib.parse import urlsplit, urlencode, urljoin
+from urllib.parse import urlencode, urljoin
 
-from openid import message, xrds
-from openid.consumer import discover
+from openid import message, xrds, discover
 from . import support
 
 
