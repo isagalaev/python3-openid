@@ -2,7 +2,6 @@
 Functions to discover OpenID endpoints from identifiers.
 '''
 import urllib.parse
-import logging
 
 import html5lib
 
@@ -108,6 +107,7 @@ def parse_xrds(user_id, data):
         for element in xrds.get_elements(data, SERVICE_TYPES)
     ]
 
+
 def discoverXRI(iname):
     iname = xri.unprefix(iname)
     query = {
@@ -119,13 +119,7 @@ def discoverXRI(iname):
     }
     url =  PROXY_URL + xri.urlescape(iname) + '?' + urllib.parse.urlencode(query)
     url, data = yadis.fetch_data(url)
-    try:
-        endpoints = parse_xrds(iname, data)
-    except xrds.XRDSError as e:
-        logging.exception(e)
-        endpoints = []
-
-    return endpoints
+    return parse_xrds(iname, data)
 
 
 def discoverURI(url):

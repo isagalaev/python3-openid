@@ -5,7 +5,7 @@ import os.path
 import urllib.error
 from urllib.parse import urlsplit, urlencode, urljoin
 
-from openid import message
+from openid import message, xrds
 from openid.consumer import discover
 from . import support
 
@@ -114,9 +114,7 @@ class Discovery(unittest.TestCase):
         self.assertTrue(services[1].local_id, 'http://frank.livejournal.com/')
 
     def test_xriNoCanonicalID(self):
-        with self.assertLogs('', 'ERROR'):
-            services = discover.discoverall('=iname*empty')
-        self.assertFalse(services)
+        self.assertRaises(xrds.XRDSError, discover.discoverall, '=iname*empty')
 
 
 @mock.patch('urllib.request.urlopen', support.urlopen)
