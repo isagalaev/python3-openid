@@ -1,6 +1,5 @@
 from openid.extensions import sreg
 from openid.message import NamespaceMap, Message, registerNamespaceAlias
-from openid.server.server import OpenIDRequest, OpenIDResponse
 
 import unittest
 
@@ -147,41 +146,6 @@ class SRegRequestTest(unittest.TestCase):
         self.assertRaises(
             ValueError,
             sreg.SRegRequest, ['elvis'])
-
-    def test_fromOpenIDRequest(self):
-        args = {}
-        ns_sentinel = object()
-        args_sentinel = object()
-
-        class FakeMessage(object):
-            copied = False
-
-            def __init__(self):
-                self.message = Message()
-
-            def getArgs(msg_self, ns_uri):
-                self.assertEqual(ns_sentinel, ns_uri)
-                return args_sentinel
-
-            def copy(msg_self):
-                msg_self.copied = True
-                return msg_self
-
-        class TestingReq(sreg.SRegRequest):
-            def _getSRegNS(req_self, unused):
-                return ns_sentinel
-
-            def parseExtensionArgs(req_self, args):
-                self.assertEqual(args_sentinel, args)
-
-        openid_req = OpenIDRequest()
-
-        msg = FakeMessage()
-        openid_req.message = msg
-
-        req = TestingReq.fromOpenIDRequest(openid_req)
-        self.assertTrue(type(req) is TestingReq)
-        self.assertTrue(msg.copied)
 
     def test_parseExtensionArgs_empty(self):
         req = sreg.SRegRequest()
@@ -457,39 +421,6 @@ class SRegResponseTest(unittest.TestCase):
         self.assertEqual([('nickname', 'The Mad Stork')],
                              list(sreg_resp.items()))
 
-
-class SendFieldsTest(unittest.TestCase):
-    def test(self):
-        # Create a request message with simple registration fields
-        sreg_req = sreg.SRegRequest(required=['nickname', 'email'],
-                                    optional=['fullname'])
-        req_msg = Message()
-        req_msg.updateArgs(sreg.ns_uri, sreg_req.getExtensionArgs())
-
-        req = OpenIDRequest()
-        req.message = req_msg
-        req.namespace = req_msg.getOpenIDNamespace()
-
-        # -> send checkid_* request
-
-        # Create an empty response message
-        resp_msg = Message()
-        resp = OpenIDResponse(req)
-        resp.fields = resp_msg
-
-        # Put the requested data fields in the response message
-        sreg_resp = sreg.SRegResponse.extractResponse(sreg_req, data)
-        resp.addExtension(sreg_resp)
-
-        # <- send id_res response
-
-        # Extract the fields that were sent
-        sreg_data_resp = resp_msg.getArgs(sreg.ns_uri)
-        self.assertEqual({
-                'nickname': 'linusaur',
-                'email': 'president@whitehouse.gov',
-                'fullname': 'Leonhard Euler',
-                }, sreg_data_resp)
 
 if __name__ == '__main__':
     unittest.main()
