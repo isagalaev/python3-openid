@@ -5,7 +5,6 @@ this works for now.
 """
 from openid.test.test_consumer import CatchLogs
 from openid.message import Message, OPENID2_NS, OPENID_NS
-from openid.server.server import DiffieHellmanSHA1ServerSession
 from openid.consumer import Consumer, ProtocolError
 from openid.discover import Service, OPENID_1_1_TYPE,\
     OPENID_2_0_TYPE
@@ -320,12 +319,22 @@ class TestExtractAssociationDiffieHellman(BaseAssocTest):
         # XXX: this is testing _createAssociateRequest
         self.assertEqual(self.endpoint.compat_mode(),  message.isOpenID1())
 
-        server_sess = DiffieHellmanSHA1ServerSession.fromMessage(message)
-        server_resp = server_sess.answer(self.secret)
-        server_resp['assoc_type'] = 'HMAC-SHA1'
-        server_resp['assoc_handle'] = 'handle'
-        server_resp['expires_in'] = '1000'
-        server_resp['session_type'] = 'DH-SHA1'
+        # Update to predicatable values, we don't need to test server implementation
+        sess.dh.__dict__.update({
+            'generator': 2,
+            'modulus': 155172898181473697471232257763715539915724801966915404479707795314057629378541917580651227423698188993727816152646631438561595825688188889951272158842675419950341258706556549803580104870537681476726513255747040765857479291291572334510643245094715007229621094194349783925984760375594985848253359305585439638443,
+            'private': 126711330346638818413185314607323328440249044939093367341709697885270109252062150705850448574632531951284272220717033495463270445787160903870419502807949843952972401800260674036844375831162460893125215028686746173200343317756593951895946222096220729935912958283407058549768824948320551518281925780854490478757,
+            'public': 61939986309620003692127009575126578837756635127190161758785900189836107480644504682970374032956588831023442047858856773401858972905564850232001765924840660429731688280767034223334320886143073515491698974349792422172901308097445194441607035980943036176812117975924682316467383068443084176904644018521558803791,
+        })
+        message.setArg(OPENID_NS, 'dh_consumer_public', 'WDSZk0kxTcD6Hak5H/7R/mEBMcE6YMmPN9kXHBWDtHhSGb35J6ud5nKy+Ug76sxukvmaUEBTK4nFl1UvVNx1m80IFGLNSLer28OzJ7f44RhUAqlmkwVJVTYOEwTVslLTU2BRCQz1zHj3MJeFgcdy5t/oLHYqcUtMCTALnFlo5U8=')
+        server_resp = {
+            'dh_server_public': b'AIw2FVT4ara9QNk55/QKkTx6xqbsr6YF8WQGgZdapd/+3V0y2UAUrcnOuueHPAnEo1XR/n+lnqwzW0MfbjchNodiscNkyGJDWpYRhKmCPAOpGpd11qXvSkCySrO6wETBddtPbosQOa1o/pnJ7xKx8/0aQ5a3cBJjtZVyLwQNzi+W',
+            'enc_mac_key': b'iypdEVSuyrRYj3liUZdUtk7jrt0=',
+            'assoc_type': 'HMAC-SHA1',
+            'assoc_handle': 'handle',
+            'expires_in': '1000',
+            'session_type': 'DH-SHA1',
+        }
         return sess, Message.fromOpenIDArgs(server_resp)
 
     def test_success(self):
