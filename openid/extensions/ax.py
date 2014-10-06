@@ -13,7 +13,6 @@ __all__ = [
     ]
 
 from openid import extension
-from openid.server.trustroot import TrustRoot
 from openid.message import NamespaceMap, OPENID_NS
 
 # Use this as the 'count' value for an attribute in a FetchRequest to
@@ -284,52 +283,6 @@ class FetchRequest(AXMessage):
                 required.append(type_uri)
 
         return required
-
-    def fromOpenIDRequest(cls, openid_request):
-        """Extract a FetchRequest from an OpenID message
-
-        @param openid_request: The OpenID authentication request
-            containing the attribute fetch request
-        @type openid_request: C{L{openid.server.server.CheckIDRequest}}
-
-        @rtype: C{L{FetchRequest}} or C{None}
-        @returns: The FetchRequest extracted from the message or None, if
-            the message contained no AX extension.
-
-        @raises KeyError: if the AuthRequest is not consistent in its use
-            of namespace aliases.
-
-        @raises AXError: When parseExtensionArgs would raise same.
-
-        @see: L{parseExtensionArgs}
-        """
-        message = openid_request.message
-        ax_args = message.getArgs(cls.ns_uri)
-        self = cls()
-        try:
-            self.parseExtensionArgs(ax_args)
-        except NotAXMessage as err:
-            return None
-
-        if self.update_url:
-            # Update URL must match the openid.realm of the underlying
-            # OpenID 2 message.
-            realm = message.getArg(OPENID_NS, 'realm',
-                                   message.getArg(OPENID_NS, 'return_to'))
-
-            if not realm:
-                raise AXError(("Cannot validate update_url %r " +
-                               "against absent realm") % (self.update_url,))
-
-            tr = TrustRoot.parse(realm)
-            if not tr.validateURL(self.update_url):
-                raise AXError(
-                    "Update URL %r failed validation against realm %r" %
-                    (self.update_url, realm,))
-
-        return self
-
-    fromOpenIDRequest = classmethod(fromOpenIDRequest)
 
     def parseExtensionArgs(self, ax_args):
         """Given attribute exchange arguments, populate this FetchRequest.
