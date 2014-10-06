@@ -33,7 +33,6 @@ def pyUnitTests():
     return a suite.
     """
     test_module_names = [
-        'server',
         'consumer',
         'message',
         'symbol',
@@ -44,7 +43,6 @@ def pyUnitTests():
         'negotiation',
         'sreg',
         'ax',
-        'rpverify',
         'extension',
         'yadis',
         'fetchers',
@@ -66,7 +64,6 @@ def pyUnitTests():
         'storetest',
         'test_association',
         'test_nonce',
-        'trustroot',
         ]
 
     loader = unittest.TestLoader()
