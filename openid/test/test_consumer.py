@@ -18,8 +18,6 @@ from openid.consumer import AuthRequest, Response, \
      makeKVPost, NONCE_ARG, AuthenticationError, SetupNeeded, \
      validate_fields, validate_return_to
 from openid import association
-from openid.server.server import \
-     PlainTextServerSession, DiffieHellmanSHA1ServerSession
 from openid.dh import DiffieHellman
 from openid import fetchers
 from openid.store import memstore
@@ -61,16 +59,11 @@ def associate(qs, assoc_secret, assoc_handle):
         'expires_in': '600',
         }
 
-    if q.get('openid.session_type') == 'DH-SHA1':
-        assert len(q) == 6 or len(q) == 4
-        message = Message.fromPostArgs(q)
-        session = DiffieHellmanSHA1ServerSession.fromMessage(message)
-        reply_dict['session_type'] = 'DH-SHA1'
-    else:
-        assert len(q) == 2
-        session = PlainTextServerSession.fromQuery(q)
-
-    reply_dict.update(session.answer(assoc_secret))
+    assert q.get('openid.session_type') == 'DH-SHA1'
+    assert len(q) == 6 or len(q) == 4
+    reply_dict['session_type'] = 'DH-SHA1'
+    session_answer = {'dh_server_public': b'BPO9HA==', 'enc_mac_key': b'GDLS57xsQHrez41tLAxbVIrpQTk='}
+    reply_dict.update(session_answer)
     return kvform.dictToKV(reply_dict)
 
 
