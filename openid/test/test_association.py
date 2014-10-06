@@ -24,11 +24,6 @@ class AssociationSerializationTest(unittest.TestCase):
         self.assertEqual(assoc.lifetime, assoc2.lifetime)
         self.assertEqual(assoc.assoc_type, assoc2.assoc_type)
 
-from openid.server.server import \
-     DiffieHellmanSHA1ServerSession, \
-     DiffieHellmanSHA256ServerSession, \
-     PlainTextServerSession
-
 from openid.consumer import \
      DiffieHellmanSHA1ConsumerSession, \
      DiffieHellmanSHA256ConsumerSession, \
@@ -40,42 +35,6 @@ from openid.dh import DiffieHellman
 def createNonstandardConsumerDH():
     nonstandard_dh = DiffieHellman(1315291, 2)
     return DiffieHellmanSHA1ConsumerSession(nonstandard_dh)
-
-
-class DiffieHellmanSessionTest(datadriven.DataDrivenTestCase):
-    secrets = [
-        '\x00' * 20,
-        '\xff' * 20,
-        ' ' * 20,
-        'This is a secret....',
-        ]
-
-    session_factories = [
-        (DiffieHellmanSHA1ConsumerSession, DiffieHellmanSHA1ServerSession),
-        (createNonstandardConsumerDH, DiffieHellmanSHA1ServerSession),
-        (PlainTextConsumerSession, PlainTextServerSession),
-        ]
-
-    def generateCases(cls):
-        return [(c, s, sec)
-                for c, s in cls.session_factories
-                for sec in cls.secrets]
-
-    generateCases = classmethod(generateCases)
-
-    def __init__(self, csess_fact, ssess_fact, secret):
-        datadriven.DataDrivenTestCase.__init__(self, csess_fact.__name__)
-        self.secret = secret
-        self.csess_fact = csess_fact
-        self.ssess_fact = ssess_fact
-
-    def runOneTest(self):
-        csess = self.csess_fact()
-        msg = Message.fromOpenIDArgs(csess.getRequest())
-        ssess = self.ssess_fact.fromMessage(msg)
-        check_secret = csess.extractSecret(
-            Message.fromOpenIDArgs(ssess.answer(self.secret)))
-        self.assertEqual(self.secret, check_secret)
 
 
 class TestMakePairs(unittest.TestCase):
