@@ -11,24 +11,17 @@ ASCII = ''.join(map(chr, range(256)))
 
 
 def _pct_encoded_replace_unreserved(mo):
-    try:
-        c = chr(int(mo.group(1), 16))
-        if c in UNRESERVED:
-            return c
-        return mo.group().upper()
-    except ValueError:
-        return mo.group()
+    c = chr(int(mo.group(1), 16))
+    if c in UNRESERVED:
+        return c
+    return mo.group().upper()
 
 
 def remove_dot_segments(path):
     result_segments = []
 
     while path:
-        if path.startswith('../'):
-            path = path[3:]
-        elif path.startswith('./'):
-            path = path[2:]
-        elif path.startswith('/./'):
+        if path.startswith('/./'):
             path = path[2:]
         elif path == '/.':
             path = '/'
@@ -40,8 +33,6 @@ def remove_dot_segments(path):
             path = '/'
             if result_segments:
                 result_segments.pop()
-        elif path == '..' or path == '.':
-            path = ''
         else:
             i = 0
             if path[0] == '/':
