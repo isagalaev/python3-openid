@@ -202,6 +202,12 @@ class Service(unittest.TestCase):
         endpoint = discover.Service()
         self.assertEqual(endpoint.identity(), None)
 
+    def test_repr(self):
+        service = discover.Service([discover.OPENID_2_0_TYPE], 'server', 'claimd_id', 'local_id')
+        self.assertIn('server', repr(service))
+        self.assertIn('claimed_id', repr(service))
+        self.assertIn('local_id', repr(service))
+
 
 @support.gentests
 class TestDiscoverFunction(unittest.TestCase):
