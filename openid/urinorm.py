@@ -4,7 +4,6 @@ import urllib.parse
 
 ILLEGAL_CHAR_RE = re.compile("[^-A-Za-z0-9:/?#[\]@!$&'()*+,;=._~%]", re.UNICODE)
 HOST_PORT_RE = re.compile(r'^[A-Za-z0-9\.]+(:\d+)?(/|$)')
-AUTHORITY_RE = re.compile(r'^([^@]*@)?([^:]*)(:.*)?')
 PCT_ENCODED_RE = re.compile(r'%([0-9A-Fa-f]{2})')
 UNRESERVED = '-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 ASCII = ''.join(map(chr, range(256)))
@@ -67,9 +66,6 @@ def urinorm(uri):
         scheme = 'http'
     if not authority or scheme not in ('http', 'https'):
         raise ValueError('Not an absolute HTTP or HTTPS URI: %s' % uri)
-
-    if not AUTHORITY_RE.match(authority):
-        raise ValueError('URI does not have a valid authority: %s' % uri)
 
     # This should've been simply authority.encode(..).decode(..) but idna breaks on
     # anythong starting with '.' so we have to encode it in chunks
