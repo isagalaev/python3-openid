@@ -48,8 +48,11 @@ class Discovery(unittest.TestCase):
         self.assertFalse(services)
 
     def test_yadisEmpty(self):
-        services = discover.discoverall('http://unittest/yadis_0entries.xrds')
+        url = 'http://unittest/yadis_0entries.xrds'
+        services = discover.discoverall(url)
         self.assertFalse(services)
+        self.assertRaises(discover.DiscoveryFailure, discover.discover, url)
+
 
     def test_html_yadis_empty(self):
         # The HTML document contains OpenID links but also refers to an empty Yadis
